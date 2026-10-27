@@ -484,7 +484,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div class="row" style="margin:0"><button class="btn goldb" id="bStoryCont" hidden>Continue campaign</button><button class="btn go" id="bStoryNew">New campaign</button></div>
     </div>
     <div class="chal-card px-box">
-    <div class="chal-head"><span class="label">Challenge</span><b>Hold the Gate</b><span class="hint">Pick a difficulty and a map, then survive 50 rounds. Clear every map to unlock the next difficulty.</span></div>
+    <div class="chal-head"><span class="label">Challenge</span><b>Hold the Gate</b><span class="hint">Pick a difficulty and a map, then survive 50 rounds. Clear every map to unlock the next difficulty.</span><button class="btn goldb" id="bChalCont" hidden style="margin-top:8px"></button></div>
     <div class="menu-grid" style="margin-top:10px">
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
@@ -617,7 +617,7 @@ function txtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`${RMARK[k]}${fmt(
 // ---------- storage ----------
 const RAW={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 // ---------- player profiles: every profile keeps its own progress, scores, story save and name ----------
-const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
+const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-chal","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
 const PCOLS=["#3d7f44","#3a8fc2","#cf463d","#7a4fc7","#d99a1c","#2f8f80"],PROF_MAX=6;
 const newPid=()=>Math.random().toString(36).slice(2,8);
 let PROF=RAW.get("fot-profiles",null);
@@ -741,7 +741,7 @@ function newGame(d,m,opt){
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
     cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}},
     free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},unlocked:{},woodMul:1,env:null,cam:{x:0,y:0,z:1}};
-  G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
+  G.noSave=!!(opt&&opt.guide);G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
   sel=null;buildType=null;ghost=null;bgDirty=true;
   cv.width=(map.cols+2)*T;cv.height=(map.rows+2)*T;
   renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);
@@ -870,7 +870,31 @@ function endRound(){
   if(r>=50){finish(true);return}
   G.phase="cards";offerCards(r===25);
 }
-function afterCard(){if(G.story){G.phase="story";renderInfo();return}G.phase="countdown";G.timer=30;announceNext();renderInfo()}
+function afterCard(){if(G.story){G.phase="story";renderInfo();return}G.phase="countdown";G.timer=30;announceNext();renderInfo();saveChal()}
+// ---------- challenge save: taken between rounds, so a loaded game always continues with the next round ----------
+function saveChal(){
+  if(!G||G.story||G.over||G.noSave||G.phase!=="countdown")return; // the How-to-play game never replaces a real save
+  LS.set("fot-chal",{v:1,d:G.d,m:G.m,round:G.round,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,
+    towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),at:Date.now()});
+  renderChalCont();
+}
+function clearChal(){LS.set("fot-chal",null);renderChalCont()}
+function loadChal(){
+  const sv=LS.get("fot-chal",null);if(!sv)return;
+  newGame(sv.d,sv.m,{noGuide:true});
+  Object.assign(G,{round:sv.round,gold:sv.gold,lives:sv.lives,stats:sv.stats,clv:sv.clv||{},cards:sv.cards||[],free:sv.free||{},seen:sv.seen||{},warned:sv.warned||0});
+  for(const t of sv.towers){if(!TOWERS[t.type])continue;const tw={type:t.type,i:t.i,x:t.i%G.map.cols+0.5,y:((t.i/G.map.cols)|0)+0.5,L:t.L,cd:0,spent:C(t.spent),rd:0,total:t.total||0,mt:0,acc:0,flash:0};G.towers.push(tw);G.occ[t.i]=tw}
+  G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
+  recomputeMods();G.phase="countdown";G.timer=G.round>0?30:20;
+  renderCards();renderBuild();renderInfo();updHud(true);announceNext();
+  toast(G.round>0?`Welcome back! Round ${G.round+1} is next.`:"Welcome back!","",true);
+}
+function renderChalCont(){
+  const sv=LS.get("fot-chal",null),b=$("bChalCont");if(!b)return;b.hidden=!sv;
+  if(sv)b.textContent=`▶ Continue: ${DIFFS[sv.d].name} · ${MAPS[sv.m].name} · round ${sv.round+1}`;
+}
+addEventListener("pagehide",saveChal);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)saveChal()});
 
 // ---------- cards ----------
 const typeNames=k=>TOWERS[k].n;
@@ -2223,7 +2247,7 @@ function showStory(){
   $("storyOv").hidden=false;LS.set("fot-intro-seen",true);
 }
 function finish(win){
-  if(G.over)return;G.over=true;SND.play(win?"win":"lose");
+  if(G.over)return;G.over=true;SND.play(win?"win":"lose");if(!G.story)clearChal();
   if(G.story){finishStory(win);return}
   const sc=calcScore(win),s=G.stats,key=mkey(G.d,G.m);
   const entry={score:sc,win,round:G.round,time:Math.round(s.time),kills:s.kills,lives:G.lives,at:Date.now()};
@@ -2310,7 +2334,7 @@ function mapPreview(m,d){
   return c;
 }
 function renderMenu(){
-  $("bStoryCont").hidden=!LS.get("fot-story",null);
+  $("bStoryCont").hidden=!LS.get("fot-story",null);renderChalCont();
   const dt=$("diffTabs");dt.innerHTML="";
   DIFFS.forEach((D,d)=>{const b=document.createElement("button");b.className="tab";const un=diffUnlocked(d);b.disabled=!un;b.setAttribute("aria-pressed",d===menuD);
     const done=MAPS.filter((_,m)=>isCleared(d,m)).length;
@@ -2493,7 +2517,7 @@ $("bInstall").onclick=doInstall;$("bInstallTop").onclick=doInstall;updInstall();
 // ---------- profile picker ----------
 const avHtml=p=>`<span class="av" style="background:${p.col}">${(p.name.trim()[0]||"?").toUpperCase()}</span>`;
 function profSummary(id){const pr=RAW.get(profKey(id,"pk-progress"),{cleared:{}}),n=Object.keys(pr.cleared||{}).length,st=RAW.get(profKey(id,"fot-story"),null);
-  return `${n} map${n===1?"":"s"} cleared`+(st?" · campaign running":"")}
+  return `${n} map${n===1?"":"s"} cleared`+(st?" · campaign running":"")+(RAW.get(profKey(id,"fot-chal"),null)?" · map game saved":"")}
 function saveProf(){RAW.set("fot-profiles",PROF);renderProfBtn()}
 function renderProfBtn(){const p=curProf();$("bProf").innerHTML=avHtml(p)+`<span></span>`;$("bProf").lastChild.textContent=p.name}
 let profArm=null,profEdit=null;
@@ -2536,7 +2560,11 @@ $("sSkip").onclick=()=>SND.skip();
 $("sClose").onclick=()=>{$("soundOv").hidden=true};
 $("bSound").onclick=openSound;$("bSoundM").onclick=()=>{$("setOv").hidden=true;openSound()};
 renderSound();
-$("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;$("menu").hidden=true;newGame(menuD,menuM)};
+let playArm=false;
+$("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;
+  if(LS.get("fot-chal",null)&&!playArm){playArm=true;$("bPlay").textContent="Tap again: replaces your saved game";setTimeout(()=>{playArm=false;$("bPlay").textContent="Play"},3500);return}
+  playArm=false;$("bPlay").textContent="Play";clearChal();$("menu").hidden=true;newGame(menuD,menuM)};
+$("bChalCont").onclick=()=>{$("menu").hidden=true;loadChal()};
 let resetArm=false;
 $("bReset").onclick=()=>{if(!resetArm){resetArm=true;$("bReset").textContent="Click again to erase";setTimeout(()=>{resetArm=false;$("bReset").textContent="Reset progress"},3000);return}
   progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
