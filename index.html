@@ -48,12 +48,17 @@ button:focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 .stat b{font-size:30px;font-variant-numeric:tabular-nums;line-height:1.05}
 .stat small{font-size:16px;color:var(--muted)}
 .stat.gold b{color:#9a6a08}
+
+.stat.rbox b{display:flex;gap:10px;color:var(--ink)}
+.stat.rbox .rv{white-space:nowrap}
+.stat.rbox small{white-space:pre}
+.cst{white-space:nowrap}.cst+.cst{margin-left:.3em}
 .stat.lives b{color:var(--go)}
 .stat.lives.warn{background:#fdecd6}.stat.lives.warn b{color:#c96a12}
 .stat.lives.bad{background:#f9d9d6}.stat.lives.bad b{color:var(--danger)}
 @keyframes livesPulse{50%{box-shadow:0 0 0 4px rgba(207,70,61,.45)}}
 .stat.lives.bad{animation:livesPulse 1.2s steps(2) infinite}
-#next{flex:1 1 420px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding:4px 12px;min-width:0}
+#next{flex:1 1 300px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding:4px 12px;min-width:0}
 #next .cd{font-size:22px;font-weight:400;font-variant-numeric:tabular-nums}
 .nr{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .nrl{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;line-height:1.1;min-width:0;white-space:nowrap}
@@ -79,7 +84,7 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .bt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px 5px;background:var(--panel2);border:2px solid var(--ink);position:relative}
 .bt canvas{width:40px;height:40px;image-rendering:pixelated}
 .bt .nm{font-size:16px;line-height:1}
-.bt .pr{font-size:16px;color:#9a6a08;font-variant-numeric:tabular-nums}
+.bt .pr{display:flex;flex-wrap:wrap;justify-content:center;gap:0 4px;line-height:1.05;font-size:15px;color:#9a6a08;font-variant-numeric:tabular-nums}
 .bt .key{position:absolute;top:1px;left:3px;font-size:14px;color:var(--muted);font-family:var(--f-label)}
 .bt .free{position:absolute;top:-6px;right:-6px;background:var(--rare);color:#fff;font-size:14px;padding:1px 4px;border:2px solid var(--ink)}
 .bt[aria-pressed="true"]{background:var(--gold-soft);outline:3px solid var(--gold);outline-offset:-1px}
@@ -101,6 +106,7 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .pc .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .pc .top b{font-weight:400;font-size:18px;line-height:1.05}
 .coin{display:inline-block;width:.72em;height:.72em;margin-right:.12em;vertical-align:-.04em;background:var(--coin) center/contain no-repeat;image-rendering:pixelated}
+.coin.wood{background-image:var(--wood)}.coin.stone{background-image:var(--stone)}
 .pc .lv{font-size:15px;color:var(--muted);white-space:nowrap}
 .pc .ef{font-size:16px;color:var(--muted);line-height:1.15}
 .lv.max,.lvl.max{color:#fff!important;background:var(--gold);padding:0 5px;border:2px solid var(--ink)}
@@ -188,8 +194,8 @@ h2{font-size:20px}
 #gNeed{margin-top:6px;font-size:17px;color:#9a6a08;padding:2px 6px;background:var(--gold-soft);border-left:4px solid var(--gold)}
 .glow{outline:4px solid var(--gold)!important;outline-offset:1px;animation:glowp 1s steps(2) infinite}
 @keyframes glowp{50%{outline-color:#fff2b0}}
-body.compact #guide{position:absolute;right:8px;top:8px;z-index:6;width:min(320px,48%);padding:6px 8px;margin:0}
-body.compact #guide b{font-size:18px}body.compact #guide p{font-size:14px}body.compact #gNeed{font-size:14px}
+body.compact #guide{position:absolute;right:8px;top:8px;z-index:6;width:min(280px,40%);padding:5px 7px;margin:0;opacity:.96}
+body.compact #guide b{font-size:16px}body.compact #guide p{font-size:13px;line-height:1.15}body.compact #gNeed{font-size:13px}body.compact #guide .btn{padding:2px 8px}
 @media (max-width:980px){
   .menu-grid{grid-template-columns:1fr}
   .card{min-height:0}
@@ -268,8 +274,8 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 
 <div id="app">
   <div id="hud">
-    <div class="stat px-box gold"><span class="label">Gold</span><b id="hGold">0</b><small id="hGpm">+0 / min</small></div>
-    <div class="stat px-box"><span class="label">Round</span><b id="hRound">0/50</b><small id="hDiff">Easy</small></div>
+    <div class="stat px-box gold rbox"><span class="label">Resources</span><b id="hRes"></b><small id="hRate">Mines start with round 1</small></div>
+    <div class="stat px-box"><span class="label">Round</span><b id="hRound">0</b><small id="hDiff">Easy</small></div>
     <div class="stat px-box lives" id="sLives"><span class="label">Lives</span><b id="hLives">20/20</b><small id="hLivesTxt">Holding strong</small></div>
     <div class="stat px-box time"><span class="label">Time</span><b id="hTime">0:00</b><small id="hKills">0 kills</small></div>
     <div id="next" class="px-box">
@@ -313,7 +319,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 <div class="ov" id="menu">
   <div class="modal px-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
-      <div><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns, hold the gate for 50 rounds. Clear every map to unlock the next difficulty.</div></div>
+      <div><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Clear every map to unlock the next difficulty.</div></div>
       <button class="btn" id="bResume" hidden>Back to game</button>
     </div>
     <div class="menu-grid">
@@ -321,7 +327,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
         <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button><button class="btn" id="bStyle">Stylebook</button><button class="btn" id="bReset">Reset progress</button></div>
-        <p class="how">Every 3rd round brings mini-bosses (2 lives), every 10th a boss (3–4 lives), rounds 25 and 50 a giant boss (5 lives). Every 7th round flies over your maze, so keep some anti-air ready. Beating round 25 grants a rare card.</p>
+        <p class="how">Towers cost gold plus wood or stone. Build Gold Mines, Lumber Camps and Quarries on the matching resource tiles; slimes drop almost nothing. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. How long the swarm lasts? Nobody knows.</p>
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
         <h3>Ranking <span class="label" id="lbFor"></span></h3>
@@ -332,6 +338,15 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   </div>
 </div>
 
+<div class="ov" id="storyOv" hidden>
+  <div class="modal px-box" style="max-width:560px;background:#fffdf4">
+    <span class="label" id="stChap"></span>
+    <h2 id="stTitle" style="font-family:var(--f-ui);font-weight:400;font-size:34px;margin:2px 0 8px"></h2>
+    <p class="hint" id="stIntro" style="font-size:19px;color:var(--ink);margin:0 0 10px"></p>
+    <p class="hint" id="stBody" style="font-size:19px;margin:0"></p>
+    <div class="row"><button class="btn go" id="stGo" style="font-size:19px;padding:8px 20px">Begin</button></div>
+  </div>
+</div>
 <div class="ov" id="cardsOv" hidden>
   <div class="modal px-box">
     <h2 id="cardsTitle">Round cleared — pick a card</h2>
@@ -358,11 +373,11 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 // ---------- constants ----------
 const T=48, U=T/16;
 const DIFFS=[
-  {name:"Easy",hp:1.00,gold:300},
-  {name:"Normal",hp:1.30,gold:290},
-  {name:"Hard",hp:1.70,gold:280},
-  {name:"Expert",hp:2.20,gold:270},
-  {name:"Nightmare",hp:2.90,gold:260},
+  {name:"Easy",hp:1.00,start:{g:260,w:150,s:70}},
+  {name:"Normal",hp:1.30,start:{g:210,w:110,s:55}},
+  {name:"Hard",hp:1.70,start:{g:200,w:100,s:50}},
+  {name:"Expert",hp:2.20,start:{g:190,w:95,s:45}},
+  {name:"Nightmare",hp:2.90,start:{g:180,w:90,s:40}},
 ];
 const MAPS=[
   {name:"Meadow",cols:20,rows:12,desc:"Open grass, no obstacles"},
@@ -371,39 +386,60 @@ const MAPS=[
   {name:"Highlands",cols:26,rows:15,desc:"River, rocks, more exits"},
 ];
 const TOWERS={
-  arrow:{n:"Arrow",key:"1",cost:50,dmg:12,rate:1.2,range:2.2,rg:0.18,tg:"ga",kind:"Single",desc:"Cheap all-rounder. Hits ground and air."},
-  gatling:{n:"Gatling",key:"2",cost:80,dmg:5,rate:5,range:2.0,rg:0.15,tg:"g",kind:"Single",desc:"Very fast shots at ground units."},
-  sniper:{n:"Sniper",key:"3",cost:120,dmg:62,rate:0.4,range:4.0,rg:0.45,tg:"ga",kind:"Single",desc:"Huge range, slow heavy shots."},
-  frost:{n:"Frost",key:"4",cost:70,dmg:4,rate:1.0,range:2.0,rg:0.15,tg:"ga",kind:"Single",slow:0.35,desc:"Slows its target for 2 s."},
-  tesla:{n:"Tesla",key:"5",cost:110,dmg:18,rate:0.9,range:2.0,rg:0.15,tg:"ga",kind:"Chain",chain:3,desc:"Lightning jumps between enemies."},
-  mortar:{n:"Mortar",key:"6",cost:100,dmg:22,rate:0.55,range:1.8,rg:0.13,tg:"g",kind:"AOE",splash:1.1,desc:"Shells splash a group on the ground."},
-  fire:{n:"Fire",key:"7",cost:90,dmg:9,rate:2,range:1.3,rg:0.08,tg:"g",kind:"AOE",desc:"Burns every ground enemy around it."},
-  flak:{n:"Flak",key:"8",cost:70,dmg:15,rate:1.6,range:2.4,rg:0.17,tg:"a",kind:"Air",splash:0.8,desc:"Air only. Bursts hit nearby flyers."},
-  hawk:{n:"Hawk",key:"9",cost:100,dmg:46,rate:0.7,range:2.8,rg:0.22,tg:"a",kind:"Air",desc:"Air only. Homing missiles."},
-  market:{n:"Market",key:"G",cost:150,eco:true,desc:"Pays gold every minute."},
-  fence:{n:"Thorns",key:"T",cost:8,dmg:1,rate:1.5,range:1.05,rg:0.03,tg:"g",kind:"Maze + AOE",thorn:true,desc:"Blocks the path and scratches every ground enemy next to it. Weak at first, but each upgrade multiplies its damage."},
+  arrow:{n:"Arrow",key:"1",cost:{g:30,w:20},dmg:12,rate:1.2,range:2.2,rg:0.18,tg:"ga",kind:"Single",desc:"Cheap all-rounder. Hits ground and air."},
+  gatling:{n:"Gatling",key:"2",cost:{g:50,w:30},dmg:5,rate:5,range:2.0,rg:0.15,tg:"g",kind:"Single",desc:"Very fast shots at ground units."},
+  sniper:{n:"Sniper",key:"3",cost:{g:70,s:40},dmg:62,rate:0.4,range:4.0,rg:0.45,tg:"ga",kind:"Single",desc:"Huge range, slow heavy shots."},
+  frost:{n:"Frost",key:"4",cost:{g:40,s:30},dmg:4,rate:1.0,range:2.0,rg:0.15,tg:"ga",kind:"Single",slow:0.35,desc:"Slows its target for 2 s."},
+  tesla:{n:"Tesla",key:"5",cost:{g:70,s:40},dmg:18,rate:0.9,range:2.0,rg:0.15,tg:"ga",kind:"Chain",chain:3,desc:"Lightning jumps between enemies."},
+  mortar:{n:"Mortar",key:"6",cost:{g:60,s:40},dmg:22,rate:0.55,range:1.8,rg:0.13,tg:"g",kind:"AOE",splash:1.1,desc:"Shells splash a group on the ground."},
+  fire:{n:"Fire",key:"7",cost:{g:50,s:30},dmg:9,rate:2,range:1.3,rg:0.08,tg:"g",kind:"AOE",desc:"Burns every ground enemy around it."},
+  flak:{n:"Flak",key:"8",cost:{g:40,w:30},dmg:15,rate:1.6,range:2.4,rg:0.17,tg:"a",kind:"Air",splash:0.8,desc:"Air only. Bursts hit nearby flyers."},
+  hawk:{n:"Hawk",key:"9",cost:{g:60,w:40},dmg:46,rate:0.7,range:2.8,rg:0.22,tg:"a",kind:"Air",desc:"Air only. Homing missiles."},
+  mine:{n:"Gold Mine",key:"G",cost:{g:60,w:20},eco:true,prod:"g",node:4,rate:1.5,rg:0.6,desc:"Digs gold every second. Builds only on a glittering gold vein."},
+  lumber:{n:"Lumber Camp",key:"L",cost:{g:40},eco:true,prod:"w",node:5,rate:1.2,rg:0.5,desc:"Cuts wood every second. Builds only on a pine grove."},
+  quarry:{n:"Quarry",key:"Q",cost:{g:50,w:20},eco:true,prod:"s",node:6,rate:0.8,rg:0.35,desc:"Breaks stone every second. Builds only on a stone outcrop."},
+  fence:{n:"Thorns",key:"T",cost:{w:6},dmg:1,rate:1.5,range:1.05,rg:0.03,tg:"g",kind:"Maze + AOE",thorn:true,desc:"Blocks the path and scratches every ground enemy next to it. Weak at first, but each upgrade multiplies its damage."},
 };
-const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","market","fence"];
+const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","fence","mine","lumber","quarry"];
 const COMBAT=ORDER.filter(k=>!TOWERS[k].eco); // includes Thorns for Mastery cards
 const TGTXT={g:"Ground",a:"Air",ga:"Ground + Air"};
 
-// ---------- gold coin (8x8 pixel sprite) ----------
-const COIN_PX=["..OOOO..",".OYYYYO.","OYHHYYYO","OYHYYYSO","OYYYYYSO","OYYYYSSO",".OYSSSO.","..OOOO.."];
-const COIN_COL={O:"#8a5a08",Y:"#f4c84a",H:"#fff2b0",S:"#d99a1c"};
-const COIN='<i class="coin" aria-hidden="true"></i>';
-(()=>{let r="";COIN_PX.forEach((row,y)=>[...row].forEach((ch,x)=>{if(COIN_COL[ch])r+=`<rect x='${x}' y='${y}' width='1' height='1' fill='${COIN_COL[ch]}'/>`}));
+// ---------- resource icons (8x8 pixel sprites shared by CSS and canvas) ----------
+const ICONS={
+  coin:{px:["..OOOO..",".OYYYYO.","OYHHYYYO","OYHYYYSO","OYYYYYSO","OYYYYSSO",".OYSSSO.","..OOOO.."],col:{O:"#8a5a08",Y:"#f4c84a",H:"#fff2b0",S:"#d99a1c"}},
+  wood:{px:["........",".OOOOOO.","OBBBBBRO","OLLLLLRO","OLLLLLRO","OBBBBBRO",".OOOOOO.","........"],col:{O:"#5a3a1a",B:"#8a5a30",L:"#c48a52",R:"#ead2a0"}},
+  stone:{px:["........","..OOOO..",".OHHGGO.","OHGGGGSO","OGGGGGSO","OGGGGSSO",".OOOOOO.","........"],col:{O:"#4a5250",H:"#e1e6e4",G:"#a9b1b0",S:"#7c8586"}},
+};
+const COIN='<i class="coin" aria-hidden="true"></i>',WOOD='<i class="coin wood" aria-hidden="true"></i>',STONE='<i class="coin stone" aria-hidden="true"></i>';
+(()=>{for(const name in ICONS){const {px,col}=ICONS[name];let r="";px.forEach((row,y)=>[...row].forEach((ch,x)=>{if(col[ch])r+=`<rect x='${x}' y='${y}' width='1' height='1' fill='${col[ch]}'/>`}));
   const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'>${r}</svg>`;
-  document.documentElement.style.setProperty("--coin",`url("data:image/svg+xml,${encodeURIComponent(svg)}")`)})();
-function drawCoin(c,x,y,size){const u=size/8;COIN_PX.forEach((row,yy)=>[...row].forEach((ch,xx)=>{const col=COIN_COL[ch];if(col){c.fillStyle=col;c.fillRect(Math.round(x+xx*u),Math.round(y+yy*u),Math.ceil(u),Math.ceil(u))}}))}
-// centred canvas text where "¤" is drawn as a coin
+  document.documentElement.style.setProperty("--"+name,`url("data:image/svg+xml,${encodeURIComponent(svg)}")`)}})();
+function drawIcon(c,name,x,y,size){const {px,col}=ICONS[name],u=size/8;px.forEach((row,yy)=>[...row].forEach((ch,xx)=>{const k=col[ch];if(k){c.fillStyle=k;c.fillRect(Math.round(x+xx*u),Math.round(y+yy*u),Math.ceil(u),Math.ceil(u))}}))}
+function drawCoin(c,x,y,size){drawIcon(c,"coin",x,y,size)}
+// centred canvas text: "¤" draws a coin, "‡" a log of wood, "†" a stone
+const MARK={"¤":"coin","‡":"wood","†":"stone"};
 function richText(c,str,x,y,px,fill,stroke){
-  const parts=String(str).split("¤"),cw=px*0.72,gap=px*0.06;let w=0;
-  parts.forEach((p,i)=>{w+=c.measureText(p).width;if(i<parts.length-1)w+=cw+gap*2});
+  const parts=String(str).split(/([¤‡†])/),cw=px*0.72,gap=px*0.06;let w=0;
+  parts.forEach(p=>{w+=MARK[p]?cw+gap*2:c.measureText(p).width});
   let cx=x-w/2;c.textAlign="left";
-  parts.forEach((p,i)=>{if(stroke)c.strokeText(p,cx,y);c.fillStyle=fill;c.fillText(p,cx,y);cx+=c.measureText(p).width;
-    if(i<parts.length-1){cx+=gap;drawCoin(c,cx,y-cw*0.55,cw);cx+=cw+gap}});
+  parts.forEach(p=>{if(MARK[p]){cx+=gap;drawIcon(c,MARK[p],cx,y-cw*0.55,cw);cx+=cw+gap;return}
+    if(stroke)c.strokeText(p,cx,y);c.fillStyle=fill;c.fillText(p,cx,y);cx+=c.measureText(p).width});
   c.textAlign="center";
 }
+// ---------- resources: g = gold, w = wood, s = stone ----------
+const RKEY={g:"gold",w:"wood",s:"stone"},RNAME={g:"Gold",w:"Wood",s:"Stone"},RHTML={g:COIN,w:WOOD,s:STONE},RMARK={g:"¤",w:"‡",s:"†"};
+const C=o=>({g:(o&&o.g)||0,w:(o&&o.w)||0,s:(o&&o.s)||0});
+const addC=(a,b)=>({g:a.g+b.g,w:a.w+b.w,s:a.s+b.s});
+const scaleC=(a,f)=>({g:Math.round(a.g*f),w:Math.round(a.w*f),s:Math.round(a.s*f)});
+const floorC=(a,f)=>({g:Math.floor(a.g*f),w:Math.floor(a.w*f),s:Math.floor(a.s*f)});
+const zeroC=a=>!a.g&&!a.w&&!a.s;
+function have(){return{g:G.gold,w:G.wood,s:G.stone}}
+function afford(c,extra){const h=extra?addC(have(),extra):have();return h.g>=c.g&&h.w>=c.w&&h.s>=c.s}
+function lacking(c,extra){const h=extra?addC(have(),extra):have();const miss=["g","w","s"].filter(k=>h[k]<c[k]).map(k=>RNAME[k].toLowerCase());return miss.length?`Not enough ${miss.join(" and ")}`:""}
+function pay(c){G.gold-=c.g;G.wood-=c.w;G.stone-=c.s;G.stats.spent+=c.g+c.w+c.s}
+function gain(c){G.gold+=c.g;G.wood+=c.w;G.stone+=c.s;G.stats.earned+=c.g+c.w+c.s}
+function fmtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`<span class="cst">${RHTML[k]}${fmt(c[k])}</span>`);return p.length?p.join(""):"free"}
+function txtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`${RMARK[k]}${fmt(c[k])}`);return p.length?p.join(" "):"free"}
 
 // ---------- storage ----------
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -425,7 +461,7 @@ function spawnPoint(map,g){const x=g.cell%map.cols,y=(g.cell/map.cols)|0;
   if(g.side==="left")return{x:-0.6,y:y+0.5};if(g.side==="top")return{x:x+0.5,y:-0.6};return{x:x+0.5,y:map.rows+0.6}}
 function buildMap(m,d){
   const M=MAPS[m],cols=M.cols,rows=M.rows,N=cols*rows;
-  const ter=new Uint8Array(N); // 0 grass 1 tree 2 water 3 rock
+  const ter=new Uint8Array(N); // 0 grass 1 tree 2 water 3 rock | 4 gold vein 5 pine grove 6 stone outcrop (walkable, build-only for producers)
   const R=rng(1000+m*77);
   const mid=Math.floor(rows/2);
   const gates=spawnSides(m,d).map(s=>s==="left"?{side:s,cell:mid*cols}:s==="top"?{side:s,cell:Math.floor(cols*0.22)}:{side:s,cell:(rows-1)*cols+Math.floor(cols*0.28)});
@@ -458,6 +494,11 @@ function buildMap(m,d){
   map.exitCell=new Int8Array(N).fill(-1);
   exits.forEach((e,k)=>e.cells.forEach(i=>map.exitCell[i]=k));
   map.entSet=new Set(ent);
+  // resource nodes: Meadow has fixed, safe spots for beginners; other maps scatter them (some near the path)
+  const NODES=[[3,2,2],[4,3,2],[4,3,3],[5,3,3]][m];
+  if(m===0){[[3,2,4],[14,2,4],[11,9,4],[4,9,5],[16,9,5],[10,2,6],[15,10,6]].forEach(([x,y,t])=>ter[y*cols+x]=t)}
+  else{const placed=[];const ok=i=>{const x=i%cols,y=(i/cols)|0;return ter[i]===0&&!protect.has(i)&&placed.every(j=>Math.abs(j%cols-x)+Math.abs(((j/cols)|0)-y)>=4)};
+    NODES.forEach((n,k)=>{for(let c=0,g=0;c<n&&g<500;g++){const i=(R()*N)|0;if(ok(i)){ter[i]=4+k;placed.push(i);c++}}})}
   return map;
 }
 function gatePoint(map,k,i){
@@ -473,7 +514,7 @@ function exitCenter(map,k){const e=map.exits[k];return gatePoint(map,k,e.cells[0
 const DIRS=[[1,0,2,1],[-1,0,1,2],[0,1,8,4],[0,-1,4,8]]; // dx,dy, bit on this cell, bit on the next cell (L1 R2 U4 D8)
 function dijkstra(map,occ,extraBlock){
   const {cols,rows,N,ter}=map;
-  const blocked=i=>ter[i]!==0||(occ&&occ[i])||i===extraBlock;
+  const blocked=i=>(ter[i]>=1&&ter[i]<=3)||(occ&&occ[i])||i===extraBlock;
   const dist=new Float64Array(N).fill(1e9),q=new Int32Array(N);let h=0,t=0;
   for(const e of map.exits)for(const i of e.cells)if(!blocked(i)){dist[i]=0;q[t++]=i}
   while(h<t){const i=q[h++],x=i%cols,y=(i/cols)|0;
@@ -487,7 +528,7 @@ function nextCell(map,dist,i,occ,prev){
   const straight=prev>=0?i+(i-prev):-1;
   let best=-1;
   for(const [dx,dy] of DIRS){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=cols||Y>=rows)continue;const j=Y*cols+X;
-    if(ter[j]!==0||(occ&&occ[j]))continue;if(dist[j]>=dist[i])continue;
+    if((ter[j]>=1&&ter[j]<=3)||(occ&&occ[j]))continue;if(dist[j]>=dist[i])continue;
     if(j===straight)return j;if(best<0)best=j}
   return best;
 }
@@ -513,9 +554,9 @@ let bgCanvas=document.createElement("canvas"),bgDirty=true;
 
 function newGame(d,m,opt){
   const map=buildMap(m,d);
-  G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].gold,lives:20,round:0,
+  G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].start.g,wood:DIFFS[d].start.w,stone:DIFFS[d].start.s,lives:20,round:0,
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
-    cards:[],clv:{},mods:{dmg:0,range:0,rate:0,goldKill:0,interest:0,slow:0,market:0,air:0,boss:0,discount:0,type:{}},
+    cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}},
     free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0};
   G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
   sel=null;buildType=null;ghost=null;bgDirty=true;
@@ -523,21 +564,23 @@ function newGame(d,m,opt){
   renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);
   announceNext();
   if(typeof layout==="function")requestAnimationFrame(layout);
+  if(!(opt&&opt.noGuide))showStory();
   const wantGuide=(opt&&opt.guide)||(d===0&&m===0&&!LS.get("fot-guide-done",false)&&!(opt&&opt.noGuide));
   startGuide(wantGuide);
 }
 
 // ---------- beginner guide (Easy · Meadow) ----------
 const GUIDE=[
-  {t:"Welcome to Field of Thorns",b:"Slimes enter at the red IN gate and crawl to the green EXIT. Every slime that gets out costs a life. Survive 50 rounds with at least one of your 20 lives left.",hl:"gates"},
+  {t:"Welcome to Field of Thorns",b:"Slimes enter at the red IN gate and crawl to the green EXIT. Every slime that gets out costs a life. You have 20 lives. Hold out until the swarm is broken.",hl:"gates"},
   {t:"The sand path is their route",b:"Slimes always take the shortest way to the exit. That route is drawn as the sand path. Everything you build blocks its tile, and the path bends around it. A longer path keeps them in front of your towers for longer. This is the heart of the game.",hl:"path"},
-  {t:"Grow a thorn wall",b:"Pick Thorns and place them on the marked tiles across the path. Watch the path move around them. You can never close the way completely: the game stops you if a tile would block the last route.",hl:"thorns",glow:'#build .bt[data-t="fence"]',need:()=>{const n=G.towers.filter(t=>t.type==="fence").length;return n>=4?null:`Place 4 Thorns (${n}/4)`}},
+  {t:"Grow a thorn wall",b:"Thorns cost a little wood. Pick Thorns and place them on the marked tiles across the path. Watch the path move around them. You can never close the way completely: the game stops you if a tile would block the last route.",hl:"thorns",glow:'#build .bt[data-t="fence"]',need:()=>{const n=G.towers.filter(t=>t.type==="fence").length;return n>=4?null:`Place 4 Thorns (${n}/4)`}},
   {t:"See the detour?",b:"The path now runs around your wall, so it got longer. Thorns also scratch slimes that walk right past them, and every upgrade multiplies that damage. Weak now, deadly later.",hl:"path"},
-  {t:"Build an Arrow tower",b:"Pick Arrow and place it next to the path, close to the bend. While you aim, the circle shows how far it shoots and the line shows the new path.",glow:'#build .bt[data-t="arrow"]',need:()=>G.towers.some(t=>t.type==="arrow")?null:"Place an Arrow tower"},
-  {t:"Add a second tower",b:"One tower is not enough for 25 slimes. Place another Arrow, or a Frost tower to slow them down.",need:()=>G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length>=2?null:"Place a second tower"},
+  {t:"Claim the gold vein",b:"Slimes drop almost nothing. Your gold comes from Gold Mines, which only fit on glittering gold veins. Pine groves take Lumber Camps (wood) and stone outcrops take Quarries (stone). They all produce every second once round 1 starts.",hl:"vein",glow:'#build .bt[data-t="mine"]',need:()=>G.towers.some(t=>t.type==="mine")?null:"Build a Gold Mine on a gold vein"},
+  {t:"Build an Arrow tower",b:"Pick Arrow and place it on one of the marked tiles right next to the path. While you aim, the circle shows how far it shoots.",hl:"arrow",glow:'#build .bt[data-t="arrow"]',need:()=>G.towers.some(t=>t.type==="arrow")?null:"Place an Arrow tower"},
+  {t:"Add two more towers",b:"One tower is not enough for 25 slimes. Fill the other marked tiles with Arrows, or use a Frost tower to slow them down.",hl:"arrow",need:()=>{const n=G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length;return n>=3?null:`Place 3 towers next to the path (${n}/3)`}},
   {t:"Check your tower",b:"Select a tower to see its damage now and after the next upgrade. Upgrades add damage and range. Purple numbers come from your bonus cards.",need:()=>sel&&sel.type!=="fence"?null:"Select one of your towers"},
   {t:"Start round 1",b:"Ready? Press Start. Round 1 waits for you; later rounds start on their own after 30 seconds, and starting early pays bonus gold.",glow:"#bStart",need:()=>G.round>=1?null:"Press Start"},
-  {t:"Hold the line",b:"Kills pay gold, and you can keep building during the wave. If slimes slip through, add towers near the end of the path.",need:()=>G.round>=1&&G.phase!=="wave"?null:"Survive round 1"},
+  {t:"Hold the line",b:"Your mines are working now, and you can keep building during the wave. Bosses drop treasure chests. If slimes slip through, add towers near the end of the path.",need:()=>G.round>=1&&G.phase!=="wave"?null:"Survive round 1"},
   {t:"You're ready",b:"After each round you pick a bonus card. Picking the same card again levels it up. Watch the top bar: flyers come every 7th round and ignore your maze, so build Flak or Hawk in time. Bosses cost several lives. Good luck!"},
 ];
 function startGuide(on){G.guide=on?{i:0}:null;renderGuide()}
@@ -550,12 +593,20 @@ function renderGuide(){
   $("gNeed").textContent=need||"";$("gNeed").hidden=!need;
   $("gNext").hidden=!!need;$("gNext").textContent=G.guide.i===GUIDE.length-1?"Let's play":"Next";
   if(st.glow&&need){const e=document.querySelector(st.glow);if(e)e.classList.add("glow")}
-  G.guide.key=G.guide.i+"|"+need;
+  G.guide.key=G.guide.i+"|"+need;G.guide.need=!!need;
 }
 function guideTick(){const st=guideStep();if(!st)return;const need=st.need?st.need():null;
   if(G.guide.key!==G.guide.i+"|"+need){if(st.need&&!need&&!G.guide.done){G.guide.done=true;setTimeout(()=>{if(G.guide){G.guide.done=false;guideNext()}},700)}renderGuide()}}
 function guideNext(){if(!G.guide)return;if(G.guide.i>=GUIDE.length-1){endGuide();return}G.guide.i++;renderGuide()}
 function endGuide(){LS.set("fot-guide-done",true);G.guide=null;renderGuide()}
+// grass tiles right beside the path near the thorn wall: good first tower spots
+function guideArrowTiles(){
+  const m=G.map,cx=7.5,cy=m.mid,out=[];
+  for(let i=0;i<m.N;i++){if(m.ter[i]!==0||G.occ[i]||G.path.has(i)||m.entSet.has(i)||m.exitCell[i]>=0)continue;
+    const x=i%m.cols,y=(i/m.cols)|0;let adj=0;for(const [dx,dy] of DIRS){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<m.cols&&Y<m.rows&&G.path.has(Y*m.cols+X))adj++}
+    if(adj)out.push({i,d:Math.hypot(x+0.5-cx,y+0.5-cy)-adj*0.6})}
+  return out.sort((a,b)=>a.d-b.d).slice(0,3).map(o=>o.i);
+}
 function guideTiles(){const m=G.map,x=7,out=[];for(let y=m.mid-2;y<=m.mid+1;y++)out.push(y*m.cols+x);return out}
 
 // ---------- rounds ----------
@@ -563,24 +614,24 @@ function roundType(r){
   return{fly:r%7===0,big:r===25||r===50,boss:r%10===0&&r!==50,mini:r%3===0&&!(r%10===0)&&r!==25&&r!==50};
 }
 function roundCount(r){return 25+Math.round((r-1)*250/49)}
-function baseHp(r){return 24*Math.pow(1+0.075*(r-1),1.72)*DIFFS[G.d].hp}
+function baseHp(r){return 20*Math.pow(1+0.08*(r-1),1.75)*DIFFS[G.d].hp}
 function tierColor(r){return r<10?["#7cc957","#4f9a3a"]:r<20?["#5cc7b5","#2f8f80"]:r<30?["#6a9be0","#3f6cb0"]:r<40?["#b27ddc","#7d4fae"]:["#e0707a","#ab3f4a"]}
 function describeRound(r){
   const t=roundType(r),n=roundCount(r),parts=[];
   parts.push(`${n} ${t.fly?"flyers":"enemies"}`);
   if(t.mini)parts.push(`${1+Math.floor(r/15)} mini-boss`);
   if(t.boss)parts.push("boss");
-  if(t.big)parts.push("GIANT BOSS");
+  if(t.big)parts.push(r===50?"THE SLIME QUEEN":"the Bog Tyrant");
   return parts.join(" + ");
 }
 function shortRound(r){const t=roundType(r),p=[`R${r} · ${roundCount(r)}${t.fly?" flying":""}`];
   if(t.mini)p.push(`${1+Math.floor(r/15)} mini`);if(t.boss)p.push("boss");if(t.big)p.push("GIANT");return p.join(" + ")}
-function tagFor(r){const t=roundType(r);if(t.big)return["Giant boss","danger"];if(t.boss)return["Boss","danger"];if(t.fly&&t.mini)return["Flying + mini-boss","air"];if(t.fly)return["Flying","air"];if(t.mini)return["Mini-boss","danger"];return["Ground",""]}
+function tagFor(r){const t=roundType(r);if(t.big)return[r===50?"The Queen":"Giant boss","danger"];if(t.boss)return["Boss","danger"];if(t.fly&&t.mini)return["Flying + mini-boss","air"];if(t.fly)return["Flying","air"];if(t.mini)return["Mini-boss","danger"];return["Ground",""]}
 function announceNext(){
   const r=G.round+1;if(r>50)return;const t=roundType(r);
   if((t.fly||t.boss||t.big||t.mini)&&G.warned!==r){
     G.warned=r;
-    let msg=t.big?"Next round: GIANT BOSS — costs 5 lives if it escapes":t.boss?"Next round: Boss incoming — costs "+(r>=30?4:3)+" lives if it escapes":t.fly?"Next round: Flying enemies! They ignore your maze — build Air towers":"Next round: Mini-bosses (2 lives each)";
+    let msg=t.big?(r===50?"Next round: THE SLIME QUEEN herself — 5 lives if she escapes":"Next round: the Bog Tyrant — costs 5 lives if it escapes"):t.boss?"Next round: Boss incoming — costs "+(r>=30?4:3)+" lives if it escapes":t.fly?"Next round: Flying enemies! They ignore your maze — build Air towers":"Next round: Mini-bosses (2 lives each)";
     if(t.fly&&t.mini)msg="Next round: Flyers and mini-bosses! Build Air towers";
     toast(msg,t.fly?"air":"boss");
   }
@@ -604,9 +655,9 @@ function startRound(early){
 function earlyBonus(){return Math.floor(G.timer*(1+G.round*0.18))}
 function endRound(){
   const r=G.round;
-  const bonus=15+r*3,interest=Math.floor(G.gold*G.mods.interest);
-  G.gold+=bonus+interest;G.stats.earned+=bonus+interest;
-  floatText(G.map.cols/2,1,`Round ${r} cleared  +¤${bonus+interest}`,"#9a6a08");
+  const bonus=C({g:15+r*3+Math.floor(G.gold*G.mods.interest),w:8+r*2,s:4+r});
+  gain(bonus);
+  floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}`,"#9a6a08");
   if(r>=50){finish(true);return}
   G.phase="cards";offerCards(r===25);
 }
@@ -626,10 +677,12 @@ const CARDS={};
   add({id:"dmg",n:"Sharp Tips",ic:"⚔",mod:{dmg:.10},txt:v=>`+${pct(v.dmg)} damage for all towers`});
   add({id:"range",n:"Eagle Eye",ic:"◎",mod:{range:.04},txt:v=>`+${pct(v.range)} range for all towers`});
   add({id:"rate",n:"Quick Hands",ic:"»",mod:{rate:.10},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
-  add({id:"bounty",n:"Bounty Hunter",ic:"$",mod:{goldKill:.10},txt:v=>`+${pct(v.goldKill)} gold per kill`});
+  add({id:"prosp",n:"Prospector",ic:"$",mod:{mine:.10},txt:v=>`+${pct(v.mine)} gold from Gold Mines`});
+  add({id:"lucky",n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
   add({id:"interest",n:"Savings",ic:"%",mod:{interest:.01},txt:v=>`+${pct(v.interest)} of your gold paid out after every round`});
   add({id:"freeze",n:"Deep Freeze",ic:"❄",mod:{slow:.04},txt:v=>`Frost slows ${pct(v.slow)} more`});
-  add({id:"trade",n:"Trade Route",ic:"⌂",mod:{market:.20},txt:v=>`+${pct(v.market)} market income`});
+  add({id:"sawmill",n:"Sawmill",ic:"≡",mod:{wood:.20},txt:v=>`+${pct(v.wood)} wood from Lumber Camps`});
+  add({id:"stonecut",n:"Stonecutter",ic:"■",mod:{stone:.20},txt:v=>`+${pct(v.stone)} stone from Quarries`});
   add({id:"sky",n:"Skyward",ic:"↑",mod:{air:.10},txt:v=>`+${pct(v.air)} damage against flyers`});
   add({id:"slayer",n:"Giant Slayer",ic:"☠",mod:{boss:.10},txt:v=>`+${pct(v.boss)} damage against bosses`});
   add({id:"bulk",n:"Bulk Deal",ic:"▼",mod:{discount:.03},txt:v=>`Upgrades cost ${pct(v.discount)} less`});
@@ -638,21 +691,22 @@ const CARDS={};
   add({id:"lives",n:"Reinforcements",ic:"♥",once:true,give:L=>{G.lives+=livesAt(2,L)-livesAt(2,L-1)},
     txt:L=>`+${livesAt(2,L)-livesAt(2,L-1)} lives now (total +${livesAt(2,L)})`});
   const chest=L=>Math.round((100+G.round*12)*(1+0.15*(L-1))*(L===CMAX?2:isMile(L)?1.5:1));
-  add({id:"chest",n:"Treasure Chest",ic:"◆",once:true,give:L=>{const g=chest(L);G.gold+=g;G.stats.earned+=g},txt:L=>`+${chest(L)} gold right now`});
+  const chestC=L=>{const g=chest(L);return C({g,w:Math.round(g*0.5),s:Math.round(g*0.3)})};
+  add({id:"chest",n:"Treasure Chest",ic:"◆",once:true,give:L=>gain(chestC(L)),txt:L=>{const c=chestC(L);return `+${c.g} gold, +${c.w} wood, +${c.s} stone right now`}});
   for(const t of ORDER.filter(k=>k!=="fence"))add({id:"free-"+t,n:"Free "+typeNames(t),ic:"+",once:true,give:L=>addFree(t,L===CMAX?3:isMile(L)?2:1),
     txt:L=>L===CMAX?`Your next three ${typeNames(t)} towers cost nothing`:isMile(L)?`Your next two ${typeNames(t)} towers cost nothing`:`Your next ${typeNames(t)} costs nothing`});
   // rare
   add({id:"wrath",n:"Wrath",ic:"⚔",rare:1,mod:{dmg:.20},txt:v=>`+${pct(v.dmg)} damage for all towers`});
   add({id:"overclock",n:"Overclock",ic:"»",rare:1,mod:{rate:.20},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
   add({id:"hawkeye",n:"Hawkeye",ic:"◎",rare:1,mod:{range:.06},txt:v=>`+${pct(v.range)} range for all towers`});
-  add({id:"rush",n:"Gold Rush",ic:"$",rare:1,mod:{goldKill:.20,market:.20},txt:v=>`+${pct(v.goldKill)} gold per kill, +${pct(v.market)} market income`});
+  add({id:"rush",n:"Boom Town",ic:"$",rare:1,mod:{mine:.20,wood:.20,stone:.20},txt:v=>`+${pct(v.mine)} from all mines, camps and quarries`});
   add({id:"fortress",n:"Fortress",ic:"♥",rare:1,once:true,give:L=>{G.lives+=livesAt(4,L)-livesAt(4,L-1)},txt:L=>`+${livesAt(4,L)-livesAt(4,L-1)} lives now (total +${livesAt(4,L)})`});
   add({id:"armory",n:"Armory",ic:"▲",rare:1,once:true,give:L=>{const n=L===CMAX?3:isMile(L)?2:1;addFree("sniper",n);addFree("tesla",n)},txt:L=>{const n=L===CMAX?3:isMile(L)?2:1;return n>1?`${n} free Snipers and ${n} free Teslas`:"A free Sniper and a free Tesla"}});
 })();
 function cardVals(c,L){const v={};for(const k in c.mod)v[k]=c.mod[k]*CURVE[L];return v}
 function cardText(c,L){return c.once?c.txt(L):c.txt(cardVals(c,L))}
 function recomputeMods(){
-  const m={dmg:0,range:0,rate:0,goldKill:0,interest:0,slow:0,market:0,air:0,boss:0,discount:0,type:{}};
+  const m={dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}};
   for(const id in G.clv){const c=CARDS[id];if(!c.mod)continue;const v=cardVals(c,G.clv[id]);
     for(const k in v){if(k.startsWith("type:"))m.type[k.slice(5)]=(m.type[k.slice(5)]||0)+v[k];else m[k]+=v[k]}}
   m.discount=Math.min(0.5,m.discount);G.mods=m;
@@ -665,7 +719,7 @@ function offerCards(rare){
   let pick;
   if(rare){pick=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id))).slice(0,3)}
   else{
-    const base=["dmg","range","rate","bounty","interest","freeze","trade","sky","slayer","bulk","lives","chest"];
+    const base=["dmg","range","rate","prosp","lucky","interest","freeze","sawmill","stonecut","sky","slayer","bulk","lives","chest"];
     const t=COMBAT[(Math.random()*COMBAT.length)|0],f=ORDER.filter(k=>k!=="fence")[(Math.random()*10)|0];
     const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-")));
     let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open);
@@ -708,26 +762,30 @@ function renderCards(){
 
 // ---------- tower stats ----------
 function lvlStats(type,L){
-  const b=TOWERS[type];if(b.eco)return{income:30+15*(L-1)};if(b.wall)return{};
+  const b=TOWERS[type];if(b.eco)return{prod:b.rate+b.rg*(L-1)};if(b.wall)return{};
   if(b.thorn)return{dmg:b.dmg*Math.pow(1.55,L-1),rate:b.rate*(1+0.05*(L-1)),range:b.range+b.rg*(L-1),chain:0,slow:0,splash:0};
   return{dmg:b.dmg*(1+0.55*(L-1)),rate:b.rate*(1+0.05*(L-1)),range:b.range+b.rg*(L-1),
     chain:b.chain?b.chain+Math.floor((L-1)/3):0,slow:b.slow?b.slow+0.02*(L-1):0,splash:b.splash?b.splash*(1+0.03*(L-1)):0};
 }
 function withCards(type,s){
-  const b=TOWERS[type];if(b.eco)return{income:s.income*(1+G.mods.market)};if(b.wall)return{};
+  const b=TOWERS[type];if(b.eco)return{prod:s.prod*(1+G.mods[RKEY[b.prod]==="gold"?"mine":RKEY[b.prod]])};if(b.wall)return{};
   return{...s,dmg:s.dmg*(1+G.mods.dmg+(G.mods.type[type]||0)),rate:s.rate*(1+G.mods.rate),range:s.range*(1+G.mods.range),slow:s.slow?Math.min(0.8,s.slow+G.mods.slow):0};
 }
-function upCost(type,L){if(TOWERS[type].thorn)return Math.round(12*Math.pow(1.5,L-1)*(1-G.mods.discount));return Math.round(TOWERS[type].cost*(TOWERS[type].eco?0.8:0.6)*Math.pow(1.3,L-1)*(1-G.mods.discount))}
-function gpm(){return Math.round(G.towers.filter(t=>t.type==="market").reduce((a,t)=>a+withCards("market",lvlStats("market",t.L)).income,0))}
+// cost to go from level L to L+1: same resource mix as the build cost
+function upCost(type,L){const b=TOWERS[type],d=1-G.mods.discount;if(b.thorn)return C({w:Math.round(10*Math.pow(1.5,L-1)*d)});return scaleC(C(b.cost),(b.eco?0.8:0.6)*Math.pow(1.3,L-1)*d)}
+function rates(){const r={g:0,w:0,s:0};for(const t of G.towers){const b=TOWERS[t.type];if(b.eco)r[b.prod]+=withCards(t.type,lvlStats(t.type,t.L)).prod}return r}
+const NODE_N={4:"gold vein",5:"pine grove",6:"stone outcrop"};
 
 // ---------- placement ----------
 function cellBlockedForEnemies(i){
   for(const e of G.enemies){if(e.fly)continue;if(e.cell===i||e.next===i)return true}
   return false;
 }
-function canPlace(i){
+function nodeOk(type,i){const t=G.map.ter[i],b=TOWERS[type];if(b&&b.node)return t===b.node?"":`${b.n}s need a ${NODE_N[b.node]}`;return t>=4?`Resource tiles are for mines, camps and quarries`:""}
+function canPlace(i,type){
   const m=G.map;if(i<0||i>=m.N)return{ok:false,why:"Outside the map"};
-  if(m.ter[i]!==0)return{ok:false,why:"Blocked by terrain"};
+  if(m.ter[i]>=1&&m.ter[i]<=3)return{ok:false,why:"Blocked by terrain"};
+  const nw=nodeOk(type||buildType,i);if(nw)return{ok:false,why:nw};
   if(G.occ[i])return{ok:false,why:"Tile taken"};
   if(m.entSet.has(i)||m.exitCell[i]>=0)return{ok:false,why:"Keep the gates open"};
   if(cellBlockedForEnemies(i))return{ok:false,why:"An enemy is standing there"};
@@ -737,57 +795,58 @@ function canPlace(i){
   for(const e of G.enemies){if(e.fly||e.next<0)continue;if(dist[e.next]>1e8)return{ok:false,why:"That would trap enemies"}}
   return{ok:true,dist};
 }
-function price(type){return G.free[type]?0:TOWERS[type].cost}
+function price(type){return G.free[type]?C():C(TOWERS[type].cost)}
 function pausedBlock(){if(G.paused){toast("Paused — resume to build, upgrade or sell","boss");return true}return false}
 function place(i){
   const type=buildType;if(!type||pausedBlock())return;
-  const p=price(type);if(G.gold<p){toast("Not enough gold","boss");return}
-  const c=canPlace(i);if(!c.ok){toast(c.why,"boss");return}
+  const p=price(type);if(!afford(p)){toast(lacking(p),"boss");return}
+  const c=canPlace(i,type);if(!c.ok){toast(c.why,"boss");return}
   if(G.free[type]){G.free[type]--;if(!G.free[type])delete G.free[type]}
-  G.gold-=p;G.stats.spent+=p;
-  const tw={type,i,x:i%G.map.cols+0.5,y:((i/G.map.cols)|0)+0.5,L:1,cd:0,spent:p,rd:0,total:0,mt:0,flash:0};
+  pay(p);
+  const tw={type,i,x:i%G.map.cols+0.5,y:((i/G.map.cols)|0)+0.5,L:1,cd:0,spent:p,rd:0,total:0,mt:0,acc:0,flash:0};
   G.towers.push(tw);G.occ[i]=tw;
   G.dist=c.dist;G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;ghost=null;
   renderBuild();renderInfo();
 }
-function replaceInfo(i){const old=G.occ[i],back=Math.floor(old.spent*0.7),cost=price(buildType);return{old,back,cost,ok:G.gold+back>=cost}}
+function replaceInfo(i){const old=G.occ[i],back=floorC(old.spent,0.7),cost=price(buildType),nw=nodeOk(buildType,i);return{old,back,cost,why:nw||lacking(cost,back),ok:!nw&&afford(cost,back)}}
 function replaceAt(i){
   if(pausedBlock())return;
-  const r=replaceInfo(i),type=buildType;if(!r.ok){toast("Not enough gold to replace","boss");return}
-  const old=r.old;G.gold+=r.back;G.towers=G.towers.filter(t=>t!==old);if(sel===old)sel=null;if(group)group=group.filter(t=>t!==old);
+  const r=replaceInfo(i),type=buildType;if(!r.ok){toast(r.why,"boss");return}
+  const old=r.old;G.gold+=r.back.g;G.wood+=r.back.w;G.stone+=r.back.s;G.towers=G.towers.filter(t=>t!==old);if(sel===old)sel=null;if(group)group=group.filter(t=>t!==old);
   if(G.free[type]){G.free[type]--;if(!G.free[type])delete G.free[type]}
-  G.gold-=r.cost;G.stats.spent+=r.cost;
-  const tw={type,i,x:old.x,y:old.y,L:1,cd:0,spent:r.cost,rd:0,total:0,mt:0,flash:0.4};
+  pay(r.cost);
+  const tw={type,i,x:old.x,y:old.y,L:1,cd:0,spent:r.cost,rd:0,total:0,mt:0,acc:0,flash:0.4};
   G.towers.push(tw);G.occ[i]=tw;bgDirty=true;
-  floatText(tw.x,tw.y-0.3,`${TOWERS[old.type].n} → ${TOWERS[type].n}  ${r.back-r.cost>=0?"+":"−"}¤${Math.abs(r.back-r.cost)}`,"#9a6a08");
+  floatText(tw.x,tw.y-0.3,`${TOWERS[old.type].n} → ${TOWERS[type].n}`,"#9a6a08");
   ghost=hoverGhost(i);renderBuild();renderInfo();
 }
 function sell(tw){
   if(pausedBlock())return;
-  const back=Math.floor(tw.spent*0.7);G.gold+=back;
+  const back=floorC(tw.spent,0.7);G.gold+=back.g;G.wood+=back.w;G.stone+=back.s;
   G.occ[tw.i]=null;G.towers=G.towers.filter(t=>t!==tw);
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  floatText(tw.x,tw.y,`+¤${back}`,"#9a6a08");sel=null;renderInfo();renderBuild();
+  floatText(tw.x,tw.y,"+"+txtC(back),"#9a6a08");sel=null;renderInfo();renderBuild();
 }
 function upgradeGroup(){
   if(!group||pausedBlock())return;let n=0;
-  for(const tw of group){if(tw.L>=10||TOWERS[tw.type].wall)continue;const c=upCost(tw.type,tw.L);if(G.gold<c)break;G.gold-=c;G.stats.spent+=c;tw.spent+=c;tw.L++;tw.flash=0.4;n++}
-  if(!n){toast("Not enough gold","boss");return}
-  if(n<group.length)toast(`Upgraded ${n} of ${group.length} — not enough gold for the rest`,"boss");
+  let lack="";
+  for(const tw of group){if(tw.L>=10||TOWERS[tw.type].wall)continue;const c=upCost(tw.type,tw.L);if(!afford(c)){lack=lacking(c);break}pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;n++}
+  if(!n){toast(lack||"Nothing to upgrade","boss");return}
+  if(n<group.length)toast(`Upgraded ${n} of ${group.length}. ${lack} for the rest`,"boss");
   group=group.slice(0,n);if(group.length<2)group=null;renderInfo();renderBuild();
 }
 function sellGroup(){
-  if(!group||pausedBlock())return;let back=0;
-  for(const tw of group){back+=Math.floor(tw.spent*0.7);G.occ[tw.i]=null}
-  G.towers=G.towers.filter(t=>!group.includes(t));G.gold+=back;
+  if(!group||pausedBlock())return;
+  let back=C();for(const tw of group){back=addC(back,floorC(tw.spent,0.7));G.occ[tw.i]=null}
+  G.towers=G.towers.filter(t=>!group.includes(t));G.gold+=back.g;G.wood+=back.w;G.stone+=back.s;
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  toast(`Sold ${group.length} for ${back} gold`);group=null;sel=null;renderInfo();renderBuild();
+  toast(`Sold ${group.length} buildings`);group=null;sel=null;renderInfo();renderBuild();
 }
 function upgrade(tw){
   if(pausedBlock())return;
   if(tw.L>=10||TOWERS[tw.type].wall)return;const c=upCost(tw.type,tw.L);
-  if(G.gold<c){toast("Not enough gold","boss");return}
-  G.gold-=c;G.stats.spent+=c;tw.spent+=c;tw.L++;tw.flash=0.4;renderInfo();renderBuild();
+  if(!afford(c)){toast(lacking(c),"boss");return}
+  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;renderInfo();renderBuild();
 }
 
 // ---------- enemies ----------
@@ -840,10 +899,12 @@ function damage(e,amt,tw){
   const real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
   if(e.hp<=0){
     e.dead=true;G.stats.kills++;
-    const g=Math.max(1,Math.round((2+G.round*0.32)*e.bounty*(1+G.mods.goldKill)));
-    G.gold+=g;G.stats.earned+=g;
     G.fx.push({k:"pop",x:e.x,y:e.y,t:0.3,c:e.boss?"#f4c84a":"#ffffff",s:e.boss?2:1});
-    if(e.boss)floatText(e.x,e.y,`+¤${g}`,"#9a6a08");
+    const r=G.round,luck=1+G.mods.luck;
+    if(e.boss){ // bosses always drop a treasure chest
+      const f=e.kind==="big"?8:e.kind==="boss"?3:1,loot=C({g:Math.round((20+r*2)*f*luck),w:Math.round((12+r)*f*luck),s:Math.round((8+r*0.6)*f*luck)});
+      gain(loot);floatText(e.x,e.y,"Chest! +"+txtC(loot),"#9a6a08");
+    }else if(Math.random()<0.05*luck){const loot=C({g:1+Math.floor(r/8)});gain(loot);floatText(e.x,e.y,"+"+txtC(loot),"#9a6a08")}
   }
 }
 
@@ -853,7 +914,7 @@ function canHit(tw,e){const tg=TOWERS[tw.type].tg;return !e.dead&&e.x>-0.2&&(e.f
 function towerTick(tw,dt){
   const b=TOWERS[tw.type];if(tw.flash>0)tw.flash-=dt;
   if(b.wall)return;
-  if(b.eco){tw.mt+=dt;if(tw.mt>=60){tw.mt-=60;const g=Math.round(withCards("market",lvlStats("market",tw.L)).income);G.gold+=g;G.stats.earned+=g;floatText(tw.x,tw.y-0.4,`+¤${g}`,"#9a6a08")}return}
+  if(b.eco)return; // production runs in produce()
   tw.cd-=dt;if(tw.cd>0)return;
   const s=withCards(tw.type,lvlStats(tw.type,tw.L));
   const cands=G.enemies.filter(e=>canHit(tw,e)&&inRange(tw,e,s.range));
@@ -915,12 +976,22 @@ function step(dt){
   for(const e of G.enemies)if(!e.dead)moveEnemy(e,dt);
   if(G.over)return;
   for(const tw of G.towers)towerTick(tw,dt);
+  produce(dt);
   for(const p of G.projs)projTick(p,dt);
   G.enemies=G.enemies.filter(e=>!e.dead);G.projs=G.projs.filter(p=>!p.dead);
   for(const f of G.fx)f.t-=dt;G.fx=G.fx.filter(f=>f.t>0);
   for(const tw of G.towers)if(tw.fire>0)tw.fire-=dt;
   for(const e of G.enemies)if(e.hitT>0)e.hitT-=dt;
   if(G.phase==="wave"&&!G.queue.length&&!G.enemies.length)endRound();
+}
+
+// mines, camps and quarries pay every second once round 1 has started
+function produce(dt){
+  if(G.round<1)return;
+  for(const tw of G.towers){const b=TOWERS[tw.type];if(!b.eco)continue;
+    const amt=withCards(tw.type,lvlStats(tw.type,tw.L)).prod*dt;G[RKEY[b.prod]]+=amt;G.stats.earned+=amt;
+    tw.acc=(tw.acc||0)+amt;tw.mt+=dt;
+    if(tw.mt>=4){const n=Math.floor(tw.acc);if(n>0){tw.acc-=n;floatText(tw.x,tw.y-0.5,`+${RMARK[b.prod]}${n}`,"#6b5a20")}tw.mt=0}}
 }
 
 // ---------- drawing ----------
@@ -963,11 +1034,22 @@ function drawBg(){
   const lbl=(x,y,s,col)=>{c.fillStyle=col;c.fillRect(x-T*0.62,y-T*0.2,T*1.24,T*0.4);c.fillStyle="#fff";c.fillText(s,x,y+1)};
   m.gates.forEach(g=>{const p=spawnPoint(m,g);if(g.side==="left")lbl(T*0.62,(p.y+1)*T-T,"IN","#cf463d");else lbl((p.x+1)*T+T*1.25,g.side==="top"?T*0.5:(m.rows+1.5)*T,"IN","#cf463d")});
   m.exits.forEach((e,k)=>{const p=exitCenter(m,k);let x=(p.x+1)*T,y=(p.y+1)*T;if(e.side==="right"){y-=T;x=(m.cols+1.38)*T}else{x+=T*1.25;y=e.side==="top"?T*0.5:(m.rows+1.5)*T}lbl(x,y,"EXIT","#3d7f44")});
+  // resource nodes
+  for(let i=0;i<m.N;i++){const t=m.ter[i];if(t<4)continue;drawNode(c,(i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,t)}
   // obstacles
   for(let i=0;i<m.N;i++){const t=m.ter[i];if(t!==1&&t!==3)continue;const ox=(i%m.cols+1)*T,oy=(((i/m.cols)|0)+1)*T;
     if(t===1){R(c,ox,oy,3,13,10,2,"rgba(0,0,0,.15)");R(c,ox,oy,7,10,2,4,"#8a5a30");R(c,ox,oy,3,2,10,9,"#4f9a3a");R(c,ox,oy,5,0,6,3,"#4f9a3a");R(c,ox,oy,4,3,4,3,"#6bbf59");R(c,ox,oy,2,6,1,3,"#3f7f30")}
     else{R(c,ox,oy,2,12,12,2,"rgba(0,0,0,.15)");R(c,ox,oy,2,5,12,8,"#8e9796");R(c,ox,oy,4,3,8,3,"#a9b1b0");R(c,ox,oy,4,4,4,2,"#c3c9c8");R(c,ox,oy,2,11,12,2,"#6f7877")}}
   bgDirty=false;
+}
+function drawNode(c,ox,oy,t){
+  const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);
+  const mark=t===4?"#e0a526":t===5?"#3d7f44":"#7c8586";
+  // dotted corner brackets mark a buildable resource tile
+  [[0,0],[13,0],[0,13],[13,13]].forEach(([x,y])=>{r(x,y,3,1,mark);r(x+(x?2:0),y,1,3,mark)});
+  if(t===4){r(3,9,10,4,"#8e9796");r(4,8,8,2,"#a9b1b0");r(5,9,2,2,"#f4c84a");r(9,10,2,1,"#f4c84a");r(7,11,1,1,"#fff2b0");r(10,8,1,1,"#fff2b0");r(3,12,10,1,"#6f7877")}
+  else if(t===5){r(6,13,4,1,"rgba(0,0,0,.15)");r(7,10,2,3,"#8a5a30");r(5,7,6,3,"#3d7f44");r(6,4,4,3,"#4f9a3a");r(7,2,2,2,"#5fae48");r(6,5,1,1,"#8cc05a")}
+  else{r(2,10,12,3,"#a9b1b0");r(3,8,9,2,"#c3c9c8");r(5,9,3,1,"#e1e6e4");r(9,11,1,2,"#7c8586");r(2,12,12,1,"#7c8586")}
 }
 const PED={arrow:["#c99460","#9a6a3a"],gatling:["#aab3b4","#7c8586"],sniper:["#8fbd78","#5f8f4c"],frost:["#d8eff9","#9cc9df"],tesla:["#c4b2e3","#8f79bf"],
   mortar:["#aab3b4","#7c8586"],fire:["#e19a7a","#b0624a"],flak:["#a9bdd1","#71899f"],hawk:["#d3c2a8","#a08b70"]};
@@ -978,7 +1060,7 @@ function drawTower(c,type,ox,oy,L,t,tw){
     if(tw){const fx=tw.i%G.map.cols+1,fy=((tw.i/G.map.cols)|0)+1;L_=fenceAt(fx-1,fy);R_=fenceAt(fx+1,fy);U_=fenceAt(fx,fy-1);D_=fenceAt(fx,fy+1)}
     drawFence(c,ox,oy,L_,R_,U_,D_,tw?tw.L:1);return;
   }
-  if(type==="market"){return drawMarket(c,ox,oy,t,tw)}
+  if(TOWERS[type].eco){return drawProducer(c,type,ox,oy,t,tw)}
   return drawTurret(c,type,ox,oy,L,t,tw);
 }
 // is there a fence at frame tile (fx,fy)? Frame row/col 0 and cols+1/rows+1 is the map border; gates are gaps.
@@ -1024,14 +1106,18 @@ function drawFence(c,ox,oy,L_,R_,U_,D_,lv){
   if(n===1){if(L_||R_)H(L_?0:8,L_?10:16);else V(U_?-2:6,U_?10:16)}
   bush(8,8);
 }
-function drawMarket(c,ox,oy,t,tw){
+function drawProducer(c,type,ox,oy,t,tw){
   const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);
-  {
-    r(2,13,12,2,"rgba(0,0,0,.15)");r(2,6,12,8,"#ead8a4");r(2,10,12,4,"#b98450");r(3,11,10,1,"#9a6a3a");
-    r(2,4,1,9,"#8a5a30");r(13,4,1,9,"#8a5a30");
-    for(let k=0;k<7;k++)r(1+k*2,1,2,4,k%2?"#ffffff":"#e0a526");r(1,4,14,1,"#b5801a");
-    const b=Math.sin(t*3)*0.6;r(6,6+b,4,4,"#f4c84a");r(7,7+b,2,2,"#d99a1c");
-    if(tw){const f=tw.mt/60;r(2,15,12,1,"rgba(0,0,0,.25)");r(2,15,12*f,1,"#f4c84a")}
+  r(2,13,12,2,"rgba(0,0,0,.16)");
+  if(type==="mine"){ // timbered shaft with a cart of gold
+    r(2,3,12,11,"#7c6a58");r(3,2,10,2,"#958372");r(5,5,6,9,"#1f1a16");r(4,4,1,10,"#8a5a30");r(11,4,1,10,"#8a5a30");r(4,4,8,1,"#a8743f");
+    const b=tw?Math.sin(t*4)*0.5:0;r(5,11,6,3,"#5d666a");r(6,9+b,4,2,"#f4c84a");r(7,9+b,1,1,"#fff2b0");r(5,14,1,1,"#2f3638");r(10,14,1,1,"#2f3638");
+  }else if(type==="lumber"){ // log pile and chopping stump with axe
+    r(1,9,10,2,"#8a5a30");r(1,11,10,2,"#9a6a3a");r(2,7,8,2,"#8a5a30");[[1,9],[1,11],[2,7]].forEach(([x,y])=>r(x,y,2,2,"#ead2a0"));
+    r(11,6,4,7,"#7a4f28");r(11,6,4,1,"#ead2a0");r(13,1,1,6,"#a8743f");r(12,1,3,2,"#c8ced0");r(14,2,1,1,"#ffffff");
+  }else{ // stacked cut blocks and a pickaxe
+    r(2,9,6,5,"#a9b1b0");r(8,10,6,4,"#8e9796");r(4,5,6,4,"#c3c9c8");r(4,5,6,1,"#e1e6e4");r(2,9,6,1,"#c3c9c8");
+    r(12,2,1,7,"#8a5a30");r(10,2,5,1,"#5d666a");r(10,3,1,1,"#5d666a");r(14,3,1,1,"#5d666a");
   }
 }
 function drawTurret(c,type,ox,oy,L,t,tw){
@@ -1127,6 +1213,8 @@ function draw(t){
     const box=(fx,fy)=>ctx.strokeRect(fx*T+3,fy*T+3,T-6,T-6);
     if(gs.hl==="gates"){m.gates.forEach(g=>{const p=spawnPoint(m,g);box(Math.floor(p.x+1),Math.floor(p.y+1))});m.exits.forEach((e,k)=>e.cells.forEach(i=>{const p=gatePoint(m,k,i);box(Math.floor(p.x+1),Math.floor(p.y+1))}))}
     if(gs.hl==="path"){ctx.fillStyle=`rgba(217,154,28,${pulse*0.35})`;for(const i of G.path)ctx.fillRect((i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,T,T)}
+    if(gs.hl==="vein")for(let i=0;i<m.N;i++)if(m.ter[i]===4&&!G.occ[i])box(i%m.cols+1,((i/m.cols)|0)+1);
+    if(gs.hl==="arrow"&&G.guide.need)for(const i of guideArrowTiles()){box(i%m.cols+1,((i/m.cols)|0)+1);ctx.fillStyle=`rgba(217,154,28,${pulse*0.3})`;ctx.fillRect((i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,T,T)}
     if(gs.hl==="thorns")for(const i of guideTiles())if(!G.occ[i]){box(i%m.cols+1,((i/m.cols)|0)+1);ctx.fillStyle=`rgba(217,154,28,${pulse*0.3})`;ctx.fillRect((i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,T,T)}
   }
   // hover ghost
@@ -1134,7 +1222,7 @@ function draw(t){
     const x=hover%m.cols,y=(hover/m.cols)|0,r=ghost.replace,nb=TOWERS[buildType];
     if(!nb.eco)showR(x+0.5,y+0.5,withCards(buildType,lvlStats(buildType,1)).range,ghost.ok||ghost.same?"#d99a1c":"#cf463d");
     ctx.strokeStyle=ghost.ok?"#d99a1c":"#cf463d";ctx.lineWidth=4;ctx.setLineDash([8,6]);ctx.strokeRect((x+1)*T+2,(y+1)*T+2,T-4,T-4);ctx.setLineDash([]);
-    const lines=ghost.same?["Already a "+TOWERS[buildType].n]:[`Replace ${TOWERS[r.old.type].n} → ${TOWERS[buildType].n}`,`+¤${r.back} back · −¤${r.cost} = ${r.back-r.cost>=0?"+":"−"}¤${Math.abs(r.back-r.cost)}`];
+    const lines=ghost.same?["Already a "+TOWERS[buildType].n]:[`Replace ${TOWERS[r.old.type].n} → ${TOWERS[buildType].n}`,r.why&&nodeOk(buildType,hover)?r.why:`+${txtC(r.back)} back · −${txtC(r.cost)}`];
     ctx.font=`${T*0.48}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";
     const w=Math.max(...lines.map(l=>ctx.measureText(l).width+(l.split("¤").length-1)*T*0.3))+18,hh=T*0.46*lines.length+8;
     let lx=(x+1.5)*T,ly=(y+1)*T-hh/2-T*0.35;lx=Math.min(Math.max(lx,w/2+4),cv.width-w/2-4);if(ly-hh/2<2)ly=(y+2)*T+hh/2+T*0.2;
@@ -1155,20 +1243,21 @@ const mmss=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60
 // ---------- HUD + panels ----------
 const $=id=>document.getElementById(id);
 function updHud(){
-  {const h=COIN+fmt(G.gold);if($("hGold").innerHTML!==h)$("hGold").innerHTML=h}$("hGpm").textContent=`+${gpm()} / min`;
-  $("hRound").textContent=`${G.round}/50`;$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
+  {const h=["g","w","s"].map(k=>`<span class="rv">${RHTML[k]}${fmt(Math.floor(G[RKEY[k]]))}</span>`).join("");if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
+   const rt=rates();const t=G.round<1?"Mines start with round 1":["g","w","s"].map(k=>`+${fmt1(rt[k])}/s`).join("  ");setTxt("hRate",t)}
+  $("hRound").textContent=`${G.round}`;$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
   // Now: the current round and its total enemies. Next: preview of the coming round.
   const nx=G.round+1;
   const cmp=document.body.classList.contains("compact"),rd=r=>cmp?shortRound(r):`Round ${r} · ${describeRound(r)}`;
   if(G.phase==="wave"){setTag("curTag",G.round);setTxt("curTxt",rd(G.round))}
-  else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=50?"All 50 rounds done":cmp?`R${G.round} cleared`:`Round ${G.round} cleared`)}
-  if(nx<=50){setTag("nextTag",nx);setTxt("nextInfo",rd(nx))}else{$("nextTag").hidden=true;setTxt("nextInfo","Last round — hold on!")}
+  else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=50?"The swarm is broken":cmp?`R${G.round} cleared`:`Round ${G.round} cleared`)}
+  if(nx<=50){setTag("nextTag",nx);setTxt("nextInfo",rd(nx))}else{$("nextTag").hidden=true;setTxt("nextInfo","???")}
   setTxt("hCd",G.phase==="countdown"&&G.round>0?`in ${Math.ceil(G.timer)}s`:"");
   if(G.phase==="wave"){$("bStart").disabled=true;$("bStart").textContent=document.body.classList.contains("compact")?"Wave":"Wave running"}
   else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
   else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
-  document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",G.gold<price(k))});
+  document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k)))});
 }
 function renderBuild(){
   const el=$("build");if(G)ghost=hover>=0?hoverGhost(hover):null; // keep the preview in sync with the picked tower
@@ -1182,7 +1271,7 @@ function renderBuild(){
       el.appendChild(b)});
   }
   el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);
-    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":`${COIN}${TOWERS[k].cost}`;
+    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":fmtC(C(TOWERS[k].cost));
     let f=b.querySelector(".free");if(G.free[k]){if(!f){f=document.createElement("span");f.className="free";b.appendChild(f)}f.textContent=`×${G.free[k]}`}else if(f)f.remove()});
 }
 function statRows(type,L,showNext){
@@ -1190,7 +1279,7 @@ function statRows(type,L,showNext){
   const base=lvlStats(type,L),tot=withCards(type,base);
   const nb=L<10?lvlStats(type,L+1):null,nt=nb?withCards(type,nb):null;
   const row=(k,bv,tv,nv,f)=>{const bonus=tv-bv;return`<span class="k">${k}</span><span class="v">${f(bv)}${bonus>0.004?` <span class="plus">+${f(bonus)}</span>`:""}</span><span class="n">${showNext&&nv!=null?"→ "+f(nv):""}</span>`};
-  if(b.eco)return row("Gold / min",base.income,tot.income,nt&&nt.income,fmt1);
+  if(b.eco)return row(RNAME[b.prod]+" / s",base.prod,tot.prod,nt&&nt.prod,fmt1);
   let h=row("Damage",base.dmg,tot.dmg,nt&&nt.dmg,fmt1)+row("Shots / s",base.rate,tot.rate,nt&&nt.rate,fmt1)+row("Range",base.range,tot.range,nt&&nt.range,fmt1);
   h+=`<span class="k">DPS</span><span class="v">${fmt1(tot.dmg*tot.rate)}</span><span class="n">${showNext&&nt?"→ "+fmt1(nt.dmg*nt.rate):""}</span>`;
   if(base.chain)h+=`<span class="k">Chain jumps</span><span class="v">${base.chain}</span><span class="n">${showNext&&nb?"→ "+nb.chain:""}</span>`;
@@ -1203,7 +1292,7 @@ function updBuildTip(){
   const el=$("buildTip");if(!el)return;
   if(!buildType){el.textContent="Pick a tower, then tap the map.";return}
   const b=TOWERS[buildType];let t=b.n;
-  if(!b.eco){const s=withCards(buildType,lvlStats(buildType,1));t+=` · ${fmt1(s.dmg)} dmg · range ${fmt1(s.range)} · ${TGTXT[b.tg]}`}else t+=" · gold every minute";
+  if(!b.eco){const s=withCards(buildType,lvlStats(buildType,1));t+=` · ${fmt1(s.dmg)} dmg · range ${fmt1(s.range)} · ${TGTXT[b.tg]}`}else t+=` · ${RNAME[b.prod].toLowerCase()} every second · on a ${NODE_N[b.node]}`;
   el.textContent=t+". Tap a tile twice to build.";
 }
 function setTag(id,r){const [tg,cl]=tagFor(r),e=$(id);e.hidden=!cl; // plain ground rounds need no tag
@@ -1216,33 +1305,33 @@ function renderInfo(live,hoverType){
   el.classList.toggle("empty",!sel);updBuildTip();
   if(group){
     const b=TOWERS[sel.type],L=sel.L,n=group.length;
-    const cost=L<10&&!b.wall?group.reduce((a,t)=>a+upCost(t.type,t.L),0):0;
-    const rd=group.reduce((a,t)=>a+t.rd,0),tot=group.reduce((a,t)=>a+t.total,0),back=group.reduce((a,t)=>a+Math.floor(t.spent*0.7),0);
+    const cost=L<10&&!b.wall?group.reduce((a,t)=>addC(a,upCost(t.type,t.L)),C()):C();
+    const rd=group.reduce((a,t)=>a+t.rd,0),tot=group.reduce((a,t)=>a+t.total,0),back=group.reduce((a,t)=>addC(a,floorC(t.spent,0.7)),C());
     const key=`g|${sel.i}|${n}|${L}|${G.cards.length}|${b.wall}`;
-    if(live&&el.dataset.key===key){setTxt("gRd",fmt(rd));setTxt("gTot",fmt(tot));if($("iUpAll"))$("iUpAll").disabled=G.gold<upCost(sel.type,L);return}
+    if(live&&el.dataset.key===key){setTxt("gRd",fmt(rd));setTxt("gTot",fmt(tot));if($("iUpAll"))$("iUpAll").disabled=!afford(upCost(sel.type,L));return}
     el.dataset.key=key;
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${n} × ${b.n} <span class="label">${b.wall?"selected":`Level ${L}/10 · group`}</span></h3>
       ${b.wall?"":`<div class="tbl"><span class="label">Each tower</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${L<10?"Next":""}</span>${statRows(sel.type,L,true)}</div>`}
       ${b.wall||b.eco?"":`<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Group damage this round</span><span class="v" id="gRd">${fmt(rd)}</span><span></span><span class="k">Group damage total</span><span class="v" id="gTot">${fmt(tot)}</span><span></span></div>`}
-      <div class="row">${b.wall?"":L<10?`<button class="btn go" id="iUpAll" ${G.gold<upCost(sel.type,L)?"disabled":""}>Upgrade all ${COIN}${cost} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSellAll">Sell all +${COIN}${back} <span class="kb">S</span></button></div>
-      <p class="hint" style="margin:6px 0 0">Double-click selected every ${b.n}${b.wall?"":` at level ${L}`}. Upgrade all buys as many as your gold allows. Click one tower to go back to a single selection.</p>`;
+      <div class="row">${b.wall?"":L<10?`<button class="btn go" id="iUpAll" ${!afford(upCost(sel.type,L))?"disabled":""}>Upgrade all ${fmtC(cost)} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSellAll">Sell all +${fmtC(back)} <span class="kb">S</span></button></div>
+      <p class="hint" style="margin:6px 0 0">Double-click selected every ${b.n}${b.wall?"":` at level ${L}`}. Upgrade all buys as many as you can afford. Click one tower to go back to a single selection.</p>`;
     if($("iUpAll"))$("iUpAll").onclick=upgradeGroup;$("iSellAll").onclick=sellGroup;$("iClose").onclick=clearSel;
     return;
   }
   if(sel){
     const tw=sel,b=TOWERS[tw.type];
-    if(b.wall){const key=`f|${tw.i}`;if(live&&el.dataset.key===key)return;el.dataset.key=key;el.innerHTML=`<h3>Fence</h3><p class="hint">Blocks enemies and shapes the path. It cannot block the last route to the exit.</p><div class="row"><button class="btn warn" id="iSell">Sell +${COIN}${Math.floor(tw.spent*0.7)} <span class="kb">S</span></button></div>`;$("iSell").onclick=()=>sell(tw);return}
-    const uc=tw.L<10?upCost(tw.type,tw.L):0;
+    if(b.wall){const key=`f|${tw.i}`;if(live&&el.dataset.key===key)return;el.dataset.key=key;el.innerHTML=`<h3>Fence</h3><p class="hint">Blocks enemies and shapes the path. It cannot block the last route to the exit.</p><div class="row"><button class="btn warn" id="iSell">Sell +${fmtC(floorC(tw.spent,0.7))} <span class="kb">S</span></button></div>`;$("iSell").onclick=()=>sell(tw);return}
+    const uc=tw.L<10?upCost(tw.type,tw.L):C();
     const key=`t|${tw.i}|${tw.type}|${tw.L}|${G.cards.length}|${G.towers.length}`;
-    if(live&&el.dataset.key===key){setTxt("iRd",fmt(tw.rd));setTxt("iTot",fmt(tw.total));setTxt("iPay",Math.ceil(60-tw.mt));if($("iUp"))$("iUp").disabled=G.gold<uc;return}
+    if(live&&el.dataset.key===key){setTxt("iRd",fmt(tw.rd));setTxt("iTot",fmt(tw.total));if($("iUp"))$("iUp").disabled=!afford(uc);return}
     el.dataset.key=key;
     const same=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L).length;
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${b.n} <span class="label">Level ${tw.L}/10</span></h3>
       <div style="margin-bottom:6px">${b.tg?`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`:""}</div>
       <div class="tbl"><span class="label">Stat</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${tw.L<10?"Next":""}</span>${statRows(tw.type,tw.L,true)}</div>
-      ${b.eco?`<p class="hint" style="margin:8px 0 0">Next payout in <span id="iPay">${Math.ceil(60-tw.mt)}</span> s</p>`:
+      ${b.eco?`<p class="hint" style="margin:8px 0 0">${G.round<1?"Starts producing when round 1 begins.":`Produces ${RNAME[b.prod].toLowerCase()} every second.`}</p>`:
       `<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Damage this round</span><span class="v" id="iRd">${fmt(tw.rd)}</span><span></span><span class="k">Damage total</span><span class="v" id="iTot">${fmt(tw.total)}</span><span></span></div>`}
-      <div class="row">${tw.L<10?`<button class="btn go" id="iUp" ${G.gold<uc?"disabled":""}>Upgrade ${COIN}${uc} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSell">Sell +${COIN}${Math.floor(tw.spent*0.7)} <span class="kb">S</span></button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
+      <div class="row">${tw.L<10?`<button class="btn go" id="iUp" ${!afford(uc)?"disabled":""}>Upgrade ${fmtC(uc)} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSell">Sell +${fmtC(floorC(tw.spent,0.7))} <span class="kb">S</span></button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
       <p class="hint" style="margin:6px 0 0"><span class="plus">+purple</span> is the bonus from your cards. Double-click a tower to select all of its kind at the same level.</p>`;
     if($("iUp"))$("iUp").onclick=()=>upgrade(tw);$("iSell").onclick=()=>sell(tw);$("iClose").onclick=clearSel;
     if($("iAll"))$("iAll").onclick=()=>{group=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L);if(group.length<2)group=null;renderInfo()};
@@ -1251,10 +1340,10 @@ function renderInfo(live,hoverType){
   el.dataset.key="";
   const k=buildType||hoverType;
   if(k){const b=TOWERS[k];
-    el.innerHTML=`<h3>${b.n} <span class="label">${G.free[k]?"Free":COIN+b.cost}</span></h3>
+    el.innerHTML=`<h3>${b.n} <span class="label">${G.free[k]?"Free":fmtC(C(b.cost))}</span></h3>
     <div style="margin-bottom:6px">${b.tg?`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`:""}</div>
     <p class="hint" style="margin:0 0 8px">${b.desc}</p>${b.wall?"":`<div class="tbl"><span class="label">Level 1</span><span class="label" style="text-align:right">Value</span><span class="label" style="text-align:right">Lvl 2</span>${statRows(k,1,true)}</div>`}
-    ${buildType?`<p class="hint" style="margin:8px 0 0">Click grass tiles to build as many as you like. Click an existing tower to replace it (you get 70% of its value back). Esc or right-click stops building.</p>`:""}`;return}
+    ${buildType?`<p class="hint" style="margin:8px 0 0">Click grass tiles to build as many as you like. Click an existing building to replace it (you get 70% of its cost back). Esc or right-click stops building.</p>`:""}`;return}
   el.innerHTML=`<h3>Info</h3><p class="hint" style="margin:0">Select a tower on the map to see its damage, the next upgrade and how much damage it dealt this round. Double-click a tower to select all towers of that type and level.</p>
     <div class="tbl" style="margin-top:10px"><span class="k">Enemy HP this round</span><span class="v">${fmt(baseHp(Math.max(1,G.phase==="wave"?G.round:G.round+1)))}</span><span></span>
     <span class="k">Difficulty bonus</span><span class="v">+${Math.round((DIFFS[G.d].hp-1)*100)}% HP</span><span></span></div>`;
@@ -1268,7 +1357,7 @@ function cellAt(ev){
 function hoverGhost(i){
   if(!buildType||i<0)return null;
   if(G.occ[i]){if(G.occ[i].type===buildType)return{ok:false,same:true};const r=replaceInfo(i);return{ok:r.ok,replace:r}}
-  const c=canPlace(i);return{ok:c.ok&&G.gold>=price(buildType),path:c.ok?tracePaths(G.map,c.dist,(()=>{const o=G.occ.slice();o[i]={};return o})()):null};
+  const c=canPlace(i,buildType);return{ok:c.ok&&afford(price(buildType)),why:c.ok?lacking(price(buildType)):c.why,path:c.ok?tracePaths(G.map,c.dist,(()=>{const o=G.occ.slice();o[i]={};return o})()):null};
 }
 cv.addEventListener("pointermove",ev=>{if(!G)return;const i=cellAt(ev);if(i===hover)return;hover=i;ghost=hoverGhost(i)});
 cv.addEventListener("pointerleave",ev=>{if(ev.pointerType!=="mouse")return;hover=-1;ghost=null});
@@ -1287,7 +1376,7 @@ cv.addEventListener("dblclick",ev=>{
 });
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 document.addEventListener("keydown",ev=>{
-  if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden)return;
+  if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden)return;
   const k=ev.key.toUpperCase();
   const t=ORDER.find(o=>TOWERS[o].key===k);
   if(t){buildType=buildType===t?null:t;sel=null;renderBuild();renderInfo();return}
@@ -1299,7 +1388,7 @@ document.addEventListener("keydown",ev=>{
 });
 function togglePause(){G.paused=!G.paused;document.body.classList.toggle("paused",G.paused);$("bPause").setAttribute("aria-pressed",G.paused);$("bPause").textContent=G.paused?"▶":"II"}
 $("bPause").onclick=togglePause;
-$("gNext").onclick=guideNext;$("gSkip").onclick=endGuide;
+$("gNext").onclick=guideNext;$("stGo").onclick=()=>{$("storyOv").hidden=true};$("gSkip").onclick=endGuide;
 $("bSpd").onclick=()=>setSpeed(G.speed%3+1); // compact: one button cycles 1x → 2x → 3x
 function setSpeed(v){G.speed=v;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",+o.dataset.sp===v));$("bSpd").textContent=v+"x"}
 document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
@@ -1331,6 +1420,24 @@ function calcScore(win){
   const base=s.kills*10+G.lives*400+s.earned*0.5+Math.max(0,s.earned-s.spent)*0.2+timeBonus+G.round*150;
   return Math.round(base*dm*mm);
 }
+// ---------- story ----------
+const STORY={
+  intro:"The Slime Queen's swarm is pouring out of the Bog toward the last village. It has no walls, only you: the Thornwarden, who can grow a wall of thorns overnight. Claim the land's gold, timber and stone, raise your towers, and hold the gate.",
+  chapters:[
+    {t:"The Village Meadow",b:"The first slimes ooze across the meadow. Dig your first gold mine, plant thorns across their way, and teach them that this village bites back."},
+    {t:"The Old Grove",b:"Driven from the meadow, the swarm slips into the old grove. Timber is plenty among the pines, and so are places to hide."},
+    {t:"Lakeside",b:"At the lake the Bog's water makes them swell. Hold the shore, or the village wells will turn to slime."},
+    {t:"The Highlands",b:"The last stand. The Queen's court marches from every side, and somewhere behind them, she waits."},
+  ],
+  win:"The Slime Queen bursts into a thousand drops. The swarm is broken, and the village sleeps safe behind its thorns.",
+  lose:"The swarm pours through the gate. The Thornwarden falls back to regrow the wall. Try again."
+};
+function showStory(){
+  const ch=STORY.chapters[G.m],first=!LS.get("fot-intro-seen",false);
+  $("stChap").textContent=`Chapter ${G.m+1} · ${DIFFS[G.d].name}`;$("stTitle").textContent=ch.t;
+  $("stIntro").textContent=first?STORY.intro:"";$("stIntro").hidden=!first;$("stBody").textContent=ch.b;
+  $("storyOv").hidden=false;LS.set("fot-intro-seen",true);
+}
 function finish(win){
   if(G.over)return;G.over=true;
   const sc=calcScore(win),s=G.stats,key=mkey(G.d,G.m);
@@ -1342,9 +1449,9 @@ function finish(win){
     if(!was){unlockMsg=G.m<3?`Reward: trophy for ${MAPS[G.m].name}. ${MAPS[G.m+1].name} is now unlocked.`:"Reward: trophy for the last map."}
     if(G.d<4&&!wasD&&diffUnlocked(G.d+1))unlockMsg+=` ${DIFFS[G.d+1].name} difficulty is now unlocked!`;}
   submitOverall(key,entry);
-  $("resTitle").textContent=win?"Victory!":"The keep has fallen";
-  $("resSub").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`+(win?"":` · reached round ${G.round}`);
-  const rows=[["Time",mmss(s.time)],["Rounds survived",`${win?50:Math.max(0,G.round-1)}/50`],["Enemies killed",fmt(s.kills)],["Lives left",`${G.lives}/20`],["Gold earned",fmt(s.earned)],["Gold spent",fmt(s.spent)]];
+  $("resTitle").textContent=win?"The swarm is broken!":"The gate has fallen";
+  $("resSub").textContent=(win?STORY.win:STORY.lose)+` (${DIFFS[G.d].name} · ${MAPS[G.m].name}`+(win?")":` · reached round ${G.round})`);
+  const rows=[["Time",mmss(s.time)],["Rounds survived",`${win?50:Math.max(0,G.round-1)}`],["Enemies killed",fmt(s.kills)],["Lives left",`${G.lives}/20`],["Resources earned",fmt(s.earned)],["Resources spent",fmt(s.spent)]];
   $("resTbl").innerHTML=rows.map(([k,v])=>`<span>${k}</span><span class="v">${v}</span>`).join("");
   $("resScore").textContent=sc.toLocaleString("en-US");
   $("resRank").textContent=(rank>=0?`Personal rank #${rank+1} on this map. `:"")+unlockMsg;
@@ -1387,7 +1494,7 @@ function mapPreview(m,d){
   const map=buildMap(m,d),c=document.createElement("canvas"),s=6;c.width=(map.cols+2)*s;c.height=(map.rows+2)*s;const x=c.getContext("2d");
   x.fillStyle="#a8743f";x.fillRect(0,0,c.width,c.height);x.fillStyle="#a9d47c";x.fillRect(s,s,map.cols*s,map.rows*s);
   const dist=dijkstra(map,null,-1),path=tracePaths(map,dist,new Array(map.N).fill(null));
-  for(let i=0;i<map.N;i++){const t=map.ter[i];const col=t===1?"#4f9a3a":t===2?"#7cc6e8":t===3?"#8e9796":path.has(i)?"#ead8a4":null;if(col){x.fillStyle=col;x.fillRect((i%map.cols+1)*s,(((i/map.cols)|0)+1)*s,s,s)}}
+  for(let i=0;i<map.N;i++){const t=map.ter[i];const col=t===1?"#4f9a3a":t===2?"#7cc6e8":t===3?"#8e9796":t===4?"#e0a526":t===5?"#2f6b2a":t===6?"#b9c0bf":path.has(i)?"#ead8a4":null;if(col){x.fillStyle=col;x.fillRect((i%map.cols+1)*s,(((i/map.cols)|0)+1)*s,s,s)}}
   x.fillStyle="#cf463d";map.gates.forEach(g=>{const p=spawnPoint(map,g);x.fillRect(Math.floor(p.x+1)*s,Math.floor(p.y+1)*s,s,s)});
   x.fillStyle="#3d7f44";map.exits.forEach((e,k)=>e.cells.forEach(i=>{const g=gatePoint(map,k,i);x.fillRect(Math.floor(g.x+1)*s,Math.floor(g.y+1)*s,s,s)}));
   return c;
@@ -1461,16 +1568,16 @@ function openStylebook(){
 
   // HUD
   s=sec("Top bar");r=el("div","sb-row");
-  r.appendChild(item(el("div","stat px-box gold",`<span class="label">Gold</span><b>${COIN}250</b><small>+40 / min</small>`),"Gold"));
+  r.appendChild(item(el("div","stat px-box gold rbox",`<span class="label">Resources</span><b><span class="rv">${COIN}250</span><span class="rv">${WOOD}120</span><span class="rv">${STONE}60</span></b><small>+4.5/s  +2.2/s  +0.8/s</small>`),"Resources"));
   r.appendChild(item(el("div","stat px-box lives",`<span class="label">Lives</span><b>20/20</b><small>Holding strong</small>`),"Lives 15+"));
   r.appendChild(item(el("div","stat px-box lives warn",`<span class="label">Lives</span><b>11/20</b><small>Under pressure</small>`),"Lives 7–14"));
   r.appendChild(item(el("div","stat px-box lives bad",`<span class="label">Lives</span><b>4/20</b><small>Falling apart!</small>`),"Lives 0–6"));
-  [16,24,40].forEach(px=>{const c=el("span","",COIN);c.style.fontSize=px+"px";r.appendChild(item(c,`Coin ${px}px`))});
+  [[COIN,"Gold"],[WOOD,"Wood"],[STONE,"Stone"]].forEach(([h,n])=>[16,32].forEach(px=>{const c=el("span","",h);c.style.fontSize=px+"px";r.appendChild(item(c,`${n} ${px}px`))}));
   s.appendChild(r);
 
   // build buttons
   s=sec("Build buttons");r=el("div","sb-row");
-  const btn=(k,state)=>{const b=el("button","bt"+(state==="poor"?" poor":""),`<span class="key">${TOWERS[k].key}</span><canvas width="64" height="64"></canvas><span class="nm">${TOWERS[k].n}</span><span class="pr">${state==="free"?"FREE":COIN+TOWERS[k].cost}</span>`);
+  const btn=(k,state)=>{const b=el("button","bt"+(state==="poor"?" poor":""),`<span class="key">${TOWERS[k].key}</span><canvas width="64" height="64"></canvas><span class="nm">${TOWERS[k].n}</span><span class="pr">${state==="free"?"FREE":fmtC(C(TOWERS[k].cost))}</span>`);
     if(state==="sel")b.setAttribute("aria-pressed","true");if(state==="free")b.appendChild(el("span","free","×1"));
     const c=b.querySelector("canvas").getContext("2d");c.imageSmoothingEnabled=false;c.save();c.scale(64/T*0.9,64/T*0.9);drawTower(c,k,T*0.06,T*0.3,1,0,null);c.restore();return b};
   r.appendChild(item(btn("arrow"),"Normal"));r.appendChild(item(btn("frost","sel"),"Selected"));r.appendChild(item(btn("sniper","poor"),"Too expensive"));r.appendChild(item(btn("tesla","free"),"Free token"));
@@ -1480,8 +1587,8 @@ function openStylebook(){
   s=sec("Towers","Level 1 and level 10, with their stats before cards.");const g=el("div","sb-grid");
   ORDER.forEach(k=>{const b=TOWERS[k],card=el("div","sb-tw");const row=el("div","cvs");
     [1,10].forEach(L=>row.appendChild(cvs(80,96,x=>{x.save();x.scale(80/T,80/T);drawTower(x,k,0,T*0.35,L,0,null);x.restore()})));
-    card.appendChild(row);card.appendChild(el("b","",`${b.n} <span class="sb-cap">${COIN}${b.cost} · key ${b.key}</span>`));
-    if(b.eco){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`Gold / min ${a.income} → ${z.income}`))}
+    card.appendChild(row);card.appendChild(el("b","",`${b.n} <span class="sb-cap">key ${b.key}</span>`));card.appendChild(el("div","st",`Build ${fmtC(C(b.cost))} · Lv 9→10 ${fmtC(upCost(k,9))}`));
+    if(b.eco){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`${RNAME[b.prod]} / s ${fmt1(a.prod)} → ${fmt1(z.prod)}<br>Builds on a ${NODE_N[b.node]}`))}
     else{const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","",`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`));
       card.appendChild(el("div","st",`Damage ${fmt1(a.dmg)} → ${fmt1(z.dmg)}<br>Shots/s ${fmt1(a.rate)} → ${fmt1(z.rate)}<br>Range ${fmt1(a.range)} → ${fmt1(z.range)}<br>DPS ${fmt1(a.dmg*a.rate)} → ${fmt1(z.dmg*z.rate)}`))}
     card.appendChild(el("div","st",b.desc));g.appendChild(card)});
@@ -1491,6 +1598,11 @@ function openStylebook(){
   s=sec("Thorn shapes","Straight runs, rounded corners, T-junctions and crosses. Berries grow with the level.");r=el("div","sb-row");
   const shape=(name,L_,R_,U_,D_,lv)=>r.appendChild(item(cvs(96,96,x=>{x.save();x.scale(96/T*0.8,96/T*0.8);drawFence(x,T*0.12,T*0.2,L_,R_,U_,D_,lv);x.restore()}),name));
   shape("Single",0,0,0,0,1);shape("Horizontal",1,1,0,0,1);shape("Vertical",0,0,1,1,3);shape("Corner",0,1,0,1,4);shape("Corner",1,0,1,0,6);shape("T-junction",1,1,0,1,8);shape("Cross",1,1,1,1,10);
+  s.appendChild(r);
+  s=sec("Resource tiles","Gold veins, pine groves and stone outcrops. Enemies can walk over them; only the matching building can be placed on them.");r=el("div","sb-row");
+  [[4,"Gold vein","mine"],[5,"Pine grove","lumber"],[6,"Stone outcrop","quarry"]].forEach(([t,n,k])=>{
+    r.appendChild(item(cvs(80,80,x=>{x.fillStyle="#a9d47c";x.fillRect(0,0,80,80);x.save();x.scale(80/T,80/T);drawNode(x,0,0,t);x.restore()}),n));
+    r.appendChild(item(cvs(80,96,x=>{x.fillStyle="#a9d47c";x.fillRect(0,0,80,96);x.save();x.scale(80/T,80/T);drawNode(x,0,T*0.35,t);drawTower(x,k,0,T*0.35,1,0,null);x.restore()}),TOWERS[k].n+" on it"))});
   s.appendChild(r);
 
   // enemies
@@ -1516,7 +1628,7 @@ function openStylebook(){
     d.innerHTML=`<div class="top"><b></b><span class="lv"></span></div><div class="pips">${pipHtml(L,0)}</div><span class="ef"></span>`;
     d.querySelector("b").textContent=c.ic+" "+c.n;const lv=d.querySelector(".lv");lv.textContent=L>=CMAX?"MAX":`Lv ${L}/10`;if(L>=CMAX)lv.classList.add("max");
     d.querySelector(".ef").textContent=cardText(c,L);return d};
-  r.appendChild(item(owned(CARDS.bounty,1),"Level 1"));r.appendChild(item(owned(CARDS.range,3),"Level 3 (bonus)"));r.appendChild(item(owned(CARDS.market===undefined?CARDS.trade:CARDS.trade,6),"Level 6 (bonus)"));r.appendChild(item(owned(CARDS.overclock,10),"MAX"));
+  r.appendChild(item(owned(CARDS.prosp,1),"Level 1"));r.appendChild(item(owned(CARDS.range,3),"Level 3 (bonus)"));r.appendChild(item(owned(CARDS.sawmill,6),"Level 6 (bonus)"));r.appendChild(item(owned(CARDS.overclock,10),"MAX"));
   s.appendChild(r);
   const all=el("p","hint");all.style.marginTop="10px";
   all.textContent="All cards: "+Object.values(CARDS).map(c=>c.n+(c.rare?" (rare)":"")).join(", ")+".";s.appendChild(all);
