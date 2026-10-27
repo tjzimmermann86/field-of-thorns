@@ -16,7 +16,7 @@
 <script>if("serviceWorker" in navigator&&location.protocol==="https:")addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}))</script>
 </head>
 <body>
-<title>Field of Thorns</title>
+<title>Game - Field of Thorns</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Silkscreen:wght@400;700&display=swap">
@@ -199,6 +199,11 @@ body.compact #objBox{display:none}
 body.compact #mini{width:140px}
 @media (max-width:920px){body.compact.story .stat.rnd{display:none}}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
+#soundOv{z-index:31}
+.vol{display:grid;grid-template-columns:80px 40px 1fr 40px 44px;align-items:center;gap:8px;margin-top:12px;font-size:20px}
+.vol .btn{padding:2px 0;font-size:22px}
+.vol input{width:100%;accent-color:var(--go)}
+.vol b{font-weight:400;text-align:right;font-variant-numeric:tabular-nums}
 #styleBox{max-width:1180px;background:var(--panel);max-height:none}
 .sb-sec{margin-top:22px;padding-top:12px;border-top:3px dashed var(--line)}
 .sb-sec h2{font-family:var(--f-ui);font-weight:400;font-size:28px}
@@ -323,6 +328,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <button class="btn" data-sp="3" aria-pressed="false">3x</button>
       <button class="btn" id="bCards" aria-expanded="false">Cards</button>
       <button class="btn" id="bFull" hidden title="Full screen" aria-label="Full screen">⛶</button>
+      <button class="btn" id="bSound" title="Sound" aria-label="Sound settings">♪</button>
       <button class="btn" id="bMenu">Menu</button>
     </div>
   </div>
@@ -348,6 +354,13 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   </div>
 </div>
 
+<div class="ov" id="soundOv" hidden><div class="modal px-box" style="max-width:440px;background:var(--panel)">
+  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Sound</h2>
+  <div class="vol"><span>Music</span><button class="btn" id="sm-music" aria-label="Music quieter">−</button><input type="range" id="sv-music" min="0" max="10" step="1" aria-label="Music volume"><button class="btn" id="sp-music" aria-label="Music louder">+</button><b id="sn-music"></b></div>
+  <div class="vol"><span>Effects</span><button class="btn" id="sm-sfx" aria-label="Effects quieter">−</button><input type="range" id="sv-sfx" min="0" max="10" step="1" aria-label="Effects volume"><button class="btn" id="sp-sfx" aria-label="Effects louder">+</button><b id="sn-sfx"></b></div>
+  <div class="row" style="margin-top:16px"><button class="btn" id="sMute" aria-pressed="false">Mute all</button><button class="btn" id="sSkip">Next song</button><button class="btn go" id="sClose">Done</button></div>
+  <p class="hint" style="margin:10px 0 0">The music is made up as it plays, so every song is a little different. It gets drums when slimes are on the field.</p>
+</div></div>
 <div class="ov" id="styleOv" hidden><div class="modal px-box" id="styleBox"></div></div>
 <div id="rotate"><b>Turn your phone sideways</b><span class="hint">Field of Thorns plays in landscape so the map is big enough to tap.</span></div>
 <div class="ov" id="menu">
@@ -365,7 +378,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
-        <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button><button class="btn" id="bStyle">Stylebook</button><button class="btn" id="bReset">Reset progress</button></div>
+        <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button><button class="btn" id="bStyle">Stylebook</button><button class="btn" id="bSoundM">Sound</button><button class="btn" id="bReset">Reset progress</button></div>
         <p class="how">Towers cost gold. Every slime you defeat drops gold, and Markets pay bonus gold after every cleared round. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. How long the swarm lasts? Nobody knows.</p>
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
@@ -712,14 +725,14 @@ function startRound(early){
   G.spawnGap=Math.max(0.16,0.62-r*0.009);G.spawnT=0;
   G.towers.forEach(tw=>tw.rd=0);
   const [,cls]=tagFor(r);
-  toast(`Round ${r} starts — ${describeRound(r)}. Good luck!`,cls,true);
+  toast(`Round ${r} starts — ${describeRound(r)}. Good luck!`,cls,true);SND.play("start");
   renderInfo();
 }
 function earlyBonus(){return Math.floor(G.timer*(1+G.round*0.18))}
 function endRound(){
   const r=G.round;
   const bonus=gc(C({g:15+r*3+Math.floor(G.gold*G.mods.interest),w:8+r*2,s:4+r}));
-  gain(bonus);
+  gain(bonus);SND.play("clear");
   let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08")}
   if(mk)gain(C({g:mk}));
   floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}${mk?`  · Markets +¤${mk}`:""}`,"#9a6a08");
@@ -804,7 +817,7 @@ function offerCards(rare,title){
     b.querySelector(".now").textContent=cardText(c,nx);
     b.querySelector(".was").textContent=cur&&!c.once?`Now: ${cardText(c,cur)}`:"";
     b.querySelector(".pips").innerHTML=pipHtml(cur,nx);
-    b.onclick=()=>{G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();
+    b.onclick=()=>{SND.play("card");G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();
       if(isMile(nx))toast(nx===CMAX?`${c.n} is MAX — double bonus unlocked!`:`${c.n} reached level ${nx} — bonus step!`,"",true);$("cardsOv").hidden=true;renderCards();renderBuild();afterCard()};
     row.appendChild(b);
   });
@@ -871,10 +884,10 @@ function price(type){return G.free[type]?C():listPrice(type)}
 function pausedBlock(){if(G.paused){toast("Paused — resume to build, upgrade or sell","boss");return true}return false}
 function place(i){
   const type=buildType;if(!type||pausedBlock())return;
-  const p=price(type);if(!afford(p)){toast(lacking(p),"boss");return}
-  const c=canPlace(i,type);if(!c.ok){toast(c.why,"boss");return}
+  const p=price(type);if(!afford(p)){toast(lacking(p),"boss");SND.play("err");return}
+  const c=canPlace(i,type);if(!c.ok){toast(c.why,"boss");SND.play("err");return}
   if(G.free[type]){G.free[type]--;if(!G.free[type])delete G.free[type]}
-  pay(p);
+  pay(p);SND.play(type==="fence"?"thorn":"build");
   const tw={type,i,x:i%G.map.cols+0.5,y:((i/G.map.cols)|0)+0.5,L:1,cd:0,spent:p,rd:0,total:0,mt:0,acc:0,flash:0};
   G.towers.push(tw);G.occ[i]=tw;
   G.dist=c.dist;G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;ghost=null;
@@ -883,7 +896,7 @@ function place(i){
 function replaceInfo(i){const old=G.occ[i],back=floorC(old.spent,0.7),cost=price(buildType),nw=nodeOk(buildType,i);return{old,back,cost,why:nw||lacking(cost,back),ok:!nw&&afford(cost,back)}}
 function replaceAt(i){
   if(pausedBlock())return;
-  const r=replaceInfo(i),type=buildType;if(!r.ok){toast(r.why,"boss");return}
+  const r=replaceInfo(i),type=buildType;if(!r.ok){toast(r.why,"boss");SND.play("err");return}SND.play("build");
   const old=r.old;G.gold+=r.back.g;G.wood+=r.back.w;G.stone+=r.back.s;G.towers=G.towers.filter(t=>t!==old);if(sel===old)sel=null;if(group)group=group.filter(t=>t!==old);
   if(G.free[type]){G.free[type]--;if(!G.free[type])delete G.free[type]}
   pay(r.cost);
@@ -897,13 +910,13 @@ function sell(tw){
   const back=floorC(tw.spent,0.7);G.gold+=back.g;G.wood+=back.w;G.stone+=back.s;
   G.occ[tw.i]=null;G.towers=G.towers.filter(t=>t!==tw);
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  floatText(tw.x,tw.y,"+"+txtC(back),"#9a6a08");sel=null;renderInfo();renderBuild();
+  floatText(tw.x,tw.y,"+"+txtC(back),"#9a6a08");SND.play("sell");sel=null;renderInfo();renderBuild();
 }
 function upgradeGroup(){
   if(!group||pausedBlock())return;let n=0;
   let lack="";
   for(const tw of group){if(tw.L>=10||TOWERS[tw.type].wall)continue;const c=upCost(tw.type,tw.L);if(!afford(c)){lack=lacking(c);break}pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;n++}
-  if(!n){toast(lack||"Nothing to upgrade","boss");return}
+  if(!n){toast(lack||"Nothing to upgrade","boss");SND.play("err");return}SND.play("up");
   if(n<group.length)toast(`Upgraded ${n} of ${group.length}. ${lack} for the rest`,"boss");
   group=group.slice(0,n);if(group.length<2)group=null;renderInfo();renderBuild();
 }
@@ -912,13 +925,13 @@ function sellGroup(){
   let back=C();for(const tw of group){back=addC(back,floorC(tw.spent,0.7));G.occ[tw.i]=null}
   G.towers=G.towers.filter(t=>!group.includes(t));G.gold+=back.g;G.wood+=back.w;G.stone+=back.s;
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  toast(`Sold ${group.length} buildings`);group=null;sel=null;renderInfo();renderBuild();
+  toast(`Sold ${group.length} buildings`);SND.play("sell");group=null;sel=null;renderInfo();renderBuild();
 }
 function upgrade(tw){
   if(pausedBlock())return;
   if(tw.L>=10||TOWERS[tw.type].wall)return;const c=upCost(tw.type,tw.L);
-  if(!afford(c)){toast(lacking(c),"boss");return}
-  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;renderInfo();renderBuild();
+  if(!afford(c)){toast(lacking(c),"boss");SND.play("err");return}
+  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;SND.play("up");renderInfo();renderBuild();
 }
 
 // ---------- enemies ----------
@@ -972,7 +985,7 @@ function progressLeft(e){
   return G.dist[e.cell]+1-e.t;
 }
 function leak(e){
-  e.dead=true;G.lives-=e.lives;G.stats.leaked+=e.lives;
+  e.dead=true;G.lives-=e.lives;G.stats.leaked+=e.lives;SND.play("leak");
   floatText(Math.min(e.x,G.map.cols-0.5),Math.max(0.5,Math.min(e.y,G.map.rows-0.5)),`-${e.lives} ${e.lives>1?"lives":"life"}`,"#cf463d");
   if(G.lives<=0){G.lives=0;finish(false)}
 }
@@ -981,7 +994,7 @@ function damage(e,amt,tw){
   let a=amt*(e.fly?1+G.mods.air:1)*(e.boss?1+G.mods.boss:1)*(e.kind==="armor"&&ARMOR_WEAK.includes(tw.type)?0.4:1);
   const real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
   if(e.hp<=0){
-    e.dead=true;G.stats.kills++;
+    e.dead=true;G.stats.kills++;SND.play(e.kind==="boss"||e.kind==="big"?"boss":"kill");
     G.fx.push({k:"pop",x:e.x,y:e.y,t:0.3,c:e.boss?"#f4c84a":"#ffffff",s:e.boss?2:1});
     const r=e.lvl||G.round,luck=1+G.mods.luck;
     if(e.kind==="split")for(let k=0;k<3;k++){const K=KINDS.spawn;
@@ -1049,6 +1062,112 @@ function floatText(x,y,s,c){G&&G.fx.push({k:"txt",x,y,s,c,t:1.2})}
 let toastT=0;
 function toast(msg,cls,big){const el=document.getElementById("toast");el.textContent=msg;el.className="px-box "+(cls||"")+(big?" big":"");el.hidden=false;toastT=big?3.6:3.2}
 
+// ---------- sound: music and effects are synthesized in the browser, no audio files ----------
+const SND=(()=>{
+  const st=Object.assign({music:5,sfx:7,mute:false},LS.get("fot-sound",{}));
+  let ac=null,master,mus,fx,pulse,noiseBuf,nextT=0,stepI=0,song=null,inten=0,lastKill=0;
+  const R=Math.random,pick=a=>a[(R()*a.length)|0],mf=m=>440*Math.pow(2,(m-69)/12);
+  const vol=v=>Math.pow(v/10,1.6); // the sliders follow how loud it feels, not raw gain
+  function apply(){if(!ac)return;const t=ac.currentTime;master.gain.setTargetAtTime(st.mute?0:1,t,0.03);mus.gain.setTargetAtTime(vol(st.music)*1.1,t,0.05);fx.gain.setTargetAtTime(vol(st.sfx)*1.4,t,0.03)}
+  function save(){LS.set("fot-sound",st);apply()}
+  function init(){
+    if(ac){if(ac.state==="suspended"&&!document.hidden)ac.resume();return}
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    try{ac=new AC()}catch(e){return}
+    master=ac.createGain();master.connect(ac.destination);
+    const comp=ac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;comp.connect(master);
+    mus=ac.createGain();fx=ac.createGain();
+    const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=3000;mus.connect(lp);lp.connect(comp);fx.connect(comp);
+    // 25% pulse wave: the classic soft chiptune lead
+    const n=32,re=new Float32Array(n),im=new Float32Array(n);for(let k=1;k<n;k++)im[k]=2/(k*Math.PI)*Math.sin(k*Math.PI*0.25);pulse=ac.createPeriodicWave(re,im);
+    noiseBuf=ac.createBuffer(1,ac.sampleRate*0.5,ac.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=R()*2-1;
+    song=newSong(null);apply();nextT=ac.currentTime+0.15;setInterval(tick,30);
+  }
+  function tone(dest,t,f,dur,o){o=o||{};
+    const os=ac.createOscillator(),g=ac.createGain();
+    if(o.type==="pulse")os.setPeriodicWave(pulse);else os.type=o.type||"square";
+    os.frequency.setValueAtTime(f,t);if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+dur);
+    const v=o.vol==null?0.2:o.vol,a=o.att||0.005;
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    os.connect(g);g.connect(dest);os.start(t);os.stop(t+dur+0.02);
+  }
+  function noise(dest,t,dur,o){o=o||{};
+    const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=noiseBuf;
+    f.type=o.ft||"lowpass";f.frequency.value=o.f||2000;
+    g.gain.setValueAtTime(o.vol||0.2,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    s.connect(f);f.connect(g);g.connect(dest);s.start(t,R()*0.3);s.stop(t+dur+0.02);
+  }
+  // ---- music: every song is generated from a random key, chord progressions and two melody motifs ----
+  const SCALE=[0,2,4,5,7,9,11],deg=d=>SCALE[((d%7)+7)%7]+12*Math.floor(d/7);
+  const PROGS=[[0,4,5,3],[5,3,0,4],[0,5,3,4],[3,4,0,5],[5,4,3,4],[0,2,3,4],[5,1,4,0],[3,0,4,5],[0,3,5,4],[5,3,4,0],[0,3,1,4]];
+  const KEYS=[0,7,5,2,9,-2,4,-3];
+  const RHY=[[1,0,1,1,1,0,1,0],[1,0,0,1,0,0,1,0],[1,1,1,0,1,0,0,0],[1,0,1,0,1,1,1,0],[0,0,1,0,1,0,1,1],[1,0,0,0,1,0,1,1],[1,1,0,1,0,1,0,0],[1,0,1,0,0,1,1,0]];
+  const FORMS=[["A","A","B","A"],["A","B","A","B"],["A","A","B","C"],["A","B","C","A"],["C","A","B","A"]];
+  function motif(){const r=pick(RHY),c=[];let p=pick([0,2,4,7]);for(let i=0;i<8;i++){p+=pick([-2,-1,-1,0,1,1,2]);p=Math.max(-1,Math.min(9,p));c.push(p)}return{r,c}}
+  function newSong(prev){
+    const progA=pick(PROGS);
+    return{key:pick(KEYS.filter(k=>!prev||k!==prev.key)),progA,progB:pick(PROGS.filter(p=>p!==progA)),bpm:84+((R()*16)|0),
+      A:motif(),B:motif(),form:pick(FORMS),sec:0,shift:0,bassAlt:R()<0.5};
+  }
+  function playStep(t){
+    const s=stepI%16,bar=Math.floor(stepI/16)%4,name=song.form[song.sec%song.form.length];
+    const ch=(name==="B"?song.progB:song.progA)[bar],base=48+song.key,D=60/song.bpm/4,I=inten;
+    // bass: root on the beat, a few pick-up notes when slimes are on the field
+    if(s===0||s===8||(song.bassAlt&&s===12)||(I&&(s===6||s===14)&&R()<0.5)){
+      const oct=s===8&&song.bassAlt?12:0;tone(mus,t,mf(base-12+deg(ch)+oct),D*(s%8===0?3.6:1.6),{type:"triangle",vol:0.3})}
+    // soft arpeggio of the chord in eighths (thin in quiet A sections so the melody can breathe)
+    if(s%2===0&&(name!=="A"||I||bar%2===1)){const k=[0,2,4,2][(s/2)%4];tone(mus,t,mf(base+12+deg(ch+k)),D*1.8,{type:"pulse",vol:0.04,att:0.01})}
+    // melody: motif A or B, varied by the chord underneath and a small shift on repeats; C is a breakdown without it
+    if(name!=="C"&&s%2===0){
+      const m=name==="B"?song.B:song.A,i=s/2;
+      if(bar===3){if(i===0)tone(mus,t,mf(base+12+deg(ch+pick([0,2,4]))),D*7,{type:"pulse",vol:0.08,att:0.02})}
+      else if(m.r[i]){let len=1;while(i+len<8&&!m.r[i+len])len++;
+        const v=m.c[i]+(bar===2?song.shift:0);tone(mus,t,mf(base+12+deg(ch+v)),D*2*len*0.9,{type:"pulse",vol:0.08,att:0.01})}
+    }
+    // light drums only while a wave or raid is running, a bit busier when a boss is out
+    if(I){
+      if(s%4===2||(I>1&&s%2===1&&R()<0.5))noise(mus,t,0.03,{ft:"highpass",f:7000,vol:0.05});
+      if(s===0||s===8||(I>1&&s===10))tone(mus,t,130,0.12,{type:"sine",to:45,vol:0.42});
+      if(s===4||s===12)noise(mus,t,0.08,{f:1800,vol:0.08});
+    }
+  }
+  function tick(){
+    if(!ac||ac.state!=="running")return;
+    if(nextT<ac.currentTime)nextT=ac.currentTime+0.05;
+    const quiet=st.mute||!st.music;
+    while(nextT<ac.currentTime+0.2){
+      if(!quiet)playStep(nextT);
+      nextT+=60/song.bpm/4;stepI++;
+      if(stepI%64===0){song.sec++;song.shift=pick([0,0,1,-1,2]);if(song.sec>=song.form.length*2){song=newSong(song);stepI=0;nextT+=60/song.bpm}}
+    }
+  }
+  // ---- effects ----
+  const FX={
+    build:t=>{noise(fx,t,0.07,{f:900,vol:0.35});tone(fx,t+0.02,330,0.07,{vol:0.1,to:520})},
+    thorn:t=>{noise(fx,t,0.09,{ft:"bandpass",f:2600,vol:0.3});tone(fx,t,700,0.05,{type:"triangle",vol:0.08,to:400})},
+    up:t=>[523,659,784,1047].forEach((f,i)=>tone(fx,t+i*0.05,f,0.09,{type:"pulse",vol:0.12})),
+    sell:t=>{tone(fx,t,784,0.12,{type:"triangle",vol:0.18,to:392});tone(fx,t+0.08,1319,0.08,{vol:0.05})},
+    kill:t=>{const f=260+R()*160;tone(fx,t,f,0.09,{type:"triangle",vol:0.22,to:f*0.4});noise(fx,t,0.04,{f:1500,vol:0.07})},
+    boss:t=>{noise(fx,t,0.45,{f:600,vol:0.5});tone(fx,t,220,0.5,{type:"triangle",vol:0.35,to:55});[523,659,784].forEach((f,i)=>tone(fx,t+0.15+i*0.06,f,0.25,{type:"pulse",vol:0.09}))},
+    leak:t=>{tone(fx,t,140,0.28,{vol:0.14,to:70});tone(fx,t+0.12,110,0.3,{vol:0.1,to:55})},
+    start:t=>{tone(fx,t,392,0.14,{type:"pulse",vol:0.14});tone(fx,t+0.15,587,0.3,{type:"pulse",vol:0.14})},
+    clear:t=>[523,659,784,1047].forEach((f,i)=>tone(fx,t+i*0.08,f,i===3?0.35:0.12,{type:"pulse",vol:0.12})),
+    coin:t=>{tone(fx,t,988,0.05,{vol:0.07});tone(fx,t+0.05,1319,0.12,{vol:0.07})},
+    card:t=>{tone(fx,t,1047,0.25,{type:"triangle",vol:0.18});tone(fx,t+0.07,1568,0.3,{type:"triangle",vol:0.14})},
+    err:t=>{tone(fx,t,150,0.07,{vol:0.1});tone(fx,t+0.09,120,0.09,{vol:0.1})},
+    win:t=>[523,659,784,1047,784,1047].forEach((f,i)=>tone(fx,t+i*0.12,f,i===5?0.6:0.14,{type:"pulse",vol:0.13})),
+    lose:t=>[392,349,311,262].forEach((f,i)=>tone(fx,t+i*0.2,f,i===3?0.7:0.22,{type:"triangle",vol:0.2})),
+  };
+  function play(name){
+    if(!ac||st.mute||!st.sfx||ac.state!=="running"||!FX[name])return;
+    if(name==="kill"){if(ac.currentTime-lastKill<0.045)return;lastKill=ac.currentTime} // many kills at 3x speed stay pleasant
+    FX[name](ac.currentTime+0.005);
+  }
+  ["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev,init,{passive:true}));
+  document.addEventListener("visibilitychange",()=>{if(!ac)return;if(document.hidden)ac.suspend();else ac.resume()});
+  return{st,save,play,init,skip(){if(song){song=newSong(song);stepI=0}},setInten(v){inten=v}};
+})();
+
 // ---------- main loop ----------
 let last=performance.now(),hudAcc=0;
 function frame(now){
@@ -1059,6 +1178,7 @@ function frame(now){
     G.stats.time+=rdt;
     const steps=G.speed;for(let s=0;s<steps;s++)step(rdt);
   }
+  {let v=0;if(G&&!G.over){const act=G.story?G.enemies.length>0:G.phase==="wave";if(act)v=G.enemies.some(e=>e.boss&&!e.dead)?2:1}SND.setInten(v)}
   if(G)draw(now/1000);
   hudAcc+=rdt;if(hudAcc>0.2&&G){hudAcc=0;updHud();if(sel)renderInfo(true);guideTick()}
   requestAnimationFrame(frame);
@@ -1523,7 +1643,7 @@ cv.addEventListener("dblclick",ev=>{
 });
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 document.addEventListener("keydown",ev=>{
-  if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden)return;
+  if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden||!$("soundOv").hidden)return;
   const k=ev.key.toUpperCase();
   const t=ORDER.find(o=>TOWERS[o].key===k&&avail(o));
   if(t){buildType=buildType===t?null:t;sel=null;renderBuild();renderInfo();return}
@@ -1702,7 +1822,7 @@ function captureCamp(c){
   computeTerritory();refreshGates();G.dist=dijkstra(m,G.occ,-1);G.path=tracePaths(m,G.dist,G.occ);bgDirty=true;
   const f=c.town?6:c.side?2:1+c.stage*0.6,loot=C({g:Math.round(120*f),w:Math.round(70*f),s:Math.round(45*f)});gain(loot);
   floatText(c.x+0.5,c.y,"Captured! +"+txtC(loot),"#9a6a08");G.fx.push({k:"boom",x:c.x+0.5,y:c.y+0.5,r:c.size+1.5,t:0.6,c:"#f4c84a"});
-  toast(c.town?"Slimehold falls! The Slime King himself marches out…":`${c.name} destroyed. The land is yours!`,"",true);
+  SND.play("clear");toast(c.town?"Slimehold falls! The Slime King himself marches out…":`${c.name} destroyed. The land is yours!`,"",true);
   if(c.town)G.queue.unshift({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
   checkObjective();
   if(c.side){
@@ -1725,7 +1845,7 @@ function queueRaid(c){
 function raidBonus(){const act=G.camps.filter(c=>c.alive&&c.active);if(!act.length)return 0;return Math.floor(Math.min(...act.map(c=>c.t))*(1+(G.raidsTotal||0)*0.05))}
 function callRaids(){
   if(pausedBlock())return;
-  if(!G.started){G.started=true;G.round=1;G.camps.forEach(c=>{if(c.alive&&c.active)c.t=0});toast("The defense begins!","",true);saveStory();return}
+  if(!G.started){G.started=true;G.round=1;G.camps.forEach(c=>{if(c.alive&&c.active)c.t=0});toast("The defense begins!","",true);SND.play("start");saveStory();return}
   const b=raidBonus();if(b<=0)return;gain(C({g:b}));G.camps.forEach(c=>{if(c.alive&&c.active)c.t=0});floatText(G.map.vx+0.5,G.map.vy-2,`+¤${b} early`,"#9a6a08");
 }
 function checkObjective(){
@@ -1893,7 +2013,7 @@ function showStory(){
   $("storyOv").hidden=false;LS.set("fot-intro-seen",true);
 }
 function finish(win){
-  if(G.over)return;G.over=true;
+  if(G.over)return;G.over=true;SND.play(win?"win":"lose");
   if(G.story){finishStory(win);return}
   const sc=calcScore(win),s=G.stats,key=mkey(G.d,G.m);
   const entry={score:sc,win,round:G.round,time:Math.round(s.time),kills:s.kills,lives:G.lives,at:Date.now()};
@@ -2123,6 +2243,21 @@ $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=tru
   storyArm=false;$("bStoryNew").textContent="New campaign";LS.set("fot-story",null);$("menu").hidden=true;newStory(null)};
 $("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
 $("bStyle").onclick=()=>openStylebook();
+function renderSound(){
+  const st=SND.st;["music","sfx"].forEach(k=>{$("sv-"+k).value=st[k];setTxt("sn-"+k,st[k]===0?"Off":st[k])});
+  $("sMute").setAttribute("aria-pressed",st.mute);$("sMute").textContent=st.mute?"Sound off — tap to turn on":"Mute all";
+  $("bSound").textContent=st.mute?"🔇":"♪";
+}
+function openSound(){SND.init();renderSound();$("soundOv").hidden=false}
+["music","sfx"].forEach(k=>{
+  const set=v=>{SND.st[k]=Math.max(0,Math.min(10,v));if(SND.st[k]>0)SND.st.mute=false;SND.save();renderSound();if(k==="sfx")SND.play("coin")};
+  $("sv-"+k).oninput=e=>set(+e.target.value);$("sm-"+k).onclick=()=>set(SND.st[k]-1);$("sp-"+k).onclick=()=>set(SND.st[k]+1);
+});
+$("sMute").onclick=()=>{SND.st.mute=!SND.st.mute;SND.save();renderSound()};
+$("sSkip").onclick=()=>SND.skip();
+$("sClose").onclick=()=>{$("soundOv").hidden=true};
+$("bSound").onclick=openSound;$("bSoundM").onclick=openSound;
+renderSound();
 $("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;$("menu").hidden=true;newGame(menuD,menuM)};
 let resetArm=false;
 $("bReset").onclick=()=>{if(!resetArm){resetArm=true;$("bReset").textContent="Click again to erase";setTimeout(()=>{resetArm=false;$("bReset").textContent="Reset progress"},3000);return}
