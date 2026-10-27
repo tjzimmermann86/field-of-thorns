@@ -36,6 +36,8 @@ html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:19px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;}
 button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+input{color:var(--ink);background:var(--panel);caret-color:var(--ink);-webkit-text-fill-color:var(--ink)} /* readable in any system theme */
+input::placeholder{color:var(--muted);-webkit-text-fill-color:var(--muted)}
 button:focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 .px-box{background:var(--panel);border:3px solid var(--ink);box-shadow:4px 4px 0 rgba(37,50,37,.18)}
 .btn{background:var(--panel);border:3px solid var(--ink);padding:6px 12px;box-shadow:3px 3px 0 var(--ink);font-weight:600;line-height:1.1}
