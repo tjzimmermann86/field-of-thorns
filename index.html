@@ -366,7 +366,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
         <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button><button class="btn" id="bStyle">Stylebook</button><button class="btn" id="bReset">Reset progress</button></div>
-        <p class="how">Towers cost gold plus wood or stone. Build Gold Mines, Lumber Camps and Quarries on the matching resource tiles; slimes drop almost nothing. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. How long the swarm lasts? Nobody knows.</p>
+        <p class="how">Towers cost gold. Every slime you defeat drops gold, and Markets pay bonus gold after every cleared round. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. How long the swarm lasts? Nobody knows.</p>
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
         <h3>Ranking <span class="label" id="lbFor"></span></h3>
@@ -435,13 +435,14 @@ const TOWERS={
   fire:{n:"Fire",key:"7",cost:{g:50,s:30},dmg:9,rate:2,range:1.3,rg:0.08,tg:"g",kind:"AOE",desc:"Burns every ground enemy around it."},
   flak:{n:"Flak",key:"8",cost:{g:40,w:30},dmg:15,rate:1.6,range:2.4,rg:0.17,tg:"a",kind:"Air",splash:0.8,desc:"Air only. Bursts hit nearby flyers."},
   hawk:{n:"Hawk",key:"9",cost:{g:60,w:40},dmg:46,rate:0.7,range:2.8,rg:0.22,tg:"a",kind:"Air",desc:"Air only. Homing missiles."},
-  mine:{n:"Gold Mine",key:"G",cost:{g:60,w:20},eco:true,prod:"g",node:4,rate:1.5,rg:0.6,desc:"Digs gold every second. Builds only on a glittering gold vein."},
-  lumber:{n:"Lumber Camp",key:"L",cost:{g:40},eco:true,prod:"w",node:5,rate:1.2,rg:0.5,desc:"Cuts wood every second. Builds only on a pine grove."},
-  quarry:{n:"Quarry",key:"Q",cost:{g:50,w:20},eco:true,prod:"s",node:6,rate:0.8,rg:0.35,desc:"Breaks stone every second. Builds only on a stone outcrop."},
+  market:{n:"Market",key:"M",cost:{g:80},eco:true,perRound:true,mode:"maps",prod:"g",rate:25,desc:"Pays bonus gold every time you clear a round, and each upgrade pays more. Builds on any free grass tile. Every extra market costs a bit more."},
+  mine:{n:"Gold Mine",key:"G",cost:{g:60,w:20},eco:true,mode:"story",prod:"g",node:4,rate:1.5,rg:0.6,desc:"Digs gold every second. Builds only on a glittering gold vein."},
+  lumber:{n:"Lumber Camp",key:"L",cost:{g:40},eco:true,mode:"story",prod:"w",node:5,rate:1.2,rg:0.5,desc:"Cuts wood every second. Builds only on a pine grove."},
+  quarry:{n:"Quarry",key:"Q",cost:{g:50,w:20},eco:true,mode:"story",prod:"s",node:6,rate:0.8,rg:0.35,desc:"Breaks stone every second. Builds only on a stone outcrop."},
   ballista:{n:"Ballista",key:"B",cost:{g:80,w:60},dmg:40,rate:0.6,range:3.4,rg:0.3,tg:"ga",kind:"Pierce",unique:true,desc:"Story reward from the smugglers. Heavy bolts pierce up to 3 slimes in a line."},
   fence:{n:"Thorns",key:"T",cost:{w:6},dmg:1,rate:1.5,range:1.05,rg:0.03,tg:"g",kind:"Maze + AOE",thorn:true,desc:"Blocks the path and scratches every ground enemy next to it. Weak at first, but each upgrade multiplies its damage."},
 };
-const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","ballista","fence","mine","lumber","quarry"];
+const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","ballista","fence","market","mine","lumber","quarry"];
 const COMBAT=ORDER.filter(k=>!TOWERS[k].eco); // includes Thorns for Mastery cards
 const TGTXT={g:"Ground",a:"Air",ga:"Ground + Air"};
 
@@ -478,7 +479,10 @@ function have(){return{g:G.gold,w:G.wood,s:G.stone}}
 function afford(c,extra){const h=extra?addC(have(),extra):have();return h.g>=c.g&&h.w>=c.w&&h.s>=c.s}
 function lacking(c,extra){const h=extra?addC(have(),extra):have();const miss=["g","w","s"].filter(k=>h[k]<c[k]).map(k=>RNAME[k].toLowerCase());return miss.length?`Not enough ${miss.join(" and ")}`:""}
 function pay(c){G.gold-=c.g;G.wood-=c.w;G.stone-=c.s;G.stats.spent+=c.g+c.w+c.s}
-function gain(c){G.gold+=c.g;G.wood+=c.w;G.stone+=c.s;G.stats.earned+=c.g+c.w+c.s}
+// Challenge maps run on gold only: wood and stone prices and rewards count as gold there
+const goldOnly=()=>!!(G&&!G.story);
+function gc(c){return goldOnly()?C({g:c.g+c.w+c.s}):c}
+function gain(c){c=gc(c);G.gold+=c.g;G.wood+=c.w;G.stone+=c.s;G.stats.earned+=c.g+c.w+c.s}
 function fmtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`<span class="cst">${RHTML[k]}${fmt(c[k])}</span>`);return p.length?p.join(""):"free"}
 function txtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`${RMARK[k]}${fmt(c[k])}`);return p.length?p.join(" "):"free"}
 
@@ -535,11 +539,7 @@ function buildMap(m,d){
   map.exitCell=new Int8Array(N).fill(-1);
   exits.forEach((e,k)=>e.cells.forEach(i=>map.exitCell[i]=k));
   map.entSet=new Set(ent);
-  // resource nodes: Meadow has fixed, safe spots for beginners; other maps scatter them (some near the path)
-  const NODES=[[3,2,2],[4,3,2],[4,3,3],[5,3,3]][m];
-  if(m===0){[[3,2,4],[14,2,4],[11,9,4],[4,9,5],[16,9,5],[10,2,6],[15,10,6]].forEach(([x,y,t])=>ter[y*cols+x]=t)}
-  else{const placed=[];const ok=i=>{const x=i%cols,y=(i/cols)|0;return ter[i]===0&&!protect.has(i)&&placed.every(j=>Math.abs(j%cols-x)+Math.abs(((j/cols)|0)-y)>=4)};
-    NODES.forEach((n,k)=>{for(let c=0,g=0;c<n&&g<500;g++){const i=(R()*N)|0;if(ok(i)){ter[i]=4+k;placed.push(i);c++}}})}
+    // no resource tiles on the maps: mines, camps and quarries only exist in the story
   return map;
 }
 function gatePoint(map,k,i){
@@ -596,7 +596,7 @@ let bgCanvas=document.createElement("canvas"),bgDirty=true;
 function newGame(d,m,opt){
   T=48;U=3;document.body.classList.remove("story");talkQ.length=0;$("talk").hidden=true;$("mini").hidden=true;$("zoomBox").hidden=true;$("objBox").hidden=true;
   const map=buildMap(m,d);
-  G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].start.g,wood:DIFFS[d].start.w,stone:DIFFS[d].start.s,lives:20,round:0,
+  G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].start.g+DIFFS[d].start.w+DIFFS[d].start.s,wood:0,stone:0,lives:20,round:0,
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
     cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}},
     free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},unlocked:{},woodMul:1,env:null,cam:{x:0,y:0,z:1}};
@@ -615,14 +615,14 @@ function newGame(d,m,opt){
 const GUIDE=[
   {t:"Welcome to Field of Thorns",b:"Slimes enter at the red IN gate and crawl to the green EXIT. Every slime that gets out costs a life. You have 20 lives. Hold out until the swarm is broken.",hl:"gates"},
   {t:"The sand path is their route",b:"Slimes always take the shortest way to the exit. That route is drawn as the sand path. Everything you build blocks its tile, and the path bends around it. A longer path keeps them in front of your towers for longer. This is the heart of the game.",hl:"path"},
-  {t:"Grow a thorn wall",b:"Thorns cost a little wood. Pick Thorns and place them on the marked tiles across the path. Watch the path move around them. You can never close the way completely: the game stops you if a tile would block the last route.",hl:"thorns",glow:'#build .bt[data-t="fence"]',need:()=>{const n=G.towers.filter(t=>t.type==="fence").length;return n>=4?null:`Place 4 Thorns (${n}/4)`}},
+  {t:"Grow a thorn wall",b:"Thorns are cheap. Pick Thorns and place them on the marked tiles across the path. Watch the path move around them. You can never close the way completely: the game stops you if a tile would block the last route.",hl:"thorns",glow:'#build .bt[data-t="fence"]',need:()=>{const n=G.towers.filter(t=>t.type==="fence").length;return n>=4?null:`Place 4 Thorns (${n}/4)`}},
   {t:"See the detour?",b:"The path now runs around your wall, so it got longer. Thorns also scratch slimes that walk right past them, and every upgrade multiplies that damage. Weak now, deadly later.",hl:"path"},
-  {t:"Claim the gold vein",b:"Slimes drop almost nothing. Your gold comes from Gold Mines, which only fit on glittering gold veins. Pine groves take Lumber Camps (wood) and stone outcrops take Quarries (stone). They all produce every second once round 1 starts.",hl:"vein",glow:'#build .bt[data-t="mine"]',need:()=>G.towers.some(t=>t.type==="mine")?null:"Build a Gold Mine on a gold vein"},
+  {t:"Open a market",b:"Every slime you defeat drops a little gold. A Market pays extra gold each time you clear a round, and every upgrade pays more. Build one on any free grass tile. Like all buildings it also blocks the path.",glow:'#build .bt[data-t="market"]',need:()=>G.towers.some(t=>t.type==="market")?null:"Build a Market"},
   {t:"Build an Arrow tower",b:"Pick Arrow and place it on one of the marked tiles right next to the path. While you aim, the circle shows how far it shoots.",hl:"arrow",glow:'#build .bt[data-t="arrow"]',need:()=>G.towers.some(t=>t.type==="arrow")?null:"Place an Arrow tower"},
   {t:"Add two more towers",b:"One tower is not enough for 25 slimes. Fill the other marked tiles with Arrows, or use a Frost tower to slow them down.",hl:"arrow",need:()=>{const n=G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length;return n>=3?null:`Place 3 towers next to the path (${n}/3)`}},
   {t:"Check your tower",b:"Select a tower to see its damage now and after the next upgrade. Upgrades add damage and range. Purple numbers come from your bonus cards.",need:()=>sel&&sel.type!=="fence"?null:"Select one of your towers"},
   {t:"Start round 1",b:"Ready? Press Start. Round 1 waits for you; later rounds start on their own after 30 seconds, and starting early pays bonus gold.",glow:"#bStart",need:()=>G.round>=1?null:"Press Start"},
-  {t:"Hold the line",b:"Your mines are working now, and you can keep building during the wave. Bosses drop treasure chests. If slimes slip through, add towers near the end of the path.",need:()=>G.round>=1&&G.phase!=="wave"?null:"Survive round 1"},
+  {t:"Hold the line",b:"Slimes pay gold as they fall, and your market pays out when the round is cleared. You can keep building during the wave. Bosses drop treasure chests. If slimes slip through, add towers near the end of the path.",need:()=>G.round>=1&&G.phase!=="wave"?null:"Survive round 1"},
   {t:"You're ready",b:"After each round you pick a bonus card. Picking the same card again levels it up. Watch the top bar: flyers come every 7th round and ignore your maze, so build Flak or Hawk in time. Bosses cost several lives. Good luck!"},
 ];
 function startGuide(on){G.guide=on?{i:0}:null;renderGuide()}
@@ -718,9 +718,11 @@ function startRound(early){
 function earlyBonus(){return Math.floor(G.timer*(1+G.round*0.18))}
 function endRound(){
   const r=G.round;
-  const bonus=C({g:15+r*3+Math.floor(G.gold*G.mods.interest),w:8+r*2,s:4+r});
+  const bonus=gc(C({g:15+r*3+Math.floor(G.gold*G.mods.interest),w:8+r*2,s:4+r}));
   gain(bonus);
-  floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}`,"#9a6a08");
+  let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08")}
+  if(mk)gain(C({g:mk}));
+  floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}${mk?`  · Markets +¤${mk}`:""}`,"#9a6a08");
   if(r>=50){finish(true);return}
   G.phase="cards";offerCards(r===25);
 }
@@ -740,8 +742,8 @@ const CARDS={};
   add({id:"dmg",n:"Sharp Tips",ic:"⚔",mod:{dmg:.10},txt:v=>`+${pct(v.dmg)} damage for all towers`});
   add({id:"range",n:"Eagle Eye",ic:"◎",mod:{range:.04},txt:v=>`+${pct(v.range)} range for all towers`});
   add({id:"rate",n:"Quick Hands",ic:"»",mod:{rate:.10},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
-  add({id:"prosp",n:"Prospector",ic:"$",mod:{mine:.10},txt:v=>`+${pct(v.mine)} gold from Gold Mines`});
-  add({id:"lucky",n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
+  add({id:"prosp",n:"Prospector",ic:"$",mod:{mine:.10},txt:v=>G&&!G.story?`+${pct(v.mine)} gold from Markets`:`+${pct(v.mine)} gold from Gold Mines`});
+  add({id:"lucky",n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>G&&!G.story?`+${pct(v.luck)} gold from slimes, chests are ${pct(v.luck)} bigger`:`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
   add({id:"interest",n:"Savings",ic:"%",mod:{interest:.01},txt:v=>`+${pct(v.interest)} of your gold paid out after every round`});
   add({id:"freeze",n:"Deep Freeze",ic:"❄",mod:{slow:.04},txt:v=>`Frost slows ${pct(v.slow)} more`});
   add({id:"sawmill",n:"Sawmill",ic:"≡",mod:{wood:.20},txt:v=>`+${pct(v.wood)} wood from Lumber Camps`});
@@ -754,15 +756,15 @@ const CARDS={};
   add({id:"lives",n:"Reinforcements",ic:"♥",once:true,give:L=>{G.lives+=livesAt(2,L)-livesAt(2,L-1)},
     txt:L=>`+${livesAt(2,L)-livesAt(2,L-1)} lives now (total +${livesAt(2,L)})`});
   const chest=L=>Math.round((100+G.round*12)*(1+0.15*(L-1))*(L===CMAX?2:isMile(L)?1.5:1));
-  const chestC=L=>{const g=chest(L);return C({g,w:Math.round(g*0.5),s:Math.round(g*0.3)})};
-  add({id:"chest",n:"Treasure Chest",ic:"◆",once:true,give:L=>gain(chestC(L)),txt:L=>{const c=chestC(L);return `+${c.g} gold, +${c.w} wood, +${c.s} stone right now`}});
+  const chestC=L=>{const g=chest(L);return gc(C({g,w:Math.round(g*0.5),s:Math.round(g*0.3)}))};
+  add({id:"chest",n:"Treasure Chest",ic:"◆",once:true,give:L=>gain(chestC(L)),txt:L=>{const c=chestC(L);return ["g","w","s"].filter(k=>c[k]).map(k=>`+${c[k]} ${RNAME[k].toLowerCase()}`).join(", ")+" right now"}});
   for(const t of ORDER.filter(k=>k!=="fence"))add({id:"free-"+t,n:"Free "+typeNames(t),ic:"+",once:true,give:L=>addFree(t,L===CMAX?3:isMile(L)?2:1),
     txt:L=>L===CMAX?`Your next three ${typeNames(t)} towers cost nothing`:isMile(L)?`Your next two ${typeNames(t)} towers cost nothing`:`Your next ${typeNames(t)} costs nothing`});
   // rare
   add({id:"wrath",n:"Wrath",ic:"⚔",rare:1,mod:{dmg:.20},txt:v=>`+${pct(v.dmg)} damage for all towers`});
   add({id:"overclock",n:"Overclock",ic:"»",rare:1,mod:{rate:.20},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
   add({id:"hawkeye",n:"Hawkeye",ic:"◎",rare:1,mod:{range:.06},txt:v=>`+${pct(v.range)} range for all towers`});
-  add({id:"rush",n:"Boom Town",ic:"$",rare:1,mod:{mine:.20,wood:.20,stone:.20},txt:v=>`+${pct(v.mine)} from all mines, camps and quarries`});
+  add({id:"rush",n:"Boom Town",ic:"$",rare:1,mod:{mine:.20,wood:.20,stone:.20},txt:v=>G&&!G.story?`+${pct(v.mine)} gold from Markets`:`+${pct(v.mine)} from all mines, camps and quarries`});
   add({id:"fortress",n:"Fortress",ic:"♥",rare:1,once:true,give:L=>{G.lives+=livesAt(4,L)-livesAt(4,L-1)},txt:L=>`+${livesAt(4,L)-livesAt(4,L-1)} lives now (total +${livesAt(4,L)})`});
   add({id:"armory",n:"Armory",ic:"▲",rare:1,once:true,give:L=>{const n=L===CMAX?3:isMile(L)?2:1;addFree("sniper",n);addFree("tesla",n)},txt:L=>{const n=L===CMAX?3:isMile(L)?2:1;return n>1?`${n} free Snipers and ${n} free Teslas`:"A free Sniper and a free Tesla"}});
 })();
@@ -785,7 +787,7 @@ function offerCards(rare,title){
     const base=["dmg","range","rate","prosp","lucky","interest","freeze","sawmill","stonecut","sky","slayer","bulk","lives","chest"];
     const CB=COMBAT.filter(avail),FR=ORDER.filter(k=>k!=="fence"&&avail(k)),t=CB[(Math.random()*CB.length)|0],f=FR[(Math.random()*FR.length)|0];
     const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-"))&&avail(id.slice(5)));
-    let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open);
+    let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open).filter(id=>G.story||(id!=="sawmill"&&id!=="stonecut"));
     pick=shuffle(ids).slice(0,3).map(id=>CARDS[id]);
     if(Math.random()<0.08){const r=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id)))[0];if(r)pick[2]=r}
   }
@@ -825,7 +827,8 @@ function renderCards(){
 
 // ---------- tower stats ----------
 function lvlStats(type,L){
-  const b=TOWERS[type];if(b.eco)return{prod:b.rate+b.rg*(L-1)};if(b.wall)return{};
+  const b=TOWERS[type];if(b.perRound)return{prod:b.rate*(1+2.13*(Math.pow(1.3,L-1)-1))}; // each upgrade pays itself back in about 4 rounds
+  if(b.eco)return{prod:b.rate+b.rg*(L-1)};if(b.wall)return{};
   if(b.thorn)return{dmg:b.dmg*Math.pow(1.55,L-1),rate:b.rate*(1+0.05*(L-1)),range:b.range+b.rg*(L-1),chain:0,slow:0,splash:0};
   return{dmg:b.dmg*(1+0.55*(L-1)),rate:b.rate*(1+0.05*(L-1)),range:b.range+b.rg*(L-1),
     chain:b.chain?b.chain+Math.floor((L-1)/3):0,slow:b.slow?b.slow+0.02*(L-1):0,splash:b.splash?b.splash*(1+0.03*(L-1)):0};
@@ -835,8 +838,9 @@ function withCards(type,s){
   return{...s,dmg:s.dmg*(1+G.mods.dmg+(G.mods.type[type]||0)),rate:s.rate*(1+G.mods.rate),range:s.range*(1+G.mods.range),slow:s.slow?Math.min(0.8,s.slow+G.mods.slow):0};
 }
 // cost to go from level L to L+1: same resource mix as the build cost
-function upCost(type,L){const b=TOWERS[type],d=1-G.mods.discount;if(b.thorn)return adjW(C({w:Math.round(10*Math.pow(1.5,L-1)*d)}));return adjW(scaleC(C(b.cost),(b.eco?0.8:0.6)*Math.pow(1.3,L-1)*d))}
-function rates(){const r={g:0,w:0,s:0};for(const t of G.towers){const b=TOWERS[t.type];if(b.eco)r[b.prod]+=withCards(t.type,lvlStats(t.type,t.L)).prod}return r}
+function upCost(type,L){const b=TOWERS[type],d=1-G.mods.discount;if(b.thorn)return gc(adjW(C({w:Math.round(10*Math.pow(1.5,L-1)*d)})));return gc(adjW(scaleC(C(b.cost),(b.eco?0.8:0.6)*Math.pow(1.3,L-1)*d)))}
+function marketPay(){let g=0;for(const t of G.towers)if(TOWERS[t.type].perRound)g+=Math.round(withCards(t.type,lvlStats(t.type,t.L)).prod);return g}
+function rates(){const r={g:0,w:0,s:0};for(const t of G.towers){const b=TOWERS[t.type];if(b.eco&&!b.perRound)r[b.prod]+=withCards(t.type,lvlStats(t.type,t.L)).prod}return r}
 const NODE_N={4:"gold vein",5:"pine grove",6:"stone outcrop"};
 
 // ---------- placement ----------
@@ -860,9 +864,10 @@ function canPlace(i,type){
   for(const e of G.enemies){if(e.fly||e.next<0)continue;if(dist[e.next]>1e8)return{ok:false,why:"That would trap enemies"}}
   return{ok:true,dist};
 }
-function avail(k){return !TOWERS[k].unique||!!(G&&G.unlocked&&G.unlocked[k])}
+function avail(k){const b=TOWERS[k],st=!!(G&&G.story);if(b.mode==="story"&&!st)return false;if(b.mode==="maps"&&st)return false;return !b.unique||!!(G&&G.unlocked&&G.unlocked[k])}
 function adjW(c){if(G&&G.woodMul&&G.woodMul!==1)c.w=Math.round(c.w*G.woodMul);return c} // Old Bram cuts wood cheaper
-function price(type){return G.free[type]?C():adjW(C(TOWERS[type].cost))}
+function listPrice(type){let c=gc(adjW(C(TOWERS[type].cost)));if(type==="market")c=scaleC(c,1+0.25*G.towers.filter(t=>t.type==="market").length);return c}
+function price(type){return G.free[type]?C():listPrice(type)}
 function pausedBlock(){if(G.paused){toast("Paused — resume to build, upgrade or sell","boss");return true}return false}
 function place(i){
   const type=buildType;if(!type||pausedBlock())return;
@@ -983,10 +988,12 @@ function damage(e,amt,tw){
       G.enemies.push({kind:"spawn",hp:e.maxHp*K.hp,maxHp:e.maxHp*K.hp,spd:K.spd,lives:1,bounty:0,lvl:e.lvl,camp:e.camp,x:e.x,y:e.y,mode:"walk",cell:e.cell,next:e.next,prev:e.prev,
         p0:e.p0,p1:e.p1,p2:e.p2,t:Math.max(0,e.t-k*0.15),len:e.len,slowT:0,slowA:0,fly:false,boss:false,ph:Math.random()*6,off:(Math.random()-0.5)*0.5})}
     if(e.king){G.kingDead=true;toast("The Slime King is defeated!","",true)}
+    if(!G.story&&e.bounty){ // on the maps every slime pays gold, more in later rounds
+      const g=Math.round(e.bounty*(1.5+r*0.12)*luck);gain(C({g}));if(e.boss)floatText(e.x,e.y-0.6,"+¤"+g,"#9a6a08")}
     if(e.boss){ // bosses always drop a treasure chest
-      const f=e.kind==="big"?8:e.kind==="boss"?3:1,loot=C({g:Math.round((20+r*2)*f*luck),w:Math.round((12+r)*f*luck),s:Math.round((8+r*0.6)*f*luck)});
+      const f=e.kind==="big"?8:e.kind==="boss"?3:1,loot=gc(C({g:Math.round((20+r*2)*f*luck),w:Math.round((12+r)*f*luck),s:Math.round((8+r*0.6)*f*luck)}));
       gain(loot);floatText(e.x,e.y,"Chest! +"+txtC(loot),"#9a6a08");
-    }else if(Math.random()<0.05*luck){const loot=C({g:1+Math.floor(r/8)});gain(loot);floatText(e.x,e.y,"+"+txtC(loot),"#9a6a08")}
+    }else if(G.story&&Math.random()<0.05*luck){const loot=C({g:1+Math.floor(r/8)});gain(loot);floatText(e.x,e.y,"+"+txtC(loot),"#9a6a08")}
   }
 }
 
@@ -1080,7 +1087,7 @@ function step(dt){
 // mines, camps and quarries pay every second once round 1 has started
 function produce(dt){
   if(G.round<1)return;
-  for(const tw of G.towers){const b=TOWERS[tw.type];if(!b.eco)continue;
+  for(const tw of G.towers){const b=TOWERS[tw.type];if(!b.eco||b.perRound)continue;
     const amt=withCards(tw.type,lvlStats(tw.type,tw.L)).prod*dt;G[RKEY[b.prod]]+=amt;G.stats.earned+=amt;
     tw.acc=(tw.acc||0)+amt;tw.mt+=dt;
     if(tw.mt>=4){const n=Math.floor(tw.acc);if(n>0){tw.acc-=n;floatText(tw.x,tw.y-0.5,`+${RMARK[b.prod]}${n}`,"#6b5a20")}tw.mt=0}}
@@ -1202,7 +1209,12 @@ function drawFence(c,ox,oy,L_,R_,U_,D_,lv){
 function drawProducer(c,type,ox,oy,t,tw){
   const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);
   r(2,13,12,2,"rgba(0,0,0,.16)");
-  if(type==="mine"){ // timbered shaft with a cart of gold
+  if(type==="market"){ // market stall with a striped awning and a pile of coins
+    r(3,3,1,10,"#6e4626");r(12,3,1,10,"#6e4626");
+    for(let k=0;k<6;k++){r(2+k*2,0,2,3,k%2?"#f2f2f2":"#cf463d");r(2+k*2,3,2,1,k%2?"#d8dcdc":"#a8343a")}r(2,-1,12,1,"#8a2a30");
+    r(2,8,12,6,"#8a5a30");r(2,8,12,1,"#c48a52");r(2,11,12,1,"#6e4626");
+    const b=tw?Math.round(Math.sin(t*3)*0.6):0;r(4,6+b,4,2,"#d99a1c");r(5,5+b,2,1,"#f4c84a");r(5,6+b,1,1,"#fff2b0");r(9,5,3,3,"#c48a52");r(9,5,3,1,"#ead2a0");
+  }else if(type==="mine"){ // timbered shaft with a cart of gold
     r(2,3,12,11,"#7c6a58");r(3,2,10,2,"#958372");r(5,5,6,9,"#1f1a16");r(4,4,1,10,"#8a5a30");r(11,4,1,10,"#8a5a30");r(4,4,8,1,"#a8743f");
     const b=tw?Math.sin(t*4)*0.5:0;r(5,11,6,3,"#5d666a");r(6,9+b,4,2,"#f4c84a");r(7,9+b,1,1,"#fff2b0");r(5,14,1,1,"#2f3638");r(10,14,1,1,"#2f3638");
   }else if(type==="lumber"){ // log pile and chopping stump with axe
@@ -1344,7 +1356,9 @@ const mmss=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60
 // ---------- HUD + panels ----------
 const $=id=>document.getElementById(id);
 function updHud(){
-  {const h=["g","w","s"].map(k=>`<span class="rv">${RHTML[k]}${fmt(Math.floor(G[RKEY[k]]))}</span>`).join("");if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
+  if(!G.story){const h=`<span class="rv">${COIN}${fmt(Math.floor(G.gold))}</span>`;if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
+   const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Gold")lb.textContent="Gold";const mp=marketPay();setTxt("hRate",mp?`Markets +${fmt(mp)} / round`:"Slimes pay gold")}
+  else{const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Resources")lb.textContent="Resources";const h=["g","w","s"].map(k=>`<span class="rv">${RHTML[k]}${fmt(Math.floor(G[RKEY[k]]))}</span>`).join("");if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
    const rt=rates();const t=G.round<1?"Mines start with round 1":["g","w","s"].map(k=>`+${fmt1(rt[k])}/s`).join("  ");setTxt("hRate",t)}
   $("hRound").textContent=`${G.round}`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
@@ -1374,7 +1388,7 @@ function renderBuild(){
       el.appendChild(b)});
   }
   el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);b.hidden=!avail(k);
-    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":fmtC(adjW(C(TOWERS[k].cost)));
+    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":fmtC(listPrice(k));
     let f=b.querySelector(".free");if(G.free[k]){if(!f){f=document.createElement("span");f.className="free";b.appendChild(f)}f.textContent=`×${G.free[k]}`}else if(f)f.remove()});
 }
 function statRows(type,L,showNext){
@@ -1382,6 +1396,7 @@ function statRows(type,L,showNext){
   const base=lvlStats(type,L),tot=withCards(type,base);
   const nb=L<10?lvlStats(type,L+1):null,nt=nb?withCards(type,nb):null;
   const row=(k,bv,tv,nv,f)=>{const bonus=tv-bv;return`<span class="k">${k}</span><span class="v">${f(bv)}${bonus>0.004?` <span class="plus">+${f(bonus)}</span>`:""}</span><span class="n">${showNext&&nv!=null?"→ "+f(nv):""}</span>`};
+  if(b.perRound)return row("Gold / round",base.prod,tot.prod,nt&&nt.prod,v=>fmt(Math.round(v)));
   if(b.eco)return row(RNAME[b.prod]+" / s",base.prod,tot.prod,nt&&nt.prod,fmt1);
   let h=row("Damage",base.dmg,tot.dmg,nt&&nt.dmg,fmt1)+row("Shots / s",base.rate,tot.rate,nt&&nt.rate,fmt1)+row("Range",base.range,tot.range,nt&&nt.range,fmt1);
   h+=`<span class="k">DPS</span><span class="v">${fmt1(tot.dmg*tot.rate)}</span><span class="n">${showNext&&nt?"→ "+fmt1(nt.dmg*nt.rate):""}</span>`;
@@ -1395,7 +1410,7 @@ function updBuildTip(){
   const el=$("buildTip");if(!el)return;
   if(!buildType){el.textContent="Pick a tower, then tap the map.";return}
   const b=TOWERS[buildType];let t=b.n;
-  if(!b.eco){const s=withCards(buildType,lvlStats(buildType,1));t+=` · ${fmt1(s.dmg)} dmg · range ${fmt1(s.range)} · ${TGTXT[b.tg]}`}else t+=` · ${RNAME[b.prod].toLowerCase()} every second · on a ${NODE_N[b.node]}`;
+  if(b.perRound)t+=" · bonus gold after every round · any grass tile";else if(!b.eco){const s=withCards(buildType,lvlStats(buildType,1));t+=` · ${fmt1(s.dmg)} dmg · range ${fmt1(s.range)} · ${TGTXT[b.tg]}`}else t+=` · ${RNAME[b.prod].toLowerCase()} every second · on a ${NODE_N[b.node]}`;
   el.textContent=t+". Tap a tile twice to build.";
 }
 function setTag(id,r){const [tg,cl]=tagFor(r),e=$(id);e.hidden=!cl; // plain ground rounds need no tag
@@ -1432,7 +1447,7 @@ function renderInfo(live,hoverType){
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${b.n} <span class="label">Level ${tw.L}/10</span></h3>
       <div style="margin-bottom:6px">${b.tg?`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`:""}</div>
       <div class="tbl"><span class="label">Stat</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${tw.L<10?"Next":""}</span>${statRows(tw.type,tw.L,true)}</div>
-      ${b.eco?`<p class="hint" style="margin:8px 0 0">${G.round<1?"Starts producing when round 1 begins.":`Produces ${RNAME[b.prod].toLowerCase()} every second.`}</p>`:
+      ${b.perRound?`<p class="hint" style="margin:8px 0 0">Pays its gold every time you clear a round.</p>`:b.eco?`<p class="hint" style="margin:8px 0 0">${G.round<1?"Starts producing when round 1 begins.":`Produces ${RNAME[b.prod].toLowerCase()} every second.`}</p>`:
       `<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Damage this round</span><span class="v" id="iRd">${fmt(tw.rd)}</span><span></span><span class="k">Damage total</span><span class="v" id="iTot">${fmt(tw.total)}</span><span></span></div>`}
       <div class="row">${tw.L<10?`<button class="btn go" id="iUp" ${!afford(uc)?"disabled":""}>Upgrade ${fmtC(uc)} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSell">Sell +${fmtC(floorC(tw.spent,0.7))} <span class="kb">S</span></button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
       <p class="hint" style="margin:6px 0 0"><span class="plus">+purple</span> is the bonus from your cards. Double-click a tower to select all of its kind at the same level.</p>`;
@@ -1861,10 +1876,10 @@ function finishStory(win){
 
 // ---------- story ----------
 const STORY={
-  intro:"The Slime King's swarm is pouring out of the Bog toward the last village. It has no walls, only you: the Thornwarden, who can grow a wall of thorns overnight. Claim the land's gold, timber and stone, raise your towers, and hold the gate.",
+  intro:"The Slime King's swarm is pouring out of the Bog toward the last village. It has no walls, only you: the Thornwarden, who can grow a wall of thorns overnight. Trade for gold at your markets, raise your towers, and hold the gate.",
   chapters:[
-    {t:"The Village Meadow",b:"The first slimes ooze across the meadow. Dig your first gold mine, plant thorns across their way, and teach them that this village bites back."},
-    {t:"The Old Grove",b:"Driven from the meadow, the swarm slips into the old grove. Timber is plenty among the pines, and so are places to hide."},
+    {t:"The Village Meadow",b:"The first slimes ooze across the meadow. Open your first market, plant thorns across their way, and teach them that this village bites back."},
+    {t:"The Old Grove",b:"Driven from the meadow, the swarm slips into the old grove. The pines offer plenty of places to hide."},
     {t:"Lakeside",b:"At the lake the Bog's water makes them swell. Hold the shore, or the village wells will turn to slime."},
     {t:"The Highlands",b:"The last stand. The King's court marches from every side, and somewhere behind them, he waits."},
   ],
@@ -2039,7 +2054,8 @@ function openStylebook(){
   ORDER.forEach(k=>{const b=TOWERS[k],card=el("div","sb-tw");const row=el("div","cvs");
     [1,10].forEach(L=>row.appendChild(cvs(80,96,x=>{x.save();x.scale(80/T,80/T);drawTower(x,k,0,T*0.35,L,0,null);x.restore()})));
     card.appendChild(row);card.appendChild(el("b","",`${b.n} <span class="sb-cap">key ${b.key}</span>`));card.appendChild(el("div","st",`Build ${fmtC(C(b.cost))} · Lv 9→10 ${fmtC(upCost(k,9))}`));
-    if(b.eco){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`${RNAME[b.prod]} / s ${fmt1(a.prod)} → ${fmt1(z.prod)}<br>Builds on a ${NODE_N[b.node]}`))}
+    if(b.perRound){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`Gold / round ${fmt(Math.round(a.prod))} → ${fmt(Math.round(z.prod))}<br>Any grass tile · maps only`))}
+    else if(b.eco){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`${RNAME[b.prod]} / s ${fmt1(a.prod)} → ${fmt1(z.prod)}<br>Builds on a ${NODE_N[b.node]} · story only`))}
     else{const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","",`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`));
       card.appendChild(el("div","st",`Damage ${fmt1(a.dmg)} → ${fmt1(z.dmg)}<br>Shots/s ${fmt1(a.rate)} → ${fmt1(z.rate)}<br>Range ${fmt1(a.range)} → ${fmt1(z.range)}<br>DPS ${fmt1(a.dmg*a.rate)} → ${fmt1(z.dmg*z.rate)}`))}
     card.appendChild(el("div","st",b.desc));g.appendChild(card)});
