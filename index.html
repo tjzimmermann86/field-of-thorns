@@ -103,6 +103,7 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .ta.up{background:var(--go)}.ta.del{background:var(--danger)}
 .ta.off{filter:grayscale(1);opacity:.55}
 .ta:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+#taUp .c{right:0}#taDel .c{left:0} /* labels grow outward so they never overlap */
 .ta .c{position:absolute;bottom:100%;margin-bottom:3px;font-size:15px;background:var(--panel);border:2px solid var(--ink);padding:0 4px;white-space:nowrap;color:var(--ink);line-height:1.1}
 #info{min-height:150px}
 .tbl{display:grid;grid-template-columns:auto 1fr auto;gap:3px 10px;align-items:baseline;font-variant-numeric:tabular-nums}
@@ -355,7 +356,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div id="stage">
       <canvas id="cv" width="960" height="576"></canvas>
       <div id="toast" class="px-box" hidden></div>
-      <div id="twAct" hidden><button class="ta up" id="taUp" aria-label="Upgrade"><svg viewBox="0 0 10 10"><path fill="#fff" d="M4 1h2v1h1v1h1v1h1v2H6v3H4V6H1V4h1V3h1V2h1z"/></svg><span class="c" id="taCost"></span></button><button class="ta del" id="taDel" aria-label="Sell"><svg viewBox="0 0 10 10"><path fill="#fff" d="M1 1h2v1h1v1h2V2h1V1h2v2H8v1H7v2h1v1h1v2H7V8H6V7H4v1H3v1H1V7h1V6h1V4H2V3H1z"/></svg></button></div>
+      <div id="twAct" hidden><button class="ta up" id="taUp" aria-label="Upgrade"><svg viewBox="0 0 10 10"><path fill="#fff" d="M4 1h2v1h1v1h1v1h1v2H6v3H4V6H1V4h1V3h1V2h1z"/></svg><span class="c" id="taCost"></span></button><button class="ta del" id="taDel" aria-label="Sell"><svg viewBox="0 0 10 10"><path fill="#fff" d="M1 1h2v1h1v1h2V2h1V1h2v2H8v1H7v2h1v1h1v2H7V8H6V7H4v1H3v1H1V7h1V6h1V4H2V3H1z"/></svg><span class="c" id="taBack"></span></button></div>
       <div id="talk" class="px-box" hidden role="status"><div id="talkPic"></div><div style="min-width:0"><b id="talkName"></b><p id="talkText"></p><span class="hint">Tap to continue</span></div></div>
       <canvas id="mini" width="220" height="144" hidden aria-label="Minimap: tap to jump there"></canvas>
       <div id="zoomBox" hidden><button class="btn" id="zIn" aria-label="Zoom in">+</button><button class="btn" id="zOut" aria-label="Zoom out">−</button><button class="btn" id="zHome" aria-label="Jump to the village">⌂</button></div>
@@ -1240,6 +1241,7 @@ function placeAct(){
     up.classList.toggle("off",!afford(one));const h=fmtC(cost);if($("taCost").innerHTML!==h)$("taCost").innerHTML=h;
     up.title=(group?`Upgrade all ${group.length}`:"Upgrade")+" (U)";}
   $("taDel").title=(group?`Sell all ${group.length}`:"Sell")+" (S)";
+  {const back=(group||[tw]).reduce((a,t)=>addC(a,floorC(t.spent,0.7)),C()),h="+"+fmtC(back);if($("taBack").innerHTML!==h)$("taBack").innerHTML=h}
   el.hidden=false;const h=36;let y=sy(tw.y-1.25)-h-2;if(y<24)y=sy(tw.y+0.55)+24; // sits above the "dmg this round" label
   el.style.left=sx(tw.x)+"px";el.style.top=y+"px";
 }
