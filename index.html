@@ -94,6 +94,15 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .bt .free{position:absolute;top:-6px;right:-6px;background:var(--rare);color:#fff;font-size:14px;padding:1px 4px;border:2px solid var(--ink)}
 .bt[aria-pressed="true"]{background:var(--gold-soft);outline:3px solid var(--gold);outline-offset:-1px}
 .bt.poor .pr{color:var(--danger)}
+.bt.poor canvas{filter:grayscale(1);opacity:.4}.bt.poor .nm{opacity:.5}.bt.poor{background:#e3e6df;border-color:#8a968a}
+.tag.tg-g{background:#ecd9a8}.tag.tg-a{background:#e3d8f6}.tag.tg-ga{background:linear-gradient(90deg,#ecd9a8 50%,#e3d8f6 50%)}.tag.weak{background:#f7d2cf;border-color:var(--danger);color:#8a2a24}
+#twAct{position:absolute;z-index:4;display:flex;gap:6px;transform:translateX(-50%);pointer-events:none}
+.ta{position:relative;pointer-events:auto;width:36px;height:36px;padding:0;border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink);display:flex;align-items:center;justify-content:center}
+.ta svg{width:20px;height:20px;shape-rendering:crispEdges}
+.ta.up{background:var(--go)}.ta.del{background:var(--danger)}
+.ta.off{filter:grayscale(1);opacity:.55}
+.ta:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.ta .c{position:absolute;bottom:100%;margin-bottom:3px;font-size:15px;background:var(--panel);border:2px solid var(--ink);padding:0 4px;white-space:nowrap;color:var(--ink);line-height:1.1}
 #info{min-height:150px}
 .tbl{display:grid;grid-template-columns:auto 1fr auto;gap:3px 10px;align-items:baseline;font-variant-numeric:tabular-nums}
 .tbl .k{color:var(--muted);font-size:17px}
@@ -337,6 +346,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div id="stage">
       <canvas id="cv" width="960" height="576"></canvas>
       <div id="toast" class="px-box" hidden></div>
+      <div id="twAct" hidden><button class="ta up" id="taUp" aria-label="Upgrade"><svg viewBox="0 0 10 10"><path fill="#fff" d="M4 1h2v1h1v1h1v1h1v2H6v3H4V6H1V4h1V3h1V2h1z"/></svg><span class="c" id="taCost"></span></button><button class="ta del" id="taDel" aria-label="Sell"><svg viewBox="0 0 10 10"><path fill="#fff" d="M1 1h2v1h1v1h2V2h1V1h2v2H8v1H7v2h1v1h1v2H7V8H6V7H4v1H3v1H1V7h1V6h1V4H2V3H1z"/></svg></button></div>
       <div id="talk" class="px-box" hidden role="status"><div id="talkPic"></div><div style="min-width:0"><b id="talkName"></b><p id="talkText"></p><span class="hint">Tap to continue</span></div></div>
       <canvas id="mini" width="220" height="144" hidden aria-label="Minimap: tap to jump there"></canvas>
       <div id="zoomBox" hidden><button class="btn" id="zIn" aria-label="Zoom in">+</button><button class="btn" id="zOut" aria-label="Zoom out">−</button><button class="btn" id="zHome" aria-label="Jump to the village">⌂</button></div>
@@ -403,6 +413,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 <div class="ov" id="cardsOv" hidden>
   <div class="modal px-box">
     <h2 id="cardsTitle">Round cleared — pick a card</h2>
+    <div id="cardsGain" class="px-box" hidden style="display:inline-block;margin:6px 0 4px;padding:3px 10px;background:var(--gold-soft);font-size:21px"></div>
     <div class="hint" id="cardsSub">Picking a card again levels it up (max 10). Levels 3 and 6 give a bonus step, MAX gives a double bonus — the tall pips. The timer is paused while you choose.</div>
     <div class="cardrow" id="cardRow"></div>
   </div>
@@ -458,6 +469,8 @@ const TOWERS={
 const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","ballista","fence","market","mine","lumber","quarry"];
 const COMBAT=ORDER.filter(k=>!TOWERS[k].eco); // includes Thorns for Mastery cards
 const TGTXT={g:"Ground",a:"Air",ga:"Ground + Air"};
+// target tags are colour-coded: sand = ground slimes, lilac = flyers; red marks a weakness
+function tgTags(k){const b=TOWERS[k];return `<span class="tag tg-${b.tg}">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>${ARMOR_WEAK.includes(k)?'<span class="tag weak">Weak vs armored</span>':""}`}
 
 // ---------- resource icons (8x8 pixel sprites shared by CSS and canvas) ----------
 const ICONS={
@@ -733,9 +746,10 @@ function endRound(){
   const r=G.round;
   const bonus=gc(C({g:15+r*3+Math.floor(G.gold*G.mods.interest),w:8+r*2,s:4+r}));
   gain(bonus);SND.play("clear");
-  let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08")}
+  let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08",4)}
   if(mk)gain(C({g:mk}));
-  floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}${mk?`  · Markets +¤${mk}`:""}`,"#9a6a08");
+  floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}${mk?`  · Markets +¤${mk}`:""}`,"#9a6a08",5);
+  G.gainLine=`Round bonus ${fmtC(bonus)}${mk?` · Markets ${fmtC(C({g:mk}))}`:""}`;
   if(r>=50){finish(true);return}
   G.phase="cards";offerCards(r===25);
 }
@@ -805,6 +819,7 @@ function offerCards(rare,title){
     if(Math.random()<0.08){const r=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id)))[0];if(r)pick[2]=r}
   }
   if(!pick.length){afterCard();return}
+  {const g=$("cardsGain");g.innerHTML=G.gainLine||"";g.hidden=!G.gainLine;G.gainLine=""}
   $("cardsTitle").textContent=title||(rare?"Giant boss defeated — pick a rare card":`Round ${G.round} cleared — pick a card`);
   const row=$("cardRow");row.innerHTML="";
   pick.forEach(c=>{
@@ -1005,7 +1020,7 @@ function damage(e,amt,tw){
       const g=Math.round(e.bounty*(1.5+r*0.12)*luck);gain(C({g}));if(e.boss)floatText(e.x,e.y-0.6,"+¤"+g,"#9a6a08")}
     if(e.boss){ // bosses always drop a treasure chest
       const f=e.kind==="big"?8:e.kind==="boss"?3:1,loot=gc(C({g:Math.round((20+r*2)*f*luck),w:Math.round((12+r)*f*luck),s:Math.round((8+r*0.6)*f*luck)}));
-      gain(loot);floatText(e.x,e.y,"Chest! +"+txtC(loot),"#9a6a08");
+      gain(loot);floatText(e.x,e.y,"Chest! +"+txtC(loot),"#9a6a08",3.5);
     }else if(G.story&&Math.random()<0.05*luck){const loot=C({g:1+Math.floor(r/8)});gain(loot);floatText(e.x,e.y,"+"+txtC(loot),"#9a6a08")}
   }
 }
@@ -1058,7 +1073,7 @@ function projTick(p,dt){
 }
 
 // ---------- fx / text ----------
-function floatText(x,y,s,c){G&&G.fx.push({k:"txt",x,y,s,c,t:1.2})}
+function floatText(x,y,s,c,d){G&&G.fx.push({k:"txt",x,y,s,c,t:d||1.2,d:d||1.2})}
 let toastT=0;
 function toast(msg,cls,big){const el=document.getElementById("toast");el.textContent=msg;el.className="px-box "+(cls||"")+(big?" big":"");el.hidden=false;toastT=big?3.6:3.2}
 
@@ -1168,6 +1183,20 @@ const SND=(()=>{
   return{st,save,play,init,skip(){if(song){song=newSong(song);stepI=0}},setInten(v){inten=v}};
 })();
 
+// green upgrade / red sell buttons floating above the selected tower
+function placeAct(){
+  const el=$("twAct"),tw=sel;
+  if(!(G&&tw&&!G.over&&!buildType&&G.towers.includes(tw)&&$("menu").hidden&&$("cardsOv").hidden)){if(!el.hidden)el.hidden=true;return}
+  const r=cv.getBoundingClientRect(),sr=$("stage").getBoundingClientRect(),c=G.cam;
+  const sx=v=>r.left-sr.left+((v+1)*T-c.x)*c.z/cv.width*r.width,sy=v=>r.top-sr.top+((v+1)*T-c.y)*c.z/cv.height*r.height;
+  const max=tw.L>=10||TOWERS[tw.type].wall,up=$("taUp");up.hidden=max;
+  if(!max){const list=group||[tw],cost=list.reduce((a,t)=>t.L<10?addC(a,upCost(t.type,t.L)):a,C()),one=upCost(tw.type,tw.L);
+    up.classList.toggle("off",!afford(one));const h=fmtC(cost);if($("taCost").innerHTML!==h)$("taCost").innerHTML=h;
+    up.title=(group?`Upgrade all ${group.length}`:"Upgrade")+" (U)";}
+  $("taDel").title=(group?`Sell all ${group.length}`:"Sell")+" (S)";
+  el.hidden=false;const h=36;let y=sy(tw.y-1.25)-h-2;if(y<24)y=sy(tw.y+0.55)+24; // sits above the "dmg this round" label
+  el.style.left=sx(tw.x)+"px";el.style.top=y+"px";
+}
 // ---------- main loop ----------
 let last=performance.now(),hudAcc=0;
 function frame(now){
@@ -1177,9 +1206,11 @@ function frame(now){
   if(G&&!G.over&&!G.paused&&G.phase!=="cards"&&document.getElementById("menu").hidden){
     G.stats.time+=rdt;
     const steps=G.speed;for(let s=0;s<steps;s++)step(rdt);
+    for(const f of G.fx)if(f.k==="txt")f.t-=rdt; // numbers stay readable at 2x and 3x
   }
   {let v=0;if(G&&!G.over){const act=G.story?G.enemies.length>0:G.phase==="wave";if(act)v=G.enemies.some(e=>e.boss&&!e.dead)?2:1}SND.setInten(v)}
   if(G)draw(now/1000);
+  placeAct();
   hudAcc+=rdt;if(hudAcc>0.2&&G){hudAcc=0;updHud();if(sel)renderInfo(true);guideTick()}
   requestAnimationFrame(frame);
 }
@@ -1196,7 +1227,7 @@ function step(dt){
   produce(dt);
   for(const p of G.projs)projTick(p,dt);
   G.enemies=G.enemies.filter(e=>!e.dead);G.projs=G.projs.filter(p=>!p.dead);
-  for(const f of G.fx)f.t-=dt;G.fx=G.fx.filter(f=>f.t>0);
+  for(const f of G.fx)if(f.k!=="txt")f.t-=dt;G.fx=G.fx.filter(f=>f.t>0);
   for(const tw of G.towers)if(tw.fire>0)tw.fire-=dt;
   for(const e of G.enemies){if(e.hitT>0)e.hitT-=dt;
     if(e.kind==="heal"&&!e.dead){e.ht=(e.ht||2)-dt;if(e.ht<=0){e.ht=2;let any=false;for(const o of G.enemies)if(o!==e&&!o.dead&&o.hp<o.maxHp&&Math.hypot(o.x-e.x,o.y-e.y)<1.6){o.hp=Math.min(o.maxHp,o.hp+o.maxHp*0.08);any=true}
@@ -1434,7 +1465,7 @@ function draw(t){
     else if(f.k==="boom"){const a=f.t/0.3;ctx.fillStyle=f.c?f.c:"#f08a3a";ctx.globalAlpha=a*0.6;const rr=f.r*T*(1.2-a*0.5);ctx.fillRect((f.x+1)*T-rr,(f.y+1)*T-rr*0.7,rr*2,rr*1.4);ctx.globalAlpha=1}
     else if(f.k==="scratch"){const x=(f.x+1)*T,y=(f.y+1)*T,a=f.t/0.18;ctx.strokeStyle=`rgba(150,30,50,${a})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-8,y-10);ctx.lineTo(x+6,y+4);ctx.moveTo(x-2,y-12);ctx.lineTo(x+10,y);ctx.stroke()}
     else if(f.k==="pop"){ctx.fillStyle=f.c;const s=8*f.s*(1-f.t/0.3)+4,x=(f.x+1)*T,y=(f.y+1)*T;ctx.globalAlpha=f.t/0.3;for(const [dx,dy] of [[-1,-1],[1,-1],[-1,1],[1,1],[0,-1.4]])ctx.fillRect(x+dx*s*2-3,y+dy*s*2-3,6,6);ctx.globalAlpha=1}
-    else if(f.k==="txt"){ctx.font=`${T*0.58}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";const x=(f.x+1)*T,y=(f.y+1)*T-(1.2-f.t)*T*0.8;ctx.globalAlpha=Math.min(1,f.t*2);ctx.lineWidth=5;ctx.strokeStyle="#fff";richText(ctx,f.s,x,y,T*0.58,f.c,true);ctx.globalAlpha=1}
+    else if(f.k==="txt"){ctx.font=`${T*0.58}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";const x=(f.x+1)*T,y=(f.y+1)*T-Math.min(1.2,(f.d||1.2)-f.t)*T*0.8;ctx.globalAlpha=Math.min(1,f.t*2);ctx.lineWidth=5;ctx.strokeStyle="#fff";richText(ctx,f.s,x,y,T*0.58,f.c,true);ctx.globalAlpha=1}
   }
   // selected tower round damage label
   if(sel&&!group&&!TOWERS[sel.type].wall&&!TOWERS[sel.type].eco){const s=`${fmt(sel.rd)} dmg this round`;ctx.font=`${T*0.5}px "VT323",monospace`;ctx.textAlign="center";const x=(sel.x+1)*T,y=(sel.y+1)*T-T*0.95;const w=ctx.measureText(s).width+14;ctx.fillStyle="#253225";ctx.fillRect(x-w/2,y-T*0.26,w,T*0.52);ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(s,x,y+1)}
@@ -1518,8 +1549,9 @@ function statRows(type,L,showNext){
   const row=(k,bv,tv,nv,f)=>{const bonus=tv-bv;return`<span class="k">${k}</span><span class="v">${f(bv)}${bonus>0.004?` <span class="plus">+${f(bonus)}</span>`:""}</span><span class="n">${showNext&&nv!=null?"→ "+f(nv):""}</span>`};
   if(b.perRound)return row("Gold / round",base.prod,tot.prod,nt&&nt.prod,v=>fmt(Math.round(v)));
   if(b.eco)return row(RNAME[b.prod]+" / s",base.prod,tot.prod,nt&&nt.prod,fmt1);
-  let h=row("Damage",base.dmg,tot.dmg,nt&&nt.dmg,fmt1)+row("Shots / s",base.rate,tot.rate,nt&&nt.rate,fmt1)+row("Range",base.range,tot.range,nt&&nt.range,fmt1);
+  let h=row("Damage",base.dmg,tot.dmg,nt&&nt.dmg,fmt1)+row("Shots / s",base.rate,tot.rate,nt&&nt.rate,fmt1);
   h+=`<span class="k">DPS</span><span class="v">${fmt1(tot.dmg*tot.rate)}</span><span class="n">${showNext&&nt?"→ "+fmt1(nt.dmg*nt.rate):""}</span>`;
+  h+=row("Range",base.range,tot.range,nt&&nt.range,fmt1);
   if(base.chain)h+=`<span class="k">Chain jumps</span><span class="v">${base.chain}</span><span class="n">${showNext&&nb?"→ "+nb.chain:""}</span>`;
   if(base.slow)h+=`<span class="k">Slow</span><span class="v">${Math.round(tot.slow*100)}%</span><span class="n">${showNext&&nt?"→ "+Math.round(nt.slow*100)+"%":""}</span>`;
   if(base.splash)h+=`<span class="k">Splash radius</span><span class="v">${fmt1(base.splash)}</span><span class="n">${showNext&&nb?"→ "+fmt1(nb.splash):""}</span>`;
@@ -1565,7 +1597,7 @@ function renderInfo(live,hoverType){
     el.dataset.key=key;
     const same=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L).length;
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${b.n} <span class="label">Level ${tw.L}/10</span></h3>
-      <div style="margin-bottom:6px">${b.tg?`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`:""}</div>
+      <div style="margin-bottom:6px">${b.tg?`${tgTags(tw.type)}`:""}</div>
       <div class="tbl"><span class="label">Stat</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${tw.L<10?"Next":""}</span>${statRows(tw.type,tw.L,true)}</div>
       ${b.perRound?`<p class="hint" style="margin:8px 0 0">Pays its gold every time you clear a round.</p>`:b.eco?`<p class="hint" style="margin:8px 0 0">${G.round<1?"Starts producing when round 1 begins.":`Produces ${RNAME[b.prod].toLowerCase()} every second.`}</p>`:
       `<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Damage this round</span><span class="v" id="iRd">${fmt(tw.rd)}</span><span></span><span class="k">Damage total</span><span class="v" id="iTot">${fmt(tw.total)}</span><span></span></div>`}
@@ -1579,7 +1611,7 @@ function renderInfo(live,hoverType){
   const k=buildType||hoverType;
   if(k){const b=TOWERS[k];
     el.innerHTML=`<h3>${b.n} <span class="label">${G.free[k]?"Free":fmtC(C(b.cost))}</span></h3>
-    <div style="margin-bottom:6px">${b.tg?`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`:""}</div>
+    <div style="margin-bottom:6px">${b.tg?`${tgTags(k)}`:""}</div>
     <p class="hint" style="margin:0 0 8px">${b.desc}</p>${b.wall?"":`<div class="tbl"><span class="label">Level 1</span><span class="label" style="text-align:right">Value</span><span class="label" style="text-align:right">Lvl 2</span>${statRows(k,1,true)}</div>`}
     ${buildType?`<p class="hint" style="margin:8px 0 0">Click grass tiles to build as many as you like. Click an existing building to replace it (you get 70% of its cost back). Esc or right-click stops building.</p>`:""}`;return}
   el.innerHTML=`<h3>Info</h3><p class="hint" style="margin:0">Select a tower on the map to see its damage, the next upgrade and how much damage it dealt this round. Double-click a tower to select all towers of that type and level.</p>
@@ -1821,7 +1853,7 @@ function captureCamp(c){
   for(let dy=-c.size;dy<=c.size;dy++)for(let dx=-c.size;dx<=c.size;dx++)m.ter[(c.y+dy)*m.cols+c.x+dx]=0; // the camp's ground becomes normal land
   computeTerritory();refreshGates();G.dist=dijkstra(m,G.occ,-1);G.path=tracePaths(m,G.dist,G.occ);bgDirty=true;
   const f=c.town?6:c.side?2:1+c.stage*0.6,loot=C({g:Math.round(120*f),w:Math.round(70*f),s:Math.round(45*f)});gain(loot);
-  floatText(c.x+0.5,c.y,"Captured! +"+txtC(loot),"#9a6a08");G.fx.push({k:"boom",x:c.x+0.5,y:c.y+0.5,r:c.size+1.5,t:0.6,c:"#f4c84a"});
+  floatText(c.x+0.5,c.y,"Captured! +"+txtC(loot),"#9a6a08",4);G.fx.push({k:"boom",x:c.x+0.5,y:c.y+0.5,r:c.size+1.5,t:0.6,c:"#f4c84a"});
   SND.play("clear");toast(c.town?"Slimehold falls! The Slime King himself marches out…":`${c.name} destroyed. The land is yours!`,"",true);
   if(c.town)G.queue.unshift({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
   checkObjective();
@@ -2176,7 +2208,7 @@ function openStylebook(){
     card.appendChild(row);card.appendChild(el("b","",`${b.n} <span class="sb-cap">key ${b.key}</span>`));card.appendChild(el("div","st",`Build ${fmtC(C(b.cost))} · Lv 9→10 ${fmtC(upCost(k,9))}`));
     if(b.perRound){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`Gold / round ${fmt(Math.round(a.prod))} → ${fmt(Math.round(z.prod))}<br>Any grass tile · maps only`))}
     else if(b.eco){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`${RNAME[b.prod]} / s ${fmt1(a.prod)} → ${fmt1(z.prod)}<br>Builds on a ${NODE_N[b.node]} · story only`))}
-    else{const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","",`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`));
+    else{const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","",`${tgTags(k)}`));
       card.appendChild(el("div","st",`Damage ${fmt1(a.dmg)} → ${fmt1(z.dmg)}<br>Shots/s ${fmt1(a.rate)} → ${fmt1(z.rate)}<br>Range ${fmt1(a.range)} → ${fmt1(z.range)}<br>DPS ${fmt1(a.dmg*a.rate)} → ${fmt1(z.dmg*z.rate)}`))}
     card.appendChild(el("div","st",b.desc));g.appendChild(card)});
   s.appendChild(g);
@@ -2243,6 +2275,8 @@ $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=tru
   storyArm=false;$("bStoryNew").textContent="New campaign";LS.set("fot-story",null);$("menu").hidden=true;newStory(null)};
 $("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
 $("bStyle").onclick=()=>openStylebook();
+$("taUp").onclick=()=>{if(!sel)return;if(group)upgradeGroup();else upgrade(sel)};
+$("taDel").onclick=()=>{if(!sel)return;if(group)sellGroup();else sell(sel)};
 function renderSound(){
   const st=SND.st;["music","sfx"].forEach(k=>{$("sv-"+k).value=st[k];setTxt("sn-"+k,st[k]===0?"Off":st[k])});
   $("sMute").setAttribute("aria-pressed",st.mute);$("sMute").textContent=st.mute?"Sound off — tap to turn on":"Mute all";
