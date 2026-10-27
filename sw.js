@@ -1,5 +1,5 @@
 // Field of Thorns offline support: the game shell is cached on first visit and refreshed in the background.
-const CACHE = "fot-v20";
+const CACHE = "fot-v21";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

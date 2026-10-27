@@ -32,7 +32,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%}
+html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:19px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;}
 button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
@@ -362,7 +362,10 @@ body.compact.land .nr .nrl:first-child{display:none}
 body.compact.land #build{grid-template-columns:repeat(2,52px)}
 body.compact.land .bt{width:52px}
 body.compact.land #buildTip{width:108px}
-body.compact.land #bStart{width:100%;padding:4px 2px;font-size:16px}
+body.compact.land #next{flex:1 1 auto;min-height:118px}
+body.compact.land #next .nr{flex:0 0 auto}
+body.compact.land #bStart{width:100%;flex:1 1 auto;min-height:72px;padding:6px 2px;font-size:24px;line-height:1.05;white-space:normal;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+body.compact.land #bStart small{display:block;font-size:17px;font-weight:400}
 body.compact.land #main{min-width:0}
 body.compact.land #rail #ctrl{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;margin-bottom:6px;box-shadow:none}
 body.compact.land #rail #ctrl .btn{padding:3px 0;font-size:15px;min-width:0;box-shadow:2px 2px 0 var(--ink)}
@@ -1679,9 +1682,10 @@ function updHud(){
   else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=50?"The swarm is broken":`R${G.round} cleared`)}
   if(nx<=50){setTag("nextTag",nx);setTxt("nextInfo",rd(nx))}else{$("nextTag").hidden=true;setTxt("nextInfo","???")}
   setTxt("hCd","");const cdTxt=G.phase==="countdown"&&G.round>0?` · ${Math.ceil(G.timer)}s`:""; // the countdown sits on the Start button
-  if(G.phase==="wave"){$("bStart").disabled=true;$("bStart").textContent=document.body.classList.contains("compact")?"Wave":"Wave running"}
-  else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
-  else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`▶ +${COIN}${earlyBonus()}${cdTxt}`}
+  const tall=document.body.classList.contains("land"),setB=h=>{if($("bStart").innerHTML!==h)$("bStart").innerHTML=h}; // sideways on touch: big button in the left column
+  if(G.phase==="wave"){$("bStart").disabled=true;setB(tall?"Wave<small>running</small>":cmp?"Wave":"Wave running")}
+  else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";setB(tall?"▶ Start<small>round 1</small>":cmp?"Start":"Start round 1")}
+  else{$("bStart").disabled=G.phase!=="countdown";setB(tall?`▶ Next<small>+${COIN}${earlyBonus()}</small><small>${Math.ceil(G.timer)}s</small>`:cmp?`Go +${COIN}${earlyBonus()}`:`▶ +${COIN}${earlyBonus()}${cdTxt}`)}
   document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k))||(k==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX))});
 }
 function renderBuild(){
@@ -2083,7 +2087,7 @@ function storyHud(){
   const act=G.camps.filter(c=>c.alive&&c.active),nt=act.length?Math.min(...act.map(c=>c.t)):0;
   $("nextTag").hidden=true;if(G.env){setTxt("nextInfo",`${G.env.n}: ${Math.ceil(G.env.left)}s left`)}else setTxt("nextInfo",!G.started?(cmp?"Press Start":"Raids begin when you press Start"):act.length?`Next raid in ${Math.max(0,Math.ceil(nt))}s`:"The King is coming");setTxt("hCd","");
   $("bStart").disabled=G.started&&raidBonus()<=0;
-  const bh=!G.started?"Start":`Raid now +${COIN}${raidBonus()}`;if($("bStart").innerHTML!==bh)$("bStart").innerHTML=bh;
+  const tall=document.body.classList.contains("land"),bh=!G.started?(tall?"▶ Start<small>defense</small>":"Start"):tall?`▶ Raid<small>+${COIN}${raidBonus()}</small>`:`Raid now +${COIN}${raidBonus()}`;if($("bStart").innerHTML!==bh)$("bStart").innerHTML=bh;
   const key=G.obj+"|"+objProgress()+"|"+!!(G.bram&&G.bram.freed);if($("objBox").dataset.key!==key){$("objBox").dataset.key=key;
     $("objBox").innerHTML=`<span class="label">Objective</span><b>${o.t}</b><p>${o.d}</p><div class="prog">${objProgress().replace(/^ · /,"")}</div>${G.bram&&!G.bram.freed&&G.obj>=2?'<p>Side quest: build any tower next to Old Bram\'s cage in the grove.</p>':""}<ol>${OBJ.map((x,k)=>k<G.obj?`<li class="done">${x.t}</li>`:k===G.obj?`<li class="cur">${x.t}</li>`:"").join("")}</ol>`}
 }
