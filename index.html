@@ -2460,6 +2460,7 @@ function openStylebook(){
   $("styleOv").hidden=false;$("styleOv").scrollTop=0;
 }
 function openMenu(resumable){
+  $("menu").scrollTop=0;$("menu").querySelector(".modal").scrollTop=0;requestAnimationFrame(()=>{$("menu").scrollTop=0;$("menu").querySelector(".modal").scrollTop=0}); // always open at the top
   if(G&&!G.over&&resumable)$("bResume").hidden=false;else $("bResume").hidden=true;
   if(G&&!G.story){menuD=G.d;menuM=G.m}
   renderMenu();$("menu").hidden=false;
