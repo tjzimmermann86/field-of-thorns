@@ -94,6 +94,7 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .pc.rare{border-left-color:var(--rare)}
 .pc .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .pc .top b{font-weight:400;font-size:18px;line-height:1.05}
+.coin{display:inline-block;width:.72em;height:.72em;margin-right:.12em;vertical-align:-.04em;background:var(--coin) center/contain no-repeat;image-rendering:pixelated}
 .pc .lv{font-size:15px;color:var(--muted);white-space:nowrap}
 .pc .ef{font-size:16px;color:var(--muted);line-height:1.15}
 .lv.max,.lvl.max{color:#fff!important;background:var(--gold);padding:0 5px;border:2px solid var(--ink)}
@@ -337,6 +338,24 @@ const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","
 const COMBAT=ORDER.filter(k=>!TOWERS[k].eco); // includes Thorns for Mastery cards
 const TGTXT={g:"Ground",a:"Air",ga:"Ground + Air"};
 
+// ---------- gold coin (8x8 pixel sprite) ----------
+const COIN_PX=["..OOOO..",".OYYYYO.","OYHHYYYO","OYHYYYSO","OYYYYYSO","OYYYYSSO",".OYSSSO.","..OOOO.."];
+const COIN_COL={O:"#8a5a08",Y:"#f4c84a",H:"#fff2b0",S:"#d99a1c"};
+const COIN='<i class="coin" aria-hidden="true"></i>';
+(()=>{let r="";COIN_PX.forEach((row,y)=>[...row].forEach((ch,x)=>{if(COIN_COL[ch])r+=`<rect x='${x}' y='${y}' width='1' height='1' fill='${COIN_COL[ch]}'/>`}));
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'>${r}</svg>`;
+  document.documentElement.style.setProperty("--coin",`url("data:image/svg+xml,${encodeURIComponent(svg)}")`)})();
+function drawCoin(c,x,y,size){const u=size/8;COIN_PX.forEach((row,yy)=>[...row].forEach((ch,xx)=>{const col=COIN_COL[ch];if(col){c.fillStyle=col;c.fillRect(Math.round(x+xx*u),Math.round(y+yy*u),Math.ceil(u),Math.ceil(u))}}))}
+// centred canvas text where "¤" is drawn as a coin
+function richText(c,str,x,y,px,fill,stroke){
+  const parts=String(str).split("¤"),cw=px*0.72,gap=px*0.06;let w=0;
+  parts.forEach((p,i)=>{w+=c.measureText(p).width;if(i<parts.length-1)w+=cw+gap*2});
+  let cx=x-w/2;c.textAlign="left";
+  parts.forEach((p,i)=>{if(stroke)c.strokeText(p,cx,y);c.fillStyle=fill;c.fillText(p,cx,y);cx+=c.measureText(p).width;
+    if(i<parts.length-1){cx+=gap;drawCoin(c,cx,y-cw*0.55,cw);cx+=cw+gap}});
+  c.textAlign="center";
+}
+
 // ---------- storage ----------
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let progress=LS.get("pk-progress",{cleared:{}}); // cleared["d-m"]=true
@@ -484,7 +503,7 @@ function announceNext(){
 }
 function startRound(early){
   if(G.phase!=="countdown")return;if(early&&pausedBlock())return;
-  if(early&&G.round>0&&G.timer>1){const b=earlyBonus();G.gold+=b;G.stats.earned+=b;floatText(2,G.map.mid,`+${b}g early`,"#9a6a08")}
+  if(early&&G.round>0&&G.timer>1){const b=earlyBonus();G.gold+=b;G.stats.earned+=b;floatText(2,G.map.mid,`+¤${b} early`,"#9a6a08")}
   G.round++;G.phase="wave";G.timer=0;
   const r=G.round,t=roundType(r),hp=baseHp(r),n=roundCount(r);
   G.queue=[];
@@ -503,7 +522,7 @@ function endRound(){
   const r=G.round;
   const bonus=15+r*3,interest=Math.floor(G.gold*G.mods.interest);
   G.gold+=bonus+interest;G.stats.earned+=bonus+interest;
-  floatText(G.map.cols/2,1,`Round ${r} cleared  +${bonus+interest}g`,"#9a6a08");
+  floatText(G.map.cols/2,1,`Round ${r} cleared  +¤${bonus+interest}`,"#9a6a08");
   if(r>=50){finish(true);return}
   G.phase="cards";offerCards(r===25);
 }
@@ -656,7 +675,7 @@ function replaceAt(i){
   G.gold-=r.cost;G.stats.spent+=r.cost;
   const tw={type,i,x:old.x,y:old.y,L:1,cd:0,spent:r.cost,rd:0,total:0,mt:0,flash:0.4};
   G.towers.push(tw);G.occ[i]=tw;bgDirty=true;
-  floatText(tw.x,tw.y-0.3,`${TOWERS[old.type].n} → ${TOWERS[type].n}  ${r.back-r.cost>=0?"+":""}${r.back-r.cost}g`,"#9a6a08");
+  floatText(tw.x,tw.y-0.3,`${TOWERS[old.type].n} → ${TOWERS[type].n}  ${r.back-r.cost>=0?"+":"−"}¤${Math.abs(r.back-r.cost)}`,"#9a6a08");
   ghost=hoverGhost(i);renderBuild();renderInfo();
 }
 function sell(tw){
@@ -664,7 +683,7 @@ function sell(tw){
   const back=Math.floor(tw.spent*0.7);G.gold+=back;
   G.occ[tw.i]=null;G.towers=G.towers.filter(t=>t!==tw);
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  floatText(tw.x,tw.y,`+${back}g`,"#9a6a08");sel=null;renderInfo();renderBuild();
+  floatText(tw.x,tw.y,`+¤${back}`,"#9a6a08");sel=null;renderInfo();renderBuild();
 }
 function upgradeGroup(){
   if(!group||pausedBlock())return;let n=0;
@@ -678,7 +697,7 @@ function sellGroup(){
   for(const tw of group){back+=Math.floor(tw.spent*0.7);G.occ[tw.i]=null}
   G.towers=G.towers.filter(t=>!group.includes(t));G.gold+=back;
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  toast(`Sold ${group.length} for ${back}g`);group=null;sel=null;renderInfo();renderBuild();
+  toast(`Sold ${group.length} for ${back} gold`);group=null;sel=null;renderInfo();renderBuild();
 }
 function upgrade(tw){
   if(pausedBlock())return;
@@ -740,7 +759,7 @@ function damage(e,amt,tw){
     const g=Math.max(1,Math.round((2+G.round*0.32)*e.bounty*(1+G.mods.goldKill)));
     G.gold+=g;G.stats.earned+=g;
     G.fx.push({k:"pop",x:e.x,y:e.y,t:0.3,c:e.boss?"#f4c84a":"#ffffff",s:e.boss?2:1});
-    if(e.boss)floatText(e.x,e.y,`+${g}g`,"#9a6a08");
+    if(e.boss)floatText(e.x,e.y,`+¤${g}`,"#9a6a08");
   }
 }
 
@@ -750,7 +769,7 @@ function canHit(tw,e){const tg=TOWERS[tw.type].tg;return !e.dead&&e.x>-0.2&&(e.f
 function towerTick(tw,dt){
   const b=TOWERS[tw.type];if(tw.flash>0)tw.flash-=dt;
   if(b.wall)return;
-  if(b.eco){tw.mt+=dt;if(tw.mt>=60){tw.mt-=60;const g=Math.round(withCards("market",lvlStats("market",tw.L)).income);G.gold+=g;G.stats.earned+=g;floatText(tw.x,tw.y-0.4,`+${g}g`,"#9a6a08")}return}
+  if(b.eco){tw.mt+=dt;if(tw.mt>=60){tw.mt-=60;const g=Math.round(withCards("market",lvlStats("market",tw.L)).income);G.gold+=g;G.stats.earned+=g;floatText(tw.x,tw.y-0.4,`+¤${g}`,"#9a6a08")}return}
   tw.cd-=dt;if(tw.cd>0)return;
   const s=withCards(tw.type,lvlStats(tw.type,tw.L));
   const cands=G.enemies.filter(e=>canHit(tw,e)&&inRange(tw,e,s.range));
@@ -1013,7 +1032,7 @@ function draw(t){
     else if(f.k==="boom"){const a=f.t/0.3;ctx.fillStyle=f.c?f.c:"#f08a3a";ctx.globalAlpha=a*0.6;const rr=f.r*T*(1.2-a*0.5);ctx.fillRect((f.x+1)*T-rr,(f.y+1)*T-rr*0.7,rr*2,rr*1.4);ctx.globalAlpha=1}
     else if(f.k==="scratch"){const x=(f.x+1)*T,y=(f.y+1)*T,a=f.t/0.18;ctx.strokeStyle=`rgba(150,30,50,${a})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-8,y-10);ctx.lineTo(x+6,y+4);ctx.moveTo(x-2,y-12);ctx.lineTo(x+10,y);ctx.stroke()}
     else if(f.k==="pop"){ctx.fillStyle=f.c;const s=8*f.s*(1-f.t/0.3)+4,x=(f.x+1)*T,y=(f.y+1)*T;ctx.globalAlpha=f.t/0.3;for(const [dx,dy] of [[-1,-1],[1,-1],[-1,1],[1,1],[0,-1.4]])ctx.fillRect(x+dx*s*2-3,y+dy*s*2-3,6,6);ctx.globalAlpha=1}
-    else if(f.k==="txt"){ctx.font=`${T*0.58}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";const x=(f.x+1)*T,y=(f.y+1)*T-(1.2-f.t)*T*0.8;ctx.globalAlpha=Math.min(1,f.t*2);ctx.lineWidth=5;ctx.strokeStyle="#fff";ctx.strokeText(f.s,x,y);ctx.fillStyle=f.c;ctx.fillText(f.s,x,y);ctx.globalAlpha=1}
+    else if(f.k==="txt"){ctx.font=`${T*0.58}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";const x=(f.x+1)*T,y=(f.y+1)*T-(1.2-f.t)*T*0.8;ctx.globalAlpha=Math.min(1,f.t*2);ctx.lineWidth=5;ctx.strokeStyle="#fff";richText(ctx,f.s,x,y,T*0.58,f.c,true);ctx.globalAlpha=1}
   }
   // selected tower round damage label
   if(sel&&!group&&!TOWERS[sel.type].wall&&!TOWERS[sel.type].eco){const s=`${fmt(sel.rd)} dmg this round`;ctx.font=`${T*0.5}px "VT323",monospace`;ctx.textAlign="center";const x=(sel.x+1)*T,y=(sel.y+1)*T-T*0.95;const w=ctx.measureText(s).width+14;ctx.fillStyle="#253225";ctx.fillRect(x-w/2,y-T*0.26,w,T*0.52);ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(s,x,y+1)}
@@ -1022,12 +1041,12 @@ function draw(t){
   if(buildType&&hover>=0&&ghost&&(ghost.replace||ghost.same)){
     const x=hover%m.cols,y=(hover/m.cols)|0,r=ghost.replace;
     ctx.strokeStyle=ghost.ok?"#d99a1c":"#cf463d";ctx.lineWidth=4;ctx.setLineDash([8,6]);ctx.strokeRect((x+1)*T+2,(y+1)*T+2,T-4,T-4);ctx.setLineDash([]);
-    const lines=ghost.same?["Already a "+TOWERS[buildType].n]:[`Replace ${TOWERS[r.old.type].n} → ${TOWERS[buildType].n}`,`+${r.back}g back · −${r.cost}g = ${r.back-r.cost>=0?"+":""}${r.back-r.cost}g`];
+    const lines=ghost.same?["Already a "+TOWERS[buildType].n]:[`Replace ${TOWERS[r.old.type].n} → ${TOWERS[buildType].n}`,`+¤${r.back} back · −¤${r.cost} = ${r.back-r.cost>=0?"+":"−"}¤${Math.abs(r.back-r.cost)}`];
     ctx.font=`${T*0.48}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";
-    const w=Math.max(...lines.map(l=>ctx.measureText(l).width))+18,hh=T*0.46*lines.length+8;
+    const w=Math.max(...lines.map(l=>ctx.measureText(l).width+(l.split("¤").length-1)*T*0.3))+18,hh=T*0.46*lines.length+8;
     let lx=(x+1.5)*T,ly=(y+1)*T-hh/2-T*0.35;lx=Math.min(Math.max(lx,w/2+4),cv.width-w/2-4);if(ly-hh/2<2)ly=(y+2)*T+hh/2+T*0.2;
     ctx.fillStyle=ghost.ok||ghost.same?"#253225":"#a8322a";ctx.fillRect(lx-w/2,ly-hh/2,w,hh);
-    ctx.fillStyle="#fff";lines.forEach((l,k)=>ctx.fillText(l,lx,ly-hh/2+4+T*0.23+k*T*0.46));
+    lines.forEach((l,k)=>richText(ctx,l,lx,ly-hh/2+4+T*0.23+k*T*0.46,T*0.48,"#fff",false));
   }
   else if(buildType&&hover>=0){
     const x=hover%m.cols,y=(hover/m.cols)|0,ok=ghost&&ghost.ok;
@@ -1043,13 +1062,13 @@ const mmss=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60
 // ---------- HUD + panels ----------
 const $=id=>document.getElementById(id);
 function updHud(){
-  $("hGold").textContent=fmt(G.gold);$("hGpm").textContent=`+${gpm()} / min`;
+  {const h=COIN+fmt(G.gold);if($("hGold").innerHTML!==h)$("hGold").innerHTML=h}$("hGpm").textContent=`+${gpm()} / min`;
   $("hRound").textContent=`${G.round}/50`;$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
   const r=G.phase==="wave"?G.round:G.round+1;
   if(G.phase==="wave"){$("nextLbl").textContent=`Round ${G.round} — enemies left`;$("hCd").textContent=G.queue.length+G.enemies.length;$("bStart").disabled=true;$("bStart").textContent="Wave running"}
   else if(G.round===0){$("nextLbl").textContent="Build first, then";$("hCd").textContent="Ready";$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
-  else{$("nextLbl").textContent=`Round ${r} in`;$("hCd").textContent=Math.ceil(G.timer);$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?`Go +${earlyBonus()}g`:`Start now +${earlyBonus()}g`}
+  else{$("nextLbl").textContent=`Round ${r} in`;$("hCd").textContent=Math.ceil(G.timer);$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
   const [tg,cl]=tagFor(Math.min(50,r));$("nextTag").textContent=tg;$("nextTag").className=cl;$("nextInfo").textContent=describeRound(Math.min(50,r));
   document.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",G.gold<price(k))});
 }
@@ -1065,7 +1084,7 @@ function renderBuild(){
       el.appendChild(b)});
   }
   el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);
-    b.querySelector(".pr").textContent=G.free[k]?"FREE":`${TOWERS[k].cost}g`;
+    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":`${COIN}${TOWERS[k].cost}`;
     let f=b.querySelector(".free");if(G.free[k]){if(!f){f=document.createElement("span");f.className="free";b.appendChild(f)}f.textContent=`×${G.free[k]}`}else if(f)f.remove()});
 }
 function statRows(type,L,showNext){
@@ -1105,14 +1124,14 @@ function renderInfo(live,hoverType){
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${n} × ${b.n} <span class="label">${b.wall?"selected":`Level ${L}/10 · group`}</span></h3>
       ${b.wall?"":`<div class="tbl"><span class="label">Each tower</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${L<10?"Next":""}</span>${statRows(sel.type,L,true)}</div>`}
       ${b.wall||b.eco?"":`<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Group damage this round</span><span class="v" id="gRd">${fmt(rd)}</span><span></span><span class="k">Group damage total</span><span class="v" id="gTot">${fmt(tot)}</span><span></span></div>`}
-      <div class="row">${b.wall?"":L<10?`<button class="btn go" id="iUpAll" ${G.gold<upCost(sel.type,L)?"disabled":""}>Upgrade all ${cost}g <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSellAll">Sell all +${back}g <span class="kb">S</span></button></div>
+      <div class="row">${b.wall?"":L<10?`<button class="btn go" id="iUpAll" ${G.gold<upCost(sel.type,L)?"disabled":""}>Upgrade all ${COIN}${cost} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSellAll">Sell all +${COIN}${back} <span class="kb">S</span></button></div>
       <p class="hint" style="margin:6px 0 0">Double-click selected every ${b.n}${b.wall?"":` at level ${L}`}. Upgrade all buys as many as your gold allows. Click one tower to go back to a single selection.</p>`;
     if($("iUpAll"))$("iUpAll").onclick=upgradeGroup;$("iSellAll").onclick=sellGroup;$("iClose").onclick=clearSel;
     return;
   }
   if(sel){
     const tw=sel,b=TOWERS[tw.type];
-    if(b.wall){const key=`f|${tw.i}`;if(live&&el.dataset.key===key)return;el.dataset.key=key;el.innerHTML=`<h3>Fence</h3><p class="hint">Blocks enemies and shapes the path. It cannot block the last route to the exit.</p><div class="row"><button class="btn warn" id="iSell">Sell +${Math.floor(tw.spent*0.7)}g <span class="kb">S</span></button></div>`;$("iSell").onclick=()=>sell(tw);return}
+    if(b.wall){const key=`f|${tw.i}`;if(live&&el.dataset.key===key)return;el.dataset.key=key;el.innerHTML=`<h3>Fence</h3><p class="hint">Blocks enemies and shapes the path. It cannot block the last route to the exit.</p><div class="row"><button class="btn warn" id="iSell">Sell +${COIN}${Math.floor(tw.spent*0.7)} <span class="kb">S</span></button></div>`;$("iSell").onclick=()=>sell(tw);return}
     const uc=tw.L<10?upCost(tw.type,tw.L):0;
     const key=`t|${tw.i}|${tw.type}|${tw.L}|${G.cards.length}|${G.towers.length}`;
     if(live&&el.dataset.key===key){setTxt("iRd",fmt(tw.rd));setTxt("iTot",fmt(tw.total));setTxt("iPay",Math.ceil(60-tw.mt));if($("iUp"))$("iUp").disabled=G.gold<uc;return}
@@ -1123,7 +1142,7 @@ function renderInfo(live,hoverType){
       <div class="tbl"><span class="label">Stat</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${tw.L<10?"Next":""}</span>${statRows(tw.type,tw.L,true)}</div>
       ${b.eco?`<p class="hint" style="margin:8px 0 0">Next payout in <span id="iPay">${Math.ceil(60-tw.mt)}</span> s</p>`:
       `<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Damage this round</span><span class="v" id="iRd">${fmt(tw.rd)}</span><span></span><span class="k">Damage total</span><span class="v" id="iTot">${fmt(tw.total)}</span><span></span></div>`}
-      <div class="row">${tw.L<10?`<button class="btn go" id="iUp" ${G.gold<uc?"disabled":""}>Upgrade ${uc}g <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSell">Sell +${Math.floor(tw.spent*0.7)}g <span class="kb">S</span></button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
+      <div class="row">${tw.L<10?`<button class="btn go" id="iUp" ${G.gold<uc?"disabled":""}>Upgrade ${COIN}${uc} <span class="kb">U</span></button>`:`<span class="tag">Max level</span>`}<button class="btn warn" id="iSell">Sell +${COIN}${Math.floor(tw.spent*0.7)} <span class="kb">S</span></button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
       <p class="hint" style="margin:6px 0 0"><span class="plus">+purple</span> is the bonus from your cards. Double-click a tower to select all of its kind at the same level.</p>`;
     if($("iUp"))$("iUp").onclick=()=>upgrade(tw);$("iSell").onclick=()=>sell(tw);$("iClose").onclick=clearSel;
     if($("iAll"))$("iAll").onclick=()=>{group=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L);if(group.length<2)group=null;renderInfo()};
@@ -1132,7 +1151,7 @@ function renderInfo(live,hoverType){
   el.dataset.key="";
   const k=buildType||hoverType;
   if(k){const b=TOWERS[k];
-    el.innerHTML=`<h3>${b.n} <span class="label">${G.free[k]?"Free":b.cost+"g"}</span></h3>
+    el.innerHTML=`<h3>${b.n} <span class="label">${G.free[k]?"Free":COIN+b.cost}</span></h3>
     <div style="margin-bottom:6px">${b.tg?`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`:""}</div>
     <p class="hint" style="margin:0 0 8px">${b.desc}</p>${b.wall?"":`<div class="tbl"><span class="label">Level 1</span><span class="label" style="text-align:right">Value</span><span class="label" style="text-align:right">Lvl 2</span>${statRows(k,1,true)}</div>`}
     ${buildType?`<p class="hint" style="margin:8px 0 0">Click grass tiles to build as many as you like. Click an existing tower to replace it (you get 70% of its value back). Esc or right-click stops building.</p>`:""}`;return}
