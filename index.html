@@ -1568,6 +1568,7 @@ function updHud(){
    const rt=rates();const t=G.round<1?"Mines start with round 1":["g","w","s"].map(k=>`+${fmt1(rt[k])}/s`).join("  ");setTxt("hRate",t)}
   $("hRound").textContent=`${G.round}`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
+  $("nextInfo").parentElement.hidden=!G.story&&G.round>=50; // no "next" line once the last round is running
   if(G.story){storyHud();document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k)))});return}
   $("lblRound").textContent="Round";
   // Now: the current round and its total enemies. Next: preview of the coming round.
