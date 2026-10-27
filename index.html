@@ -221,6 +221,28 @@ body.compact #mini{width:140px}
 @media (max-width:920px){body.compact.story .stat.rnd{display:none}}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
 #soundOv{z-index:31}
+/* unlock animation: the padlock shakes, springs open and flies off, the reward lights up */
+#unlockOv{z-index:32}
+#unlockOv .modal{max-width:460px;background:#fffdf4;text-align:center}
+.ul-stage{position:relative;margin:14px auto 8px;width:320px;max-width:100%;min-height:170px;display:flex;align-items:center;justify-content:center}
+.ul-prev{width:100%;image-rendering:pixelated;border:3px solid var(--ink);filter:grayscale(1) brightness(.55);animation:ulReveal .5s 1.3s forwards}
+.ul-diff{width:100%;padding:22px 10px;border:3px solid var(--ink);background:var(--ink);color:var(--panel);filter:grayscale(1) brightness(.6);animation:ulReveal .5s 1.3s forwards}
+.ul-diff b{display:block;font-family:var(--f-title);font-size:34px;font-weight:400}
+.ul-diff small{font-size:18px;color:#cfe0c2}
+.ul-lock{position:absolute;left:50%;top:50%;width:96px;height:96px;margin:-48px 0 0 -48px;animation:ulShake .5s .2s steps(6),ulFly .45s 1.25s forwards}
+.ul-lock svg{width:100%;height:100%;shape-rendering:crispEdges;overflow:visible}
+.ul-shackle{animation:ulOpen .2s .85s forwards}
+.ul-spark{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;background:var(--gold);opacity:0;animation:ulBurst .7s 1.3s forwards}
+.ul-txt{opacity:0;animation:ulPop .35s 1.55s forwards}
+.ul-txt b{display:block;font-size:32px;font-weight:400}
+.ul-txt span{color:var(--muted);font-size:18px}
+@keyframes ulShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px) rotate(-6deg)}40%{transform:translateX(5px) rotate(6deg)}60%{transform:translateX(-4px) rotate(-4deg)}80%{transform:translateX(4px) rotate(4deg)}}
+@keyframes ulOpen{to{transform:translate(0,-3px)}}
+@keyframes ulFly{to{transform:translateY(-60px) scale(1.4);opacity:0}}
+@keyframes ulReveal{to{filter:none}}
+@keyframes ulBurst{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+@keyframes ulPop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.ul-lock{display:none}.ul-prev,.ul-diff{animation:none;filter:none}.ul-txt{animation:none;opacity:1}.ul-spark{display:none}}
 .vol{display:grid;grid-template-columns:80px 40px 1fr 40px 44px;align-items:center;gap:8px;margin-top:12px;font-size:20px}
 .vol .btn{padding:2px 0;font-size:22px}
 .vol input{width:100%;accent-color:var(--go)}
@@ -376,6 +398,12 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   </div>
 </div>
 
+<div class="ov" id="unlockOv" hidden><div class="modal px-box">
+  <span class="label" id="ulKind">Unlocked</span>
+  <div class="ul-stage" id="ulStage"></div>
+  <div class="ul-txt"><b id="ulName"></b><span id="ulSub"></span></div>
+  <div class="row" style="justify-content:center"><button class="btn go" id="ulGo">Continue</button></div>
+</div></div>
 <div class="ov" id="soundOv" hidden><div class="modal px-box" style="max-width:440px;background:var(--panel)">
   <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Sound</h2>
   <div class="vol"><span>Music</span><button class="btn" id="sm-music" aria-label="Music quieter">−</button><input type="range" id="sv-music" min="0" max="10" step="1" aria-label="Music volume"><button class="btn" id="sp-music" aria-label="Music louder">+</button><b id="sn-music"></b></div>
@@ -1217,6 +1245,7 @@ const SND=(()=>{
     start:t=>{tone(fx,t,392,0.14,{type:"pulse",vol:0.14});tone(fx,t+0.15,587,0.3,{type:"pulse",vol:0.14})},
     clear:t=>[523,659,784,1047].forEach((f,i)=>tone(fx,t+i*0.08,f,i===3?0.35:0.12,{type:"pulse",vol:0.12})),
     coin:t=>{tone(fx,t,988,0.05,{vol:0.07});tone(fx,t+0.05,1319,0.12,{vol:0.07})},
+    unlock:t=>{[0.2,0.32,0.44,0.56].forEach(o=>noise(fx,t+o,0.05,{ft:"bandpass",f:1800,vol:0.25}));tone(fx,t+0.85,600,0.08,{vol:0.1,to:900});[523,659,784,1047,1319].forEach((f,i)=>tone(fx,t+1.3+i*0.07,f,i===4?0.5:0.15,{type:"pulse",vol:0.12}))},
     card:t=>{tone(fx,t,1047,0.25,{type:"triangle",vol:0.18});tone(fx,t+0.07,1568,0.3,{type:"triangle",vol:0.14})},
     err:t=>{tone(fx,t,150,0.07,{vol:0.1});tone(fx,t+0.09,120,0.09,{vol:0.1})},
     win:t=>[523,659,784,1047,784,1047].forEach((f,i)=>tone(fx,t+i*0.12,f,i===5?0.6:0.14,{type:"pulse",vol:0.13})),
@@ -1732,6 +1761,7 @@ cv.addEventListener("dblclick",ev=>{
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
+  if(!$("unlockOv").hidden){$("ulGo").click();return true}
   if(!$("soundOv").hidden){$("soundOv").hidden=true;return true}
   if(!$("styleOv").hidden){$("styleOv").hidden=true;if(location.hash==="#stylebook")history.replaceState(null,"",location.pathname);return true}
   if(!$("cardsOv").hidden){const back=[...$("cardRow").querySelectorAll(".btn")].find(b=>b.textContent.startsWith("Back"));if(back)back.click();return true}
@@ -1743,7 +1773,7 @@ function escClose(){
 }
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&escClose())ev.stopImmediatePropagation()},true);
 document.addEventListener("keydown",ev=>{
-  if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden||!$("soundOv").hidden)return;
+  if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden||!$("soundOv").hidden||!$("unlockOv").hidden)return;
   const k=ev.key.toUpperCase();
   const t=ORDER.find(o=>TOWERS[o].key===k&&avail(o));
   if(t){buildType=buildType===t?null:t;sel=null;renderBuild();renderInfo();return}
@@ -2119,10 +2149,10 @@ function finish(win){
   const entry={score:sc,win,round:G.round,time:Math.round(s.time),kills:s.kills,lives:G.lives,at:Date.now()};
   const list=(personal[key]||[]).concat(entry).sort((a,b)=>b.score-a.score).slice(0,10);personal[key]=list;LS.set("pk-scores",personal);
   const rank=list.indexOf(entry);
-  let unlockMsg="";
+  let unlockMsg="";const unlocks=[];
   if(win){const was=isCleared(G.d,G.m),wasD=diffUnlocked(G.d+1);progress.cleared[key]=true;LS.set("pk-progress",progress);
-    if(!was){unlockMsg=G.m<3?`Reward: trophy for ${MAPS[G.m].name}. ${MAPS[G.m+1].name} is now unlocked.`:"Reward: trophy for the last map."}
-    if(G.d<4&&!wasD&&diffUnlocked(G.d+1))unlockMsg+=` ${DIFFS[G.d+1].name} difficulty is now unlocked!`;}
+    if(!was){unlockMsg=G.m<3?`Reward: trophy for ${MAPS[G.m].name}. ${MAPS[G.m+1].name} is now unlocked.`:"Reward: trophy for the last map.";if(G.m<3)unlocks.push({map:G.m+1,d:G.d})}
+    if(G.d<4&&!wasD&&diffUnlocked(G.d+1)){unlockMsg+=` ${DIFFS[G.d+1].name} difficulty is now unlocked!`;unlocks.push({diff:G.d+1})}}
   submitOverall(key,entry);
   $("resTitle").textContent=win?"The swarm is broken!":"The gate has fallen";
   $("resSub").textContent=(win?STORY.win:STORY.lose)+` (${DIFFS[G.d].name} · ${MAPS[G.m].name}`+(win?")":` · reached round ${G.round})`);
@@ -2131,7 +2161,25 @@ function finish(win){
   $("resScore").textContent=sc.toLocaleString("en-US");
   $("resRank").textContent=(rank>=0?`Personal rank #${rank+1} on this map. `:"")+unlockMsg;
   const nx=nextMap();$("resNext").hidden=!(win&&nx);
-  $("resOv").hidden=false;
+  if(unlocks.length)showUnlocks(unlocks,()=>{$("resOv").hidden=false});else $("resOv").hidden=false;
+}
+// one unlock at a time: lock shakes, springs open, flies off and the new map or difficulty lights up
+function showUnlocks(list,done){
+  const u=list.shift();if(!u){$("unlockOv").hidden=true;done();return}
+  const st=$("ulStage");st.innerHTML="";
+  if(u.map!=null){const c=mapPreview(u.map,u.d);c.className="ul-prev";st.appendChild(c);
+    $("ulKind").textContent="New map unlocked";$("ulName").textContent=MAPS[u.map].name;$("ulSub").textContent=`${MAPS[u.map].desc} · ${DIFFS[u.d].name}`}
+  else{const d=document.createElement("div");d.className="ul-diff";d.innerHTML=`<b>${DIFFS[u.diff].name}</b><small>Enemies have +${Math.round((DIFFS[u.diff].hp-1)*100)}% health</small>`;st.appendChild(d);
+    $("ulKind").textContent="New difficulty unlocked";$("ulName").textContent=`${DIFFS[u.diff].name} is open!`;$("ulSub").textContent="All four maps are waiting on the harder setting"}
+  const lock=document.createElement("div");lock.className="ul-lock";
+  lock.innerHTML='<svg viewBox="0 0 16 16"><g class="ul-shackle"><path fill="#253225" d="M4 2h8v1h1v5h-2V4H5v4H3V3h1z"/><path fill="#c3c9c8" d="M5 3h6v1H5zM4 4h1v4H4zM11 4h1v4h-1z"/></g><path fill="#253225" d="M2 7h12v9H2z"/><path fill="#f4c84a" d="M3 8h10v7H3z"/><path fill="#fff2b0" d="M3 8h10v1H3z"/><path fill="#d99a1c" d="M3 14h10v1H3z"/><path fill="#253225" d="M7 10h2v1H7zM7.5 11h1v2h-1z"/></svg>';
+  st.appendChild(lock);
+  for(let k=0;k<14;k++){const sp=document.createElement("i");sp.className="ul-spark";const a=k/14*Math.PI*2,r=90+(k%3)*30;
+    sp.style.setProperty("--dx",Math.round(Math.cos(a)*r)+"px");sp.style.setProperty("--dy",Math.round(Math.sin(a)*r*0.7)+"px");if(k%2)sp.style.background="#fff2b0";st.appendChild(sp)}
+  // restart the text animation for every unlock
+  const tx=document.querySelector("#unlockOv .ul-txt");tx.style.animation="none";void tx.offsetWidth;tx.style.animation="";
+  $("ulGo").textContent=list.length?"Next":"Continue";$("ulGo").onclick=()=>showUnlocks(list,done);
+  $("unlockOv").hidden=false;SND.play("unlock");
 }
 function nextMap(){if(G.m<3&&mapUnlocked(G.d,G.m+1))return[G.d,G.m+1];if(G.d<4&&diffUnlocked(G.d+1))return[G.d+1,0];return null}
 $("resNext").onclick=()=>{const n=nextMap();$("resOv").hidden=true;if(n)newGame(n[0],n[1])};
