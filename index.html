@@ -221,6 +221,7 @@ body.compact #mini{width:140px}
 @media (max-width:920px){body.compact.story .stat.rnd{display:none}}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
 #soundOv{z-index:31}
+#setOv{z-index:25}
 /* unlock animation: the padlock shakes, springs open and flies off, the reward lights up */
 #unlockOv{z-index:32}
 #unlockOv .modal{max-width:460px;background:#fffdf4;text-align:center}
@@ -404,6 +405,15 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="ul-txt"><b id="ulName"></b><span id="ulSub"></span></div>
   <div class="row" style="justify-content:center"><button class="btn go" id="ulGo">Continue</button></div>
 </div></div>
+<div class="ov" id="setOv" hidden><div class="modal px-box" style="max-width:380px;background:var(--panel)">
+  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Settings</h2>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+    <button class="btn" id="bSoundM">♪ Sound</button>
+    <button class="btn" id="bStyle">Stylebook <span class="label">(for testing)</span></button>
+    <button class="btn warn" id="bReset">Reset progress</button>
+  </div>
+  <div class="row" style="margin-top:16px"><button class="btn go" id="setClose">Done</button></div>
+</div></div>
 <div class="ov" id="soundOv" hidden><div class="modal px-box" style="max-width:440px;background:var(--panel)">
   <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Sound</h2>
   <div class="vol"><span>Music</span><button class="btn" id="sm-music" aria-label="Music quieter">−</button><input type="range" id="sv-music" min="0" max="10" step="1" aria-label="Music volume"><button class="btn" id="sp-music" aria-label="Music louder">+</button><b id="sn-music"></b></div>
@@ -416,8 +426,8 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 <div class="ov" id="menu">
   <div class="modal px-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
-      <div><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Clear every map to unlock the next difficulty.</div></div>
-      <button class="btn" id="bResume" hidden>Back to game</button>
+      <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Clear every map to unlock the next difficulty.</div></div>
+      <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
     </div>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
@@ -428,7 +438,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
-        <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button><button class="btn" id="bStyle">Stylebook</button><button class="btn" id="bSoundM">Sound</button><button class="btn" id="bReset">Reset progress</button></div>
+        <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button></div>
         <p class="how">Towers cost gold. Every slime you defeat drops gold, and Markets pay bonus gold after every cleared round. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. How long the swarm lasts? Nobody knows.</p>
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
@@ -1761,6 +1771,7 @@ cv.addEventListener("dblclick",ev=>{
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
+  if(!$("setOv").hidden){$("setOv").hidden=true;return true}
   if(!$("unlockOv").hidden){$("ulGo").click();return true}
   if(!$("soundOv").hidden){$("soundOv").hidden=true;return true}
   if(!$("styleOv").hidden){$("styleOv").hidden=true;if(location.hash==="#stylebook")history.replaceState(null,"",location.pathname);return true}
@@ -2390,7 +2401,8 @@ $("bStoryCont").onclick=()=>{const sv=LS.get("fot-story",null);if(!sv)return;$("
 $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=true;$("bStoryNew").textContent="Start over? Click again";setTimeout(()=>{storyArm=false;$("bStoryNew").textContent="New campaign"},3000);return}
   storyArm=false;$("bStoryNew").textContent="New campaign";LS.set("fot-story",null);$("menu").hidden=true;newStory(null)};
 $("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
-$("bStyle").onclick=()=>openStylebook();
+$("bStyle").onclick=()=>{$("setOv").hidden=true;openStylebook()};
+$("bSet").onclick=()=>{$("setOv").hidden=false};$("setClose").onclick=()=>{$("setOv").hidden=true};
 $("taUp").onclick=()=>{if(!sel||sel.L>=10)return;if(group)upgradeGroup();else upgrade(sel)};
 $("taDel").onclick=()=>{if(!sel)return;if(group)sellGroup();else sell(sel)};
 function renderSound(){
@@ -2406,7 +2418,7 @@ function openSound(){SND.init();renderSound();$("soundOv").hidden=false}
 $("sMute").onclick=()=>{SND.st.mute=!SND.st.mute;SND.save();renderSound()};
 $("sSkip").onclick=()=>SND.skip();
 $("sClose").onclick=()=>{$("soundOv").hidden=true};
-$("bSound").onclick=openSound;$("bSoundM").onclick=openSound;
+$("bSound").onclick=openSound;$("bSoundM").onclick=()=>{$("setOv").hidden=true;openSound()};
 renderSound();
 $("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;$("menu").hidden=true;newGame(menuD,menuM)};
 let resetArm=false;
