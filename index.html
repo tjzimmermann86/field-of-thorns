@@ -199,6 +199,11 @@ h2{font-size:20px}
 .story-card{margin-top:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fffdf4;border-color:var(--gold)}
 .story-card b{display:block;font-size:26px;font-weight:400}
 .story-card .hint{display:block}
+/* two modes, two framed cards: gold for the story, green for the challenge */
+.chal-card{margin-top:14px;padding:12px 14px;background:#f6fbf1;border-color:var(--go)}
+.chal-head b{display:block;font-size:26px;font-weight:400}
+.chal-head .hint{display:block}
+.chal-card .menu-grid{margin-top:10px}
 body.story #stage{height:calc(100vh - 150px);min-height:380px;overflow:hidden}
 body.story #cv{background:#6f9a4f}
 body.compact.story #stage{height:auto}
@@ -445,15 +450,16 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 <div class="ov" id="menu">
   <div class="modal px-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
-      <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Clear every map to unlock the next difficulty.</div></div>
+      <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Two ways to play: the story campaign or the challenge maps.</div></div>
       <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
     </div>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
       <div class="row" style="margin:0"><button class="btn goldb" id="bStoryCont" hidden>Continue campaign</button><button class="btn go" id="bStoryNew">New campaign</button></div>
     </div>
-    <div class="label" style="margin-top:14px">Challenge</div>
-    <div class="menu-grid" style="margin-top:6px">
+    <div class="chal-card px-box">
+    <div class="chal-head"><span class="label">Challenge</span><b>Hold the Gate</b><span class="hint">Pick a difficulty and a map, then survive 50 rounds. Clear every map to unlock the next difficulty.</span></div>
+    <div class="menu-grid" style="margin-top:10px">
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
@@ -466,6 +472,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
         <label id="lbNameRow" class="hint" hidden style="display:flex;gap:6px;align-items:center;margin-bottom:8px">Your name <input id="lbName" maxlength="20" placeholder="Thornwarden" style="font:inherit;font-size:17px;flex:1;min-width:0;padding:2px 6px;border:2px solid var(--ink);background:var(--panel)"></label>
         <div class="lb" id="lbList"></div>
       </div>
+    </div>
     </div>
   </div>
 </div>
