@@ -365,7 +365,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 <div id="app">
   <div id="hud">
     <div class="stat px-box gold rbox"><span class="label">Resources</span><b id="hRes"></b><small id="hRate">Mines start with round 1</small></div>
-    <div class="stat px-box rnd"><span class="label" id="lblRound">Round</span><b id="hRound">0</b><small id="hDiff">Easy</small></div>
+    <div class="stat px-box rnd"><span class="label" id="lblRound">Round</span><b id="hRound">0/50</b><small id="hDiff">Easy</small></div>
     <div class="stat px-box lives" id="sLives"><span class="label">Lives</span><b id="hLives">20/20</b><small id="hLivesTxt">Holding strong</small></div>
     <div class="stat px-box time"><span class="label">Time</span><b id="hTime">0:00</b><small id="hKills">0 kills</small></div>
     <div id="next" class="px-box">
@@ -456,7 +456,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
         <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button></div>
-        <p class="how">Towers cost gold. Every slime you defeat drops gold, and Markets pay bonus gold after every cleared round. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. How long the swarm lasts? Nobody knows.</p>
+        <p class="how">Towers cost gold. Every slime you defeat drops gold, and Markets pay bonus gold after every cleared round. Some rounds bring mini-bosses and bosses that cost several lives, and every 7th round flies over your maze. Hold out for 50 rounds to break the swarm.</p>
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
         <h3>Ranking <span class="label" id="lbFor"></span></h3>
@@ -1635,7 +1635,7 @@ function updHud(){
    const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Gold")lb.textContent="Gold";const mp=marketPay();setTxt("hRate",mp?`Markets +${fmt(mp)}/round`:"Kills pay gold")}
   else{const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Resources")lb.textContent="Resources";const h=["g","w","s"].map(k=>`<span class="rv">${RHTML[k]}${fmt(Math.floor(G[RKEY[k]]))}</span>`).join("");if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
    const rt=rates();const t=G.round<1?"Mines start with round 1":["g","w","s"].map(k=>`+${fmt1(rt[k])}/s`).join("  ");setTxt("hRate",t)}
-  $("hRound").textContent=`${G.round}`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
+  $("hRound").textContent=G.story?`${G.round}`:`${G.round}/50`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
   $("nextInfo").parentElement.hidden=!G.story&&G.round>=50; // no "next" line once the last round is running
   if(G.story){storyHud();document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k)))});return}
