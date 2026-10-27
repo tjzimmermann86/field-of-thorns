@@ -110,7 +110,7 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .tbl .v{text-align:right;font-weight:600}
 .tbl .n{text-align:right;color:var(--go);font-size:17px}
 .plus{color:var(--rare);font-weight:700}
-.kb{display:inline-block;font-size:14px;line-height:1;padding:1px 4px;margin-left:4px;border:2px solid currentColor;opacity:.8}
+.kb{display:inline-block;font-size:14px;line-height:1;padding:1px 4px;margin-right:2px;border:2px solid currentColor;opacity:.8}
 .tag{display:inline-block;font-family:var(--f-label);font-size:15px;padding:1px 5px;border:2px solid var(--ink);margin-right:4px;background:var(--panel2)}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .hint{color:var(--muted);font-size:17px;line-height:1.35}
@@ -1483,7 +1483,10 @@ function draw(t){
   if(ghost&&ghost.path){ctx.fillStyle="rgba(61,127,68,.22)";for(const i of ghost.path){if(G.path.has(i))continue;ctx.fillRect((i%m.cols+1)*T+T*0.3,(((i/m.cols)|0)+1)*T+T*0.3,T*0.4,T*0.4)}}
   // selected range
   const showR=(x,y,rr,col)=>{ctx.beginPath();ctx.arc((x+1)*T,(y+1)*T,rr*T,0,Math.PI*2);ctx.fillStyle=col+"22";ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.stroke();ctx.setLineDash([])};
-  if(sel&&!TOWERS[sel.type].eco&&!TOWERS[sel.type].wall){const s=withCards(sel.type,lvlStats(sel.type,sel.L));for(const tw of (group||[sel]))showR(tw.x,tw.y,s.range,"#253225")}
+  if(sel&&!TOWERS[sel.type].eco&&!TOWERS[sel.type].wall){const s=withCards(sel.type,lvlStats(sel.type,sel.L));for(const tw of (group||[sel]))showR(tw.x,tw.y,s.range,"#253225");
+    // light dotted ring: the range after the next upgrade
+    if(sel.L<10){const n=withCards(sel.type,lvlStats(sel.type,sel.L+1)).range;ctx.strokeStyle="rgba(255,255,255,.85)";ctx.lineWidth=2;ctx.setLineDash([2,6]);
+      for(const tw of (group||[sel])){ctx.beginPath();ctx.arc((tw.x+1)*T,(tw.y+1)*T,n*T,0,Math.PI*2);ctx.stroke()}ctx.setLineDash([])}}
   if(group){ctx.strokeStyle="#d99a1c";ctx.lineWidth=4;for(const tw of group)ctx.strokeRect((tw.x+0.5)*T+3,(tw.y+0.5)*T+3,T-6,T-6)}
   // entities sorted by y
   const ents=[];
@@ -1629,14 +1632,14 @@ function renderInfo(live,hoverType){
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${n} × ${b.n} <span class="label">${b.wall?"selected":`Level ${L}/10 · group`}</span></h3>
       ${b.wall?"":`<div class="tbl"><span class="label">Each tower</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${L<10?"Next":""}</span>${statRows(sel.type,L,true)}</div>`}
       ${b.wall||b.eco?"":`<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Group damage this round</span><span class="v" id="gRd">${fmt(rd)}</span><span></span><span class="k">Group damage total</span><span class="v" id="gTot">${fmt(tot)}</span><span></span></div>`}
-      <div class="row">${b.wall?"":L<10?`<button class="btn go fixw" id="iUpAll" ${!afford(upCost(sel.type,L))?"disabled":""}>Upgrade all ${fmtC(cost)} <span class="kb">U</span></button>`:`<button class="btn go fixw" disabled>Max level</button>`}<button class="btn warn" id="iSellAll">Sell all +${fmtC(back)} <span class="kb">S</span></button></div>
+      <div class="row">${b.wall?"":L<10?`<button class="btn go fixw" id="iUpAll" ${!afford(upCost(sel.type,L))?"disabled":""}><span class="kb">U</span> ${fmtC(cost)} Upgrade all</button>`:`<button class="btn go fixw" disabled>Max level</button>`}<button class="btn warn" id="iSellAll"><span class="kb">S</span> +${fmtC(back)} Sell all</button></div>
       <p class="hint" style="margin:6px 0 0">Double-click selected every ${b.n}${b.wall?"":` at level ${L}`}. Upgrade all buys as many as you can afford. Click one tower to go back to a single selection.</p>`;
     if($("iUpAll"))$("iUpAll").onclick=upgradeGroup;$("iSellAll").onclick=sellGroup;$("iClose").onclick=clearSel;
     return;
   }
   if(sel){
     const tw=sel,b=TOWERS[tw.type];
-    if(b.wall){const key=`f|${tw.i}`;if(live&&el.dataset.key===key)return;el.dataset.key=key;el.innerHTML=`<h3>Fence</h3><p class="hint">Blocks enemies and shapes the path. It cannot block the last route to the exit.</p><div class="row"><button class="btn warn" id="iSell">Sell +${fmtC(floorC(tw.spent,0.7))} <span class="kb">S</span></button></div>`;$("iSell").onclick=()=>sell(tw);return}
+    if(b.wall){const key=`f|${tw.i}`;if(live&&el.dataset.key===key)return;el.dataset.key=key;el.innerHTML=`<h3>Fence</h3><p class="hint">Blocks enemies and shapes the path. It cannot block the last route to the exit.</p><div class="row"><button class="btn warn" id="iSell"><span class="kb">S</span> +${fmtC(floorC(tw.spent,0.7))} Sell</button></div>`;$("iSell").onclick=()=>sell(tw);return}
     const uc=tw.L<10?upCost(tw.type,tw.L):C();
     const key=`t|${tw.i}|${tw.type}|${tw.L}|${G.cards.length}|${G.towers.length}`;
     if(live&&el.dataset.key===key){setTxt("iRd",fmt(tw.rd));setTxt("iTot",fmt(tw.total));if($("iUp"))$("iUp").disabled=!afford(uc);return}
@@ -1647,7 +1650,7 @@ function renderInfo(live,hoverType){
       <div class="tbl"><span class="label">Stat</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${tw.L<10?"Next":""}</span>${statRows(tw.type,tw.L,true)}</div>
       ${b.perRound?`<p class="hint" style="margin:8px 0 0">Pays its gold every time you clear a round.</p>`:b.eco?`<p class="hint" style="margin:8px 0 0">${G.round<1?"Starts producing when round 1 begins.":`Produces ${RNAME[b.prod].toLowerCase()} every second.`}</p>`:
       `<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Damage this round</span><span class="v" id="iRd">${fmt(tw.rd)}</span><span></span><span class="k">Damage total</span><span class="v" id="iTot">${fmt(tw.total)}</span><span></span></div>`}
-      <div class="row">${tw.L<10?`<button class="btn go fixw" id="iUp" ${!afford(uc)?"disabled":""}>Upgrade ${fmtC(uc)} <span class="kb">U</span></button>`:`<button class="btn go fixw" disabled>Max level</button>`}<button class="btn warn" id="iSell">Sell +${fmtC(floorC(tw.spent,0.7))} <span class="kb">S</span></button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
+      <div class="row">${tw.L<10?`<button class="btn go fixw" id="iUp" ${!afford(uc)?"disabled":""}><span class="kb">U</span> ${fmtC(uc)} Upgrade</button>`:`<button class="btn go fixw" disabled>Max level</button>`}<button class="btn warn" id="iSell"><span class="kb">S</span> +${fmtC(floorC(tw.spent,0.7))} Sell</button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
       <p class="hint" style="margin:6px 0 0"><span class="plus">+purple</span> is the bonus from your cards. Double-click a tower to select all of its kind at the same level.</p>`;
     if($("iUp"))$("iUp").onclick=()=>upgrade(tw);$("iSell").onclick=()=>sell(tw);$("iClose").onclick=clearSel;
     if($("iAll"))$("iAll").onclick=()=>{group=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L);if(group.length<2)group=null;renderInfo()};
