@@ -177,6 +177,12 @@ body.compact.story #stage{height:auto}
 #mini{position:absolute;right:8px;bottom:8px;z-index:4;border:3px solid var(--ink);image-rendering:pixelated;cursor:pointer;width:220px;height:auto;max-width:34%;touch-action:none}
 #zoomBox{position:absolute;left:8px;top:8px;z-index:4;display:flex;flex-direction:column;gap:4px}
 #zoomBox .btn{padding:2px 8px;font-size:20px;min-width:36px}
+#talk{position:absolute;left:56px;bottom:8px;z-index:5;max-width:min(440px,calc(100% - 290px));display:flex;gap:10px;padding:8px 10px;background:#fffdf4;cursor:pointer}
+#talkPic{width:40px;height:40px;flex-shrink:0;border:3px solid var(--ink);color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center}
+#talk b{display:block;font-size:19px;font-weight:400}
+#talk p{margin:2px 0 0;font-size:17px;line-height:1.25}
+#talk .hint{font-size:13px}
+body.compact #talk{left:52px;max-width:calc(100% - 210px);padding:5px 7px}body.compact #talk p{font-size:14px}body.compact #talkPic{width:30px;height:30px;font-size:19px}
 #objBox{margin-bottom:10px;padding:8px 10px;background:#fffdf4;border:3px solid var(--gold)}
 #objBox b{display:block;font-size:22px;font-weight:400}
 #objBox p{margin:4px 0 0;font-size:16px;color:var(--muted);line-height:1.3}
@@ -319,6 +325,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div id="stage">
       <canvas id="cv" width="960" height="576"></canvas>
       <div id="toast" class="px-box" hidden></div>
+      <div id="talk" class="px-box" hidden role="status"><div id="talkPic"></div><div style="min-width:0"><b id="talkName"></b><p id="talkText"></p><span class="hint">Tap to continue</span></div></div>
       <canvas id="mini" width="220" height="144" hidden aria-label="Minimap: tap to jump there"></canvas>
       <div id="zoomBox" hidden><button class="btn" id="zIn" aria-label="Zoom in">+</button><button class="btn" id="zOut" aria-label="Zoom out">−</button><button class="btn" id="zHome" aria-label="Jump to the village">⌂</button></div>
       <div id="guide" class="px-box" hidden role="dialog" aria-live="polite">
@@ -424,9 +431,10 @@ const TOWERS={
   mine:{n:"Gold Mine",key:"G",cost:{g:60,w:20},eco:true,prod:"g",node:4,rate:1.5,rg:0.6,desc:"Digs gold every second. Builds only on a glittering gold vein."},
   lumber:{n:"Lumber Camp",key:"L",cost:{g:40},eco:true,prod:"w",node:5,rate:1.2,rg:0.5,desc:"Cuts wood every second. Builds only on a pine grove."},
   quarry:{n:"Quarry",key:"Q",cost:{g:50,w:20},eco:true,prod:"s",node:6,rate:0.8,rg:0.35,desc:"Breaks stone every second. Builds only on a stone outcrop."},
+  ballista:{n:"Ballista",key:"B",cost:{g:80,w:60},dmg:40,rate:0.6,range:3.4,rg:0.3,tg:"ga",kind:"Pierce",unique:true,desc:"Story reward from the smugglers. Heavy bolts pierce up to 3 slimes in a line."},
   fence:{n:"Thorns",key:"T",cost:{w:6},dmg:1,rate:1.5,range:1.05,rg:0.03,tg:"g",kind:"Maze + AOE",thorn:true,desc:"Blocks the path and scratches every ground enemy next to it. Weak at first, but each upgrade multiplies its damage."},
 };
-const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","fence","mine","lumber","quarry"];
+const ORDER=["arrow","gatling","sniper","frost","tesla","mortar","fire","flak","hawk","ballista","fence","mine","lumber","quarry"];
 const COMBAT=ORDER.filter(k=>!TOWERS[k].eco); // includes Thorns for Mastery cards
 const TGTXT={g:"Ground",a:"Air",ga:"Ground + Air"};
 
@@ -579,12 +587,12 @@ const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 let bgCanvas=document.createElement("canvas"),bgDirty=true;
 
 function newGame(d,m,opt){
-  T=48;U=3;document.body.classList.remove("story");$("mini").hidden=true;$("zoomBox").hidden=true;$("objBox").hidden=true;
+  T=48;U=3;document.body.classList.remove("story");talkQ.length=0;$("talk").hidden=true;$("mini").hidden=true;$("zoomBox").hidden=true;$("objBox").hidden=true;
   const map=buildMap(m,d);
   G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].start.g,wood:DIFFS[d].start.w,stone:DIFFS[d].start.s,lives:20,round:0,
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
     cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}},
-    free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},cam:{x:0,y:0,z:1}};
+    free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},unlocked:{},woodMul:1,env:null,cam:{x:0,y:0,z:1}};
   G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
   sel=null;buildType=null;ghost=null;bgDirty=true;
   cv.width=(map.cols+2)*T;cv.height=(map.rows+2)*T;
@@ -768,8 +776,8 @@ function offerCards(rare,title){
   if(rare){pick=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id))).slice(0,3)}
   else{
     const base=["dmg","range","rate","prosp","lucky","interest","freeze","sawmill","stonecut","sky","slayer","bulk","lives","chest"];
-    const t=COMBAT[(Math.random()*COMBAT.length)|0],f=ORDER.filter(k=>k!=="fence")[(Math.random()*10)|0];
-    const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-")));
+    const CB=COMBAT.filter(avail),FR=ORDER.filter(k=>k!=="fence"&&avail(k)),t=CB[(Math.random()*CB.length)|0],f=FR[(Math.random()*FR.length)|0];
+    const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-"))&&avail(id.slice(5)));
     let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open);
     pick=shuffle(ids).slice(0,3).map(id=>CARDS[id]);
     if(Math.random()<0.08){const r=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id)))[0];if(r)pick[2]=r}
@@ -820,7 +828,7 @@ function withCards(type,s){
   return{...s,dmg:s.dmg*(1+G.mods.dmg+(G.mods.type[type]||0)),rate:s.rate*(1+G.mods.rate),range:s.range*(1+G.mods.range),slow:s.slow?Math.min(0.8,s.slow+G.mods.slow):0};
 }
 // cost to go from level L to L+1: same resource mix as the build cost
-function upCost(type,L){const b=TOWERS[type],d=1-G.mods.discount;if(b.thorn)return C({w:Math.round(10*Math.pow(1.5,L-1)*d)});return scaleC(C(b.cost),(b.eco?0.8:0.6)*Math.pow(1.3,L-1)*d)}
+function upCost(type,L){const b=TOWERS[type],d=1-G.mods.discount;if(b.thorn)return adjW(C({w:Math.round(10*Math.pow(1.5,L-1)*d)}));return adjW(scaleC(C(b.cost),(b.eco?0.8:0.6)*Math.pow(1.3,L-1)*d))}
 function rates(){const r={g:0,w:0,s:0};for(const t of G.towers){const b=TOWERS[t.type];if(b.eco)r[b.prod]+=withCards(t.type,lvlStats(t.type,t.L)).prod}return r}
 const NODE_N={4:"gold vein",5:"pine grove",6:"stone outcrop"};
 
@@ -845,7 +853,9 @@ function canPlace(i,type){
   for(const e of G.enemies){if(e.fly||e.next<0)continue;if(dist[e.next]>1e8)return{ok:false,why:"That would trap enemies"}}
   return{ok:true,dist};
 }
-function price(type){return G.free[type]?C():C(TOWERS[type].cost)}
+function avail(k){return !TOWERS[k].unique||!!(G&&G.unlocked&&G.unlocked[k])}
+function adjW(c){if(G&&G.woodMul&&G.woodMul!==1)c.w=Math.round(c.w*G.woodMul);return c} // Old Bram cuts wood cheaper
+function price(type){return G.free[type]?C():adjW(C(TOWERS[type].cost))}
 function pausedBlock(){if(G.paused){toast("Paused — resume to build, upgrade or sell","boss");return true}return false}
 function place(i){
   const type=buildType;if(!type||pausedBlock())return;
@@ -922,7 +932,7 @@ function pickNext(e){
 }
 function bez(e,t){const a=(1-t)*(1-t),b=2*(1-t)*t,c=t*t;return{x:a*e.p0.x+b*e.p1.x+c*e.p2.x,y:a*e.p0.y+b*e.p1.y+c*e.p2.y}}
 function moveEnemy(e,dt){
-  const sp=e.spd*(e.slowT>0?1-e.slowA:1)*dt;e.ph+=dt*8;
+  const sp=e.spd*(e.slowT>0?1-e.slowA:1)*(G.env?G.env.spd:1)*dt;e.ph+=dt*8;
   if(e.slowT>0)e.slowT-=dt;
   if(e.chew){e.ph+=dt*16;e.chew.t-=dt;if(e.chew.t<=0)eatThorn(e);return}
   if(e.mode==="fly"){const dx=e.gate.x-e.x,dy=e.gate.y-e.y,d=Math.hypot(dx,dy);if(d<=sp){leak(e);return}e.x+=dx/d*sp;e.y+=dy/d*sp;return}
@@ -981,7 +991,7 @@ function towerTick(tw,dt){
   if(b.wall)return;
   if(b.eco)return; // production runs in produce()
   tw.cd-=dt;if(tw.cd>0)return;
-  const s=withCards(tw.type,lvlStats(tw.type,tw.L));
+  const s=withCards(tw.type,lvlStats(tw.type,tw.L));if(G.env){s.range*=G.env.range;s.rate*=G.env.rate}
   const cands=G.enemies.filter(e=>canHit(tw,e)&&inRange(tw,e,s.range));
   if(!cands.length){ // story: with no slimes around, ground towers shoot at enemy camps in reach
     if(G.story&&TOWERS[tw.type].tg.includes("g")){const c=campTarget(tw,s.range);if(c){tw.cd=1/s.rate;tw.fire=0.12;hitCamp(c,s.dmg,tw)}}
@@ -990,6 +1000,10 @@ function towerTick(tw,dt){
   if(tw.type==="fence"){for(const e of cands){damage(e,s.dmg,tw);G.fx.push({k:"scratch",x:e.x,y:e.y,t:0.18})}return}
   if(tw.type==="fire"){cands.forEach(e=>damage(e,s.dmg,tw));G.fx.push({k:"ring",x:tw.x,y:tw.y,r:s.range,t:0.25,c:"#f08a3a"});return}
   let tgt=cands[0],bp=1e9;for(const e of cands){const p=progressLeft(e);if(p<bp){bp=p;tgt=e}}
+  if(tw.type==="ballista"){ // bolt flies through the target and hits up to 3 slimes on that line
+    const dx=tgt.x-tw.x,dy=tgt.y-tw.y,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
+    const line=G.enemies.filter(e=>!e.dead&&canHit(tw,e)).map(e=>{const px=e.x-tw.x,py=e.y-tw.y,along=px*ux+py*uy;return{e,along,off:Math.abs(px*uy-py*ux)}}).filter(o=>o.along>0&&o.along<=s.range+0.5&&o.off<0.45).sort((a,b)=>a.along-b.along).slice(0,3);
+    line.forEach(o=>damage(o.e,s.dmg,tw));G.fx.push({k:"line",x1:tw.x,y1:tw.y-0.3,x2:tw.x+ux*(s.range+0.5),y2:tw.y+uy*(s.range+0.5),t:0.18,c:"#e8dcb0",w:3});return}
   if(tw.type==="sniper"){damage(tgt,s.dmg,tw);G.fx.push({k:"line",x1:tw.x,y1:tw.y-0.4,x2:tgt.x,y2:tgt.y,t:0.15,c:"#ffffff",w:2});return}
   if(tw.type==="tesla"){
     const hit=[tgt];let cur=tgt,d=s.dmg;damage(cur,d,tw);
@@ -1025,6 +1039,7 @@ function toast(msg,cls,big){const el=document.getElementById("toast");el.textCon
 let last=performance.now(),hudAcc=0;
 function frame(now){
   let rdt=Math.min(0.1,(now-last)/1000);last=now;
+  if(G&&G.story&&!G.paused)tickTalk(rdt);
   if(toastT>0){toastT-=rdt;if(toastT<=0)document.getElementById("toast").hidden=true}
   if(G&&!G.over&&!G.paused&&G.phase!=="cards"&&document.getElementById("menu").hidden){
     G.stats.time+=rdt;
@@ -1123,7 +1138,7 @@ function drawNode(c,ox,oy,t){
   else{r(2,10,12,3,"#a9b1b0");r(3,8,9,2,"#c3c9c8");r(5,9,3,1,"#e1e6e4");r(9,11,1,2,"#7c8586");r(2,12,12,1,"#7c8586")}
 }
 const PED={arrow:["#c99460","#9a6a3a"],gatling:["#aab3b4","#7c8586"],sniper:["#8fbd78","#5f8f4c"],frost:["#d8eff9","#9cc9df"],tesla:["#c4b2e3","#8f79bf"],
-  mortar:["#aab3b4","#7c8586"],fire:["#e19a7a","#b0624a"],flak:["#a9bdd1","#71899f"],hawk:["#d3c2a8","#a08b70"]};
+  ballista:["#c9a46a","#8a6a3a"],mortar:["#aab3b4","#7c8586"],fire:["#e19a7a","#b0624a"],flak:["#a9bdd1","#71899f"],hawk:["#d3c2a8","#a08b70"]};
 function drawTower(c,type,ox,oy,L,t,tw){
   const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);
   if(type==="fence"){
@@ -1206,6 +1221,7 @@ function drawTurret(c,type,ox,oy,L,t,tw){
     case"mortar":r(3,0,10,6,"#3d4548");r(4,1,8,3,"#1f2426");r(3,0,10,1,"#6b7472");r(3,5,10,1,"#2a3032");break;
     case"fire":{r(4,1,8,4,"#4a3a32");r(4,1,8,1,"#6e5a4e");const h=Math.sin(t*14)*1;r(5,-3-h,6,4+h,"#f08a3a");r(6,-5-h,4,3,"#f4c84a");r(7,-6-h,2,2,"#fff2b0");break}
     case"flak":r(4,1,8,5,"#4a5d72");r(4,1,8,1,"#6f87a0");r(5,-4,2,6,"#2f3638");r(9,-4,2,6,"#2f3638");if(fl){r(4,-6,4,2,"#f08a3a");r(8,-6,4,2,"#f08a3a")}break;
+    case"ballista":r(1,1,14,2,"#5a3a1a");r(1,0,2,2,"#5a3a1a");r(13,0,2,2,"#5a3a1a");r(3,3,10,1,"#e8dcb0");r(7,-4,2,9,"#8a5a30");r(7,-5,2,1,"#d8dcdc");r(6,-4,4,1,"#c8ced0");break;
     case"hawk":r(4,0,8,6,"#5e6f5c");r(5,-3,2,4,"#ffffff");r(9,-3,2,4,"#ffffff");r(5,-4,2,1,"#cf463d");r(9,-4,2,1,"#cf463d");r(4,4,8,1,"#3f4d3e");break;
   }
 }
@@ -1246,7 +1262,7 @@ function draw(t){
   ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=false;
   if(G.story){ctx.fillStyle="#6f9a4f";ctx.fillRect(0,0,cv.width,cv.height);const c=G.cam;ctx.setTransform(c.z,0,0,c.z,-c.x*c.z,-c.y*c.z);ctx.imageSmoothingEnabled=false}
   ctx.drawImage(bgCanvas,0,0);
-  if(G.story)drawCamps(t);
+  if(G.story){drawCamps(t);drawBram(t)}
   // ghost path preview
   if(ghost&&ghost.path){ctx.fillStyle="rgba(61,127,68,.22)";for(const i of ghost.path){if(G.path.has(i))continue;ctx.fillRect((i%m.cols+1)*T+T*0.3,(((i/m.cols)|0)+1)*T+T*0.3,T*0.4,T*0.4)}}
   // selected range
@@ -1283,7 +1299,7 @@ function draw(t){
   }
   // selected tower round damage label
   if(sel&&!group&&!TOWERS[sel.type].wall&&!TOWERS[sel.type].eco){const s=`${fmt(sel.rd)} dmg this round`;ctx.font=`${T*0.5}px "VT323",monospace`;ctx.textAlign="center";const x=(sel.x+1)*T,y=(sel.y+1)*T-T*0.95;const w=ctx.measureText(s).width+14;ctx.fillStyle="#253225";ctx.fillRect(x-w/2,y-T*0.26,w,T*0.52);ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(s,x,y+1)}
-  if(G.story)drawMini();
+  if(G.story){drawEnv(t);drawMini()}
   if(G.paused){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="rgba(37,50,37,.35)";ctx.fillRect(0,0,cv.width,cv.height);ctx.font=`${T*1.2}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText("PAUSED",cv.width/2,cv.height/2);ctx.font=`${T*0.5}px "VT323",monospace`;ctx.fillText("Building and buying are locked. Press P or ▶ to resume.",cv.width/2,cv.height/2+T*0.9);return}
   // guide highlights
   const gs=guideStep();
@@ -1350,8 +1366,8 @@ function renderBuild(){
       b.onmouseenter=()=>{if(!sel&&!buildType)renderInfo(false,k)};b.onmouseleave=()=>{if(!sel&&!buildType)renderInfo()};
       el.appendChild(b)});
   }
-  el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);
-    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":fmtC(C(TOWERS[k].cost));
+  el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);b.hidden=!avail(k);
+    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":fmtC(adjW(C(TOWERS[k].cost)));
     let f=b.querySelector(".free");if(G.free[k]){if(!f){f=document.createElement("span");f.className="free";b.appendChild(f)}f.textContent=`×${G.free[k]}`}else if(f)f.remove()});
 }
 function statRows(type,L,showNext){
@@ -1487,7 +1503,7 @@ cv.addEventListener("contextmenu",e=>e.preventDefault());
 document.addEventListener("keydown",ev=>{
   if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden)return;
   const k=ev.key.toUpperCase();
-  const t=ORDER.find(o=>TOWERS[o].key===k);
+  const t=ORDER.find(o=>TOWERS[o].key===k&&avail(o));
   if(t){buildType=buildType===t?null:t;sel=null;renderBuild();renderInfo();return}
   if(k==="ESCAPE"){buildType=null;sel=null;group=null;renderBuild();renderInfo()}
   if(k==="U"&&sel){if(group)upgradeGroup();else upgrade(sel)}
@@ -1498,7 +1514,7 @@ document.addEventListener("keydown",ev=>{
 });
 function togglePause(){G.paused=!G.paused;document.body.classList.toggle("paused",G.paused);$("bPause").setAttribute("aria-pressed",G.paused);$("bPause").textContent=G.paused?"▶":"II"}
 $("bPause").onclick=togglePause;
-$("gNext").onclick=guideNext;$("stGo").onclick=()=>{$("storyOv").hidden=true};$("gSkip").onclick=endGuide;
+$("gNext").onclick=guideNext;$("stGo").onclick=()=>{$("storyOv").hidden=true;if(G&&G.story&&!G.started&&!G.talked){G.talked=true;OBJ_LINES[0].forEach(l=>say(...l))}};$("gSkip").onclick=endGuide;
 $("bSpd").onclick=()=>setSpeed(G.speed%3+1); // compact: one button cycles 1x → 2x → 3x
 function setSpeed(v){G.speed=v;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",+o.dataset.sp===v));$("bSpd").textContent=v+"x"}
 document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
@@ -1542,6 +1558,10 @@ const CAMP_DEFS=[
   {name:"East Highland camp",x:51,y:26,stage:4,lvl:19,hp:9000,period:36,size:1,mini:true,nodes:[1,1,1],mix:{armor:.2,split:.1,heal:.05,eat:2}},
   {name:"South Highland camp",x:42,y:31,stage:4,lvl:19,hp:9000,period:36,size:1,mini:true,nodes:[0,1,2],mix:{armor:.2,split:.1,heal:.05,eat:2}},
   {name:"Slimehold",x:49,y:5,stage:5,lvl:26,hp:26000,period:34,size:2,town:true,nodes:[2,0,0],mix:{armor:.2,split:.12,heal:.06,eat:3}},
+  // optional side camps: asleep until you attack them
+  {name:"Bandit hideout",x:2,y:13,stage:99,side:true,lvl:6,hp:4000,period:40,size:1,nodes:[1,0,0],mix:{armor:.15},reward:"rare"},
+  {name:"Witch's hut",x:17,y:2,stage:99,side:true,lvl:12,hp:6500,period:38,size:1,nodes:[0,1,1],mix:{heal:.15},reward:"lives"},
+  {name:"Smugglers' cove",x:53,y:33,stage:99,side:true,lvl:18,hp:9000,period:36,size:1,nodes:[1,0,1],mix:{split:.15,armor:.1},reward:"ballista"},
 ];
 const OBJ=[
   {t:"Hold the village",d:"The Bog camp in the north is sending raids. Survive three of them.",camps:[0],done:()=>!G.camps[0].alive||(G.camps[0].raids>=3&&!G.queue.length&&!G.enemies.length)},
@@ -1584,8 +1604,52 @@ function buildStoryMap(){
   const seeds=[{x:VX,y:VY}].concat(CAMP_DEFS);map.zone=new Uint8Array(N);
   for(let i=0;i<N;i++){const x=i%cols,y=(i/cols)|0;let b=0,bd=1e9;seeds.forEach((s,k)=>{const d=Math.hypot(x-s.x,y-s.y)*(k===0?0.8:1);if(d<bd){bd=d;b=k}});map.zone[i]=b}
   [[10,32,4],[3,25,4],[12,27,5],[2,33,6],[10,26,5]].forEach(([x,y,t])=>ter[idx(x,y)]=t);
+  map.bram={x:17,y:26};ter[idx(17,26)]=9; // Old Bram's cage in the grove
   CAMP_DEFS.forEach((c,k)=>c.nodes.forEach((n,j)=>{for(let cnt=0,g=0;cnt<n&&g<900;g++){const i=(R()*N)|0;if(map.zone[i]===k+1&&ter[i]===0&&!protect.has(i)){ter[i]=4+j;cnt++}}}));
   return map;
+}
+// ---------- dialogue ----------
+const CAST={queen:{n:"Queen Elinor",c:"#7a4fc7",i:"Q"},mayor:{n:"Mayor Hob",c:"#3d7f44",i:"H"},wren:{n:"Scout Wren",c:"#3a8fc2",i:"W"},bram:{n:"Old Bram",c:"#8a5a30",i:"B"},king:{n:"The Slime King",c:"#7a1f2a",i:"K"}};
+const OBJ_LINES=[
+  [["mayor","Thornwarden, thank the stars you're here! The Bog camp up north is sending its slimes. Hold them off!"]],
+  [["wren","The raids are thinning. If we push our border north, our towers can reach their camp."],["wren","Oh, and there are bandits hiding in the far west. Optional, but they sit on a loot chest."]],
+  [["queen","...can anyone hear me? The King's camps are in the Old Grove. Their timber could build your walls."],["bram","Help! The slimes stuffed me in a cage in the grove! Build anything close to me and I'll pay you back in cheap wood!"]],
+  [["wren","Flyers over the lake! Our thorns won't stop those. Build Flak or Hawks."],["mayor","They say a witch lives north of the Bog. Her hut is full of potions, if you dare."]],
+  [["queen","I can see your fires from the tower. Hurry, Thornwarden. He grows restless."],["wren","Smugglers in the south-east cove have been selling the King weapons. Worth a visit."]],
+  [["king","You'll never take my town, little gardener. She stays with ME!"]],
+  [["king","ENOUGH! I'll squash your village myself!"],["queen","Now's your chance! Stop him before he reaches the village!"]],
+];
+const CAPTURE_LINES=[["mayor","That's one camp less. The whole village is cheering!"],["wren","Their camp is ours. More land, more resources!"],["mayor","Well done! I'll have the baker send you a pie."]];
+const pick=a=>a[(Math.random()*a.length)|0];
+const talkQ=[];let talkT=0;
+function say(who,text){talkQ.push([who,text]);if(talkQ.length===1)showTalk()}
+function showTalk(){const box=$("talk");if(!talkQ.length){box.hidden=true;return}const [who,text]=talkQ[0],p=CAST[who];
+  $("talkPic").textContent=p.i;$("talkPic").style.background=p.c;$("talkName").textContent=p.n;$("talkName").style.color=p.c;$("talkText").textContent=text;box.hidden=false;talkT=Math.max(5,text.length/16)}
+function nextTalk(){talkQ.shift();showTalk()}
+function tickTalk(dt){if(!talkQ.length||$("talk").hidden)return;talkT-=dt;if(talkT<=0)nextTalk()}
+// ---------- events: night, storm, the caged lumberjack ----------
+const EVENTS={
+  night:{n:"Night",t:45,spd:1.15,range:0.85,rate:1,line:["mayor","Night falls... the slimes move faster in the dark and our towers see less. And here they come!"]},
+  storm:{n:"Storm",t:40,spd:0.7,range:1,rate:0.8,line:["wren","A storm! Everything's slowing down, them and us."]},
+};
+function startEvent(k){const E=EVENTS[k];G.env={k,...E,left:E.t};say(...E.line);toast(`${E.n}! ${k==="night"?"Faster slimes, shorter tower range.":"Slimes and towers both slow down."}`,k==="night"?"boss":"air",true);
+  if(k==="night")G.camps.forEach(c=>{if(c.alive&&c.active)c.t=Math.min(c.t,4)})}
+function tickEvents(dt){
+  if(G.env){G.env.left-=dt;if(G.env.left<=0){toast(G.env.k==="night"?"Dawn breaks.":"The storm passes.");G.env=null}}
+  else if(G.obj>=2){G.evT=(G.evT??170)-dt;if(G.evT<=0){G.evT=150+Math.random()*90;startEvent(Math.random()<0.5?"night":"storm")}}
+  const b=G.bram;if(b&&!b.freed&&G.towers.some(t=>Math.hypot(t.x-(b.x+0.5),t.y-(b.y+0.5))<=3.2)){b.freed=true;G.woodMul=0.75;renderBuild();
+    floatText(b.x+0.5,b.y,"Freed!","#3d7f44");say("bram","Free at last! Thank you, Thornwarden. From now on my axe works for you: wood costs a quarter less.");saveStory()}
+}
+function drawBram(t){const b=G.bram;if(!b||b.freed)return;const ox=(b.x+1)*T,oy=(b.y+1)*T,r=(x,y,w,h,col)=>R(ctx,ox,oy,x,y,w,h,col);
+  r(2,13,12,2,"rgba(0,0,0,.18)");r(5,6,6,7,"#c48a52");r(6,3,4,3,"#f2c9a0");r(6,2,4,1,"#7a4f28");r(7,4,1,1,"#253225");r(9,4,1,1,"#253225");r(5,9,6,1,"#cf463d");
+  for(let x=2;x<15;x+=3)r(x,1,1,13,"#5d666a");r(2,1,13,1,"#5d666a");r(2,13,13,1,"#5d666a");
+  if(Math.sin(t*3)>0){ctx.font=`${T*0.5}px "VT323",monospace`;ctx.textAlign="center";ctx.lineWidth=4;ctx.strokeStyle="#fff";ctx.strokeText("Help!",ox+T/2,oy-T*0.25);ctx.fillStyle="#cf463d";ctx.fillText("Help!",ox+T/2,oy-T*0.25)}}
+function drawEnv(t){
+  if(!G.env)return;ctx.setTransform(1,0,0,1,0,0);
+  if(G.env.k==="night"){ctx.fillStyle="rgba(10,16,48,.40)";ctx.fillRect(0,0,cv.width,cv.height)}
+  else{ctx.fillStyle="rgba(60,70,85,.25)";ctx.fillRect(0,0,cv.width,cv.height);ctx.strokeStyle="rgba(200,220,255,.45)";ctx.lineWidth=2;ctx.beginPath();
+    for(let k=0;k<90;k++){const x=((k*137+t*420)%(cv.width+80))-40,y=((k*89+t*900)%(cv.height+60))-30;ctx.moveTo(x,y);ctx.lineTo(x-8,y+22)}ctx.stroke()}
+  const c=G.cam;ctx.setTransform(c.z,0,0,c.z,-c.x*c.z,-c.y*c.z);
 }
 function refreshGates(){const m=G.map;m.gates=G.camps.filter(c=>c.alive).map(c=>({side:"camp",cell:c.cell,camp:c.k,dormant:!c.active}));m.ent=m.gates.map(g=>g.cell);m.entSet=new Set(m.ent)}
 // 2 = land you own, 1 = border strip (towers allowed), 0 = enemy land
@@ -1609,12 +1673,17 @@ function captureCamp(c){
   const m=G.map;c.alive=false;c.hp=0;G.owned.add(c.zone);G.queue=G.queue.filter(q=>q.camp!==c.k||q.king); // its waiting slimes scatter
   for(let dy=-c.size;dy<=c.size;dy++)for(let dx=-c.size;dx<=c.size;dx++)m.ter[(c.y+dy)*m.cols+c.x+dx]=0; // the camp's ground becomes normal land
   computeTerritory();refreshGates();G.dist=dijkstra(m,G.occ,-1);G.path=tracePaths(m,G.dist,G.occ);bgDirty=true;
-  const f=c.town?6:1+c.stage*0.6,loot=C({g:Math.round(120*f),w:Math.round(70*f),s:Math.round(45*f)});gain(loot);
+  const f=c.town?6:c.side?2:1+c.stage*0.6,loot=C({g:Math.round(120*f),w:Math.round(70*f),s:Math.round(45*f)});gain(loot);
   floatText(c.x+0.5,c.y,"Captured! +"+txtC(loot),"#9a6a08");G.fx.push({k:"boom",x:c.x+0.5,y:c.y+0.5,r:c.size+1.5,t:0.6,c:"#f4c84a"});
   toast(c.town?"Slimehold falls! The Slime King himself marches out…":`${c.name} destroyed. The land is yours!`,"",true);
   if(c.town)G.queue.unshift({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
   checkObjective();
-  if(!G.over&&!c.town){G.phase="cards";offerCards(c.stage>=3,`${c.name} destroyed — pick a card`)}
+  if(c.side){
+    if(c.reward==="ballista"){G.unlocked.ballista=1;renderBuild();say("wren","The smugglers had a Ballista! It's ours now. Its bolts go straight through a whole line of slimes. Press B to build one.")}
+    if(c.reward==="lives"){G.lives+=5;say("mayor","The witch is gone and her potions are ours. Five more villagers can fight! (+5 lives)")}
+    if(c.reward==="rare")say("wren","The bandits' loot chest! There's something rare in here.");
+  }else if(!c.town)say(...pick(CAPTURE_LINES));
+  if(!G.over&&!c.town){G.phase="cards";offerCards(c.stage>=3||c.side,`${c.name} destroyed — pick a ${c.stage>=3||c.side?"rare ":""}card`)}
   saveStory();
 }
 function queueRaid(c){
@@ -1637,7 +1706,7 @@ function checkObjective(){
     G.obj++;if(G.obj>=OBJ.length){finish(true);return}
     let woke=false;G.camps.forEach(c=>{if(c.alive&&!c.active&&c.stage<=G.obj){c.active=true;c.t=15;woke=true}});
     if(woke){refreshGates();G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true}
-    toast(`New objective: ${OBJ[G.obj].t}`,"",true);saveStory();
+    toast(`New objective: ${OBJ[G.obj].t}`,"",true);(OBJ_LINES[G.obj]||[]).forEach(l=>say(...l));saveStory();
   }
 }
 function storyStep(dt){
@@ -1645,6 +1714,7 @@ function storyStep(dt){
   for(const c of G.camps){if(!c.alive||!c.active)continue;c.t-=dt;if(c.t<=0){queueRaid(c);c.t=c.period}}
   if(G.queue.length){G.spawnT-=dt;if(G.spawnT<=0){spawn(G.queue.shift());G.spawnT=0.42}}
   G.objT=(G.objT||0)+dt;if(G.objT>0.5){G.objT=0;checkObjective()}
+  tickEvents(dt);
   G.saveT=(G.saveT||0)+dt;if(G.saveT>15){G.saveT=0;saveStory()}
 }
 function objProgress(){
@@ -1658,11 +1728,11 @@ function storyHud(){
   const o=OBJ[Math.min(G.obj,OBJ.length-1)],cmp=document.body.classList.contains("compact");
   $("curTag").hidden=true;setTxt("curTxt",G.obj===0&&!cmp?o.t+objProgress():o.t);
   const act=G.camps.filter(c=>c.alive&&c.active),nt=act.length?Math.min(...act.map(c=>c.t)):0;
-  $("nextTag").hidden=true;setTxt("nextInfo",!G.started?(cmp?"Press Start":"Raids begin when you press Start"):act.length?`Next raid in ${Math.max(0,Math.ceil(nt))}s`:"The King is coming");setTxt("hCd","");
+  $("nextTag").hidden=true;if(G.env){setTxt("nextInfo",`${G.env.n}: ${Math.ceil(G.env.left)}s left`)}else setTxt("nextInfo",!G.started?(cmp?"Press Start":"Raids begin when you press Start"):act.length?`Next raid in ${Math.max(0,Math.ceil(nt))}s`:"The King is coming");setTxt("hCd","");
   $("bStart").disabled=G.started&&raidBonus()<=0;
   const bh=!G.started?"Start":`Raid now +${COIN}${raidBonus()}`;if($("bStart").innerHTML!==bh)$("bStart").innerHTML=bh;
-  const key=G.obj+"|"+objProgress();if($("objBox").dataset.key!==key){$("objBox").dataset.key=key;
-    $("objBox").innerHTML=`<span class="label">Objective</span><b>${o.t}</b><p>${o.d}</p><div class="prog">${objProgress().replace(/^ · /,"")}</div><ol>${OBJ.map((x,k)=>k<G.obj?`<li class="done">${x.t}</li>`:k===G.obj?`<li class="cur">${x.t}</li>`:"").join("")}</ol>`}
+  const key=G.obj+"|"+objProgress()+"|"+!!(G.bram&&G.bram.freed);if($("objBox").dataset.key!==key){$("objBox").dataset.key=key;
+    $("objBox").innerHTML=`<span class="label">Objective</span><b>${o.t}</b><p>${o.d}</p><div class="prog">${objProgress().replace(/^ · /,"")}</div>${G.bram&&!G.bram.freed&&G.obj>=2?'<p>Side quest: build any tower next to Old Bram\'s cage in the grove.</p>':""}<ol>${OBJ.map((x,k)=>k<G.obj?`<li class="done">${x.t}</li>`:k===G.obj?`<li class="cur">${x.t}</li>`:"").join("")}</ol>`}
 }
 // camera
 const DPR=()=>Math.min(2,window.devicePixelRatio||1);
@@ -1700,7 +1770,7 @@ function drawCamps(t){
     const w=s*T*0.8,x=(c.x+1.5)*T-w/2,y=oy-T*0.35;
     ctx.fillStyle="#253225";ctx.fillRect(x-2,y-2,w+4,10);ctx.fillStyle="#e7e7e7";ctx.fillRect(x,y,w,6);ctx.fillStyle=dorm?"#9a9a9a":"#cf463d";ctx.fillRect(x,y,w*Math.max(0,c.hp)/c.maxHp,6);
     ctx.font=`${T*0.55}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineWidth=4;ctx.strokeStyle="#fff";
-    const label=dorm?c.name+" · asleep":c.name;ctx.strokeText(label,(c.x+1.5)*T,y-T*0.45);ctx.fillStyle=dorm?"#5b6d58":"#7a1f2a";ctx.fillText(label,(c.x+1.5)*T,y-T*0.45);
+    const label=(c.side?"Optional · ":"")+(dorm?c.name+" · asleep":c.name);ctx.strokeText(label,(c.x+1.5)*T,y-T*0.45);ctx.fillStyle=dorm?"#5b6d58":"#7a1f2a";ctx.fillText(label,(c.x+1.5)*T,y-T*0.45);
   }
 }
 function drawTerritory(c){
@@ -1729,24 +1799,25 @@ function drawMini(){
 (()=>{const mc=$("mini");const jump=ev=>{if(!G||!G.story)return;const r=mc.getBoundingClientRect(),W=(G.map.cols+2)*T,H=(G.map.rows+2)*T;
     G.cam.x=(ev.clientX-r.left)/r.width*W-cv.width/G.cam.z/2;G.cam.y=(ev.clientY-r.top)/r.height*H-cv.height/G.cam.z/2;clampCam()};
   mc.addEventListener("pointerdown",ev=>{ev.stopPropagation();jump(ev);mc.setPointerCapture(ev.pointerId)});mc.addEventListener("pointermove",ev=>{if(ev.buttons)jump(ev)});
+  $("talk").onclick=()=>nextTalk();
   $("zIn").onclick=()=>zoomAt(1.25,cv.width/2,cv.height/2);$("zOut").onclick=()=>zoomAt(0.8,cv.width/2,cv.height/2);$("zHome").onclick=()=>centerCam(G.map.vx,G.map.vy-3);})();
 // saving and loading
 function saveStory(){
   if(!G||!G.story||G.over)return;
   LS.set("fot-story",{v:1,res:[G.gold,G.wood,G.stone],lives:G.lives,obj:G.obj,started:G.started,round:G.round,raidsTotal:G.raidsTotal||0,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,
-    owned:[...G.owned],camps:G.camps.map(c=>({hp:c.hp,alive:c.alive,active:c.active,raids:c.raids,t:c.t})),towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),cam:{x:G.cam.x,y:G.cam.y}});
+    unlocked:G.unlocked,woodMul:G.woodMul,bram:G.bram,evT:G.evT,owned:[...G.owned],camps:G.camps.map(c=>({hp:c.hp,alive:c.alive,active:c.active,raids:c.raids,t:c.t})),towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),cam:{x:G.cam.x,y:G.cam.y}});
 }
 addEventListener("pagehide",()=>saveStory());document.addEventListener("visibilitychange",()=>{if(document.hidden)saveStory()});
 function newStory(save){
-  T=32;U=2;document.body.classList.add("story");
+  T=32;U=2;document.body.classList.add("story");talkQ.length=0;$("talk").hidden=true;
   const map=buildStoryMap();
   G={story:true,d:1,m:-1,map,occ:new Array(map.N).fill(null),gold:320,wood:180,stone:90,lives:20,round:0,phase:"story",timer:0,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
     cards:[],clv:{},mods:{},free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,
-    obj:0,started:false,kingDead:false,seen:{},owned:new Set([0]),cam:{x:0,y:0,z:1},
+    obj:0,started:false,kingDead:false,seen:{},unlocked:{},woodMul:1,env:null,bram:{...map.bram,freed:false},owned:new Set([0]),cam:{x:0,y:0,z:1},
     camps:CAMP_DEFS.map((d,k)=>({...d,k,cell:d.y*map.cols+d.x,zone:k+1,hp:d.hp,maxHp:d.hp,alive:true,active:d.stage===0,raids:0,t:d.stage===0?0:d.period,hit:0}))};
   if(save){
     [G.gold,G.wood,G.stone]=save.res;G.lives=save.lives;G.obj=save.obj;G.started=save.started;G.round=save.round;G.raidsTotal=save.raidsTotal;G.stats=save.stats;G.clv=save.clv||{};G.cards=save.cards||[];G.free=save.free||{};
-    G.owned=new Set(save.owned);save.camps.forEach((s,k)=>Object.assign(G.camps[k],s));
+    G.owned=new Set(save.owned);G.unlocked=save.unlocked||{};G.woodMul=save.woodMul||1;G.bram=save.bram||G.bram;G.evT=save.evT;save.camps.forEach((s,k)=>Object.assign(G.camps[k],s));
     G.camps.forEach(c=>{if(!c.alive)for(let dy=-c.size;dy<=c.size;dy++)for(let dx=-c.size;dx<=c.size;dx++)map.ter[(c.y+dy)*map.cols+c.x+dx]=0});
     save.towers.forEach(t=>{const tw={type:t.type,i:t.i,x:t.i%map.cols+0.5,y:((t.i/map.cols)|0)+0.5,L:t.L,cd:0,spent:C(t.spent),rd:0,total:t.total||0,mt:0,acc:0,flash:0};G.towers.push(tw);G.occ[t.i]=tw});
     if(G.obj===6&&!G.kingDead)G.queue.push({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
