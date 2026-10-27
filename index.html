@@ -24,7 +24,7 @@
 /* Layout: one-screen game — HUD strip on top, map canvas left, build/info rail right (stacks under map on phones). Single light theme by choice. */
 :root{
   --bg:#dce8cf; --panel:#f5f9ef; --panel2:#e9f1df; --ink:#253225; --muted:#5b6d58; --line:#b6c8a8;
-  --gold:#d99a1c; --gold-soft:#fbe7b0; --danger:#cf463d; --ice:#3a8fc2; --go:#3d7f44; --rare:#7a4fc7;
+  --gold:#d99a1c; --gold-soft:#fbe7b0; --danger:#cf463d; --ice:#3a8fc2; --go:#3d7f44; --rare:#7a4fc7; --unc:#2f7fb8;
   --f-ui:"VT323",ui-monospace,"Courier New",monospace;
   --f-label:"VT323",ui-monospace,monospace;
   --f-title:"Silkscreen","VT323",ui-monospace,monospace;
@@ -116,13 +116,21 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .hint{color:var(--muted);font-size:17px;line-height:1.35}
 #left{width:230px;flex-shrink:0;align-self:stretch;display:flex;flex-direction:column;min-height:0}
 #cards{display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0}
-.pc{display:flex;flex-direction:column;gap:3px;padding:6px 8px;background:var(--panel2);border-left:5px solid var(--gold);height:84px;flex-shrink:0;overflow:hidden}
+.pc{display:flex;flex-direction:column;gap:3px;padding:6px 8px;background:var(--panel2);border-left:5px solid var(--gold);height:92px;flex-shrink:0;overflow:hidden}
 .pc.rare{border-left-color:var(--rare)}
+.pc.unc{border-left-color:var(--unc)}.pc.unc .lv.max{background:var(--unc)}.pc.unc .pip.on,.card.unc .pip.on{background:var(--unc)}
+.pc.once{height:auto;border-left-style:dashed;opacity:.85}.pc.once .pips{display:none}
+.card.unc{background:#e8f3fb}.card.unc .ic{background:#cbe3f4}
+.swaprow{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:14px}
+.pc.swap{height:auto;min-height:92px;text-align:left;border-top:2px solid var(--ink);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);cursor:pointer;width:100%}
+.pc.swap:hover{background:#f7d2cf}
+.card .was.swap{color:var(--danger)}
 .pc .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
-.pc .top b{font-weight:400;font-size:18px;line-height:1.05}
+.pc .top b{font-weight:400;font-size:18px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .coin{display:inline-block;width:.72em;height:.72em;margin-right:.12em;vertical-align:-.04em;background:var(--coin) center/contain no-repeat;image-rendering:pixelated}
 .coin.wood{background-image:var(--wood)}.coin.stone{background-image:var(--stone)}
 .pc .lv{font-size:15px;color:var(--muted);white-space:nowrap}
+.pc .prow{display:flex;justify-content:space-between;align-items:flex-end;gap:6px}
 .pc .ef{font-size:16px;color:var(--muted);line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lv.max,.lvl.max{color:#fff!important;background:var(--gold);padding:0 5px;border:2px solid var(--ink)}
 .pc.rare .lv.max{background:var(--rare)}
@@ -773,21 +781,21 @@ const CARDS={};
   add({id:"range",n:"Eagle Eye",ic:"◎",mod:{range:.04},txt:v=>`+${pct(v.range)} range for all towers`});
   add({id:"rate",n:"Quick Hands",ic:"»",mod:{rate:.10},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
   add({id:"prosp",n:"Prospector",ic:"$",mod:{mine:.10},txt:v=>G&&!G.story?`+${pct(v.mine)} gold from Markets`:`+${pct(v.mine)} gold from Gold Mines`});
-  add({id:"lucky",n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>G&&!G.story?`+${pct(v.luck)} gold from slimes, chests are ${pct(v.luck)} bigger`:`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
-  add({id:"interest",n:"Savings",ic:"%",mod:{interest:.01},txt:v=>`+${pct(v.interest)} of your gold paid out after every round`});
-  add({id:"freeze",n:"Deep Freeze",ic:"❄",mod:{slow:.04},txt:v=>`Frost slows ${pct(v.slow)} more`});
+  add({id:"lucky",unc:1,n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>G&&!G.story?`+${pct(v.luck)} gold from slimes, chests are ${pct(v.luck)} bigger`:`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
+  add({id:"interest",unc:1,n:"Savings",ic:"%",mod:{interest:.01},txt:v=>`+${pct(v.interest)} of your gold paid out after every round`});
+  add({id:"freeze",unc:1,n:"Deep Freeze",ic:"❄",mod:{slow:.04},txt:v=>`Frost slows ${pct(v.slow)} more`});
   add({id:"sawmill",n:"Sawmill",ic:"≡",mod:{wood:.20},txt:v=>`+${pct(v.wood)} wood from Lumber Camps`});
   add({id:"stonecut",n:"Stonecutter",ic:"■",mod:{stone:.20},txt:v=>`+${pct(v.stone)} stone from Quarries`});
-  add({id:"sky",n:"Skyward",ic:"↑",mod:{air:.10},txt:v=>`+${pct(v.air)} damage against flyers`});
-  add({id:"slayer",n:"Giant Slayer",ic:"☠",mod:{boss:.10},txt:v=>`+${pct(v.boss)} damage against bosses`});
-  add({id:"bulk",n:"Bulk Deal",ic:"▼",mod:{discount:.03},txt:v=>`Upgrades cost ${pct(v.discount)} less`});
+  add({id:"sky",unc:1,n:"Skyward",ic:"↑",mod:{air:.10},txt:v=>`+${pct(v.air)} damage against flyers`});
+  add({id:"slayer",unc:1,n:"Giant Slayer",ic:"☠",mod:{boss:.10},txt:v=>`+${pct(v.boss)} damage against bosses`});
+  add({id:"bulk",unc:1,n:"Bulk Deal",ic:"▼",mod:{discount:.03},txt:v=>`Upgrades cost ${pct(v.discount)} less`});
   for(const t of COMBAT){const k="type:"+t;add({id:"type-"+t,n:typeNames(t)+" Mastery",ic:"★",mod:{[k]:.20},txt:v=>`+${pct(v[k])} damage for ${typeNames(t)} towers`})}
   const livesAt=(b,L)=>Math.round(b*CURVE[L]);
-  add({id:"lives",n:"Reinforcements",ic:"♥",once:true,give:L=>{G.lives+=livesAt(2,L)-livesAt(2,L-1)},
+  add({id:"lives",unc:1,n:"Reinforcements",ic:"♥",once:true,give:L=>{G.lives+=livesAt(2,L)-livesAt(2,L-1)},
     txt:L=>`+${livesAt(2,L)-livesAt(2,L-1)} lives now (total +${livesAt(2,L)})`});
   const chest=L=>Math.round((100+G.round*12)*(1+0.15*(L-1))*(L===CMAX?2:isMile(L)?1.5:1));
   const chestC=L=>{const g=chest(L);return gc(C({g,w:Math.round(g*0.5),s:Math.round(g*0.3)}))};
-  add({id:"chest",n:"Treasure Chest",ic:"◆",once:true,give:L=>gain(chestC(L)),txt:L=>{const c=chestC(L);return ["g","w","s"].filter(k=>c[k]).map(k=>`+${c[k]} ${RNAME[k].toLowerCase()}`).join(", ")+" right now"}});
+  add({id:"chest",unc:1,n:"Treasure Chest",ic:"◆",once:true,give:L=>gain(chestC(L)),txt:L=>{const c=chestC(L);return ["g","w","s"].filter(k=>c[k]).map(k=>`+${c[k]} ${RNAME[k].toLowerCase()}`).join(", ")+" right now"}});
   for(const t of ORDER.filter(k=>k!=="fence"))add({id:"free-"+t,n:"Free "+typeNames(t),ic:"+",once:true,give:L=>addFree(t,L===CMAX?3:isMile(L)?2:1),
     txt:L=>L===CMAX?`Your next three ${typeNames(t)} towers cost nothing`:isMile(L)?`Your next two ${typeNames(t)} towers cost nothing`:`Your next ${typeNames(t)} costs nothing`});
   // rare
@@ -820,39 +828,70 @@ function offerCards(rare,title){
     const CB=COMBAT.filter(avail),FR=ORDER.filter(k=>k!=="fence"&&avail(k)),t=CB[(Math.random()*CB.length)|0],f=FR[(Math.random()*FR.length)|0];
     const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-"))&&avail(id.slice(5)));
     let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open).filter(id=>G.story||(id!=="sawmill"&&id!=="stonecut"));
-    pick=shuffle(ids).slice(0,3).map(id=>CARDS[id]);
+    pick=[];while(pick.length<3&&ids.length){ // uncommon cards show up about half as often
+      const w=ids.map(id=>CARDS[id].unc?0.45:1),tot=w.reduce((a,b)=>a+b,0);let x=Math.random()*tot,k=0;while(x>w[k]){x-=w[k];k++}
+      pick.push(CARDS[ids[k]]);ids.splice(k,1)}
     if(Math.random()<0.08){const r=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id)))[0];if(r)pick[2]=r}
   }
   if(!pick.length){afterCard();return}
   {const g=$("cardsGain");g.innerHTML=G.gainLine||"";g.hidden=!G.gainLine;G.gainLine=""}
-  $("cardsTitle").textContent=title||(rare?"Giant boss defeated — pick a rare card":`Round ${G.round} cleared — pick a card`);
-  const row=$("cardRow");row.innerHTML="";
+  showOffer(pick,title||(rare?"Giant boss defeated — pick a rare card":`Round ${G.round} cleared — pick a card`));
+}
+// ---------- card slots: lasting cards share SLOTS places; instant cards (chest, lives, free towers) need none ----------
+const SLOTS=8;
+const lasting=()=>Object.keys(G.clv).filter(id=>!CARDS[id].once);
+const tierCls=c=>c.rare?" rare":c.unc?" unc":"",tierName=c=>c.rare?"Rare":c.unc?"Uncommon":"Common";
+function showOffer(pick,title){
+  $("cardsTitle").textContent=title;$("cardsSub").hidden=false;
+  const row=$("cardRow");row.innerHTML="";row.className="cardrow";
+  const full=lasting().length>=SLOTS;
   pick.forEach(c=>{
-    const cur=lvlOf(c.id),nx=cur+1;
-    const b=document.createElement("button");b.className="card"+(c.rare?" rare":"");
-    b.innerHTML=`<div class="ctop"><div class="ic"></div><span class="lvl"></span></div><b></b><p class="now"></p><p class="was"></p><div class="pips"></div><span class="label">${c.rare?"Rare":"Common"}</span>`;
+    const cur=lvlOf(c.id),nx=cur+1,swap=full&&!cur&&!c.once;
+    const b=document.createElement("button");b.className="card"+tierCls(c);
+    b.innerHTML=`<div class="ctop"><div class="ic"></div><span class="lvl"></span></div><b></b><p class="now"></p><p class="was"></p><div class="pips"></div><span class="label">${tierName(c)}${c.once?" · instant, no slot":""}</span>`;
     b.querySelector(".ic").textContent=c.ic;b.querySelector("b").textContent=c.n;
     b.querySelector(".lvl").textContent=(cur?(nx===CMAX?`Lv ${cur} → MAX`:`Lv ${cur} → ${nx}`):"NEW")+(isMile(nx)&&nx!==CMAX?" ★ Bonus":nx===CMAX?" ★★":"");
     if(nx===CMAX)b.querySelector(".lvl").classList.add("max");else if(isMile(nx))b.querySelector(".lvl").classList.add("mile");
     b.querySelector(".now").textContent=cardAdd(c,cur,nx);
-    b.querySelector(".was").textContent=cur&&!c.once?`Total after: ${cardText(c,nx)}`:"";
+    b.querySelector(".was").textContent=swap?`All ${SLOTS} slots are full: swap out one of your cards`:cur&&!c.once?`Total after: ${cardText(c,nx)}`:"";
+    if(swap)b.querySelector(".was").classList.add("swap");
     b.querySelector(".pips").innerHTML=pipHtml(cur,nx);
-    b.onclick=()=>{SND.play("card");G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();
-      if(isMile(nx))toast(nx===CMAX?`${c.n} is MAX — double bonus unlocked!`:`${c.n} reached level ${nx} — bonus step!`,"",true);$("cardsOv").hidden=true;renderCards();renderBuild();afterCard()};
+    b.onclick=()=>{if(swap)chooseSwap(c,pick,title);else takeCard(c,nx)};
     row.appendChild(b);
   });
   $("cardsOv").hidden=false;
 }
+function takeCard(c,nx){
+  SND.play("card");G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();
+  if(isMile(nx))toast(nx===CMAX?`${c.n} is MAX — double bonus unlocked!`:`${c.n} reached level ${nx} — bonus step!`,"",true);
+  $("cardsOv").hidden=true;renderCards();renderBuild();afterCard();
+}
+// slots full: give up one owned card for the new one
+function chooseSwap(c,pick,title){
+  $("cardsTitle").textContent=`Swap a card for ${c.n}`;$("cardsSub").hidden=true;
+  const row=$("cardRow");row.innerHTML="";row.className="swaprow";
+  const info=document.createElement("p");info.className="hint";info.style.gridColumn="1/-1";info.style.margin="0";
+  info.textContent=`${c.n} starts at level 1: ${cardText(c,1)}. The card you give up is gone, including its levels.`;row.appendChild(info);
+  lasting().sort((a,b)=>G.clv[a]-G.clv[b]).forEach(id=>{const o=CARDS[id],L=G.clv[id];
+    const d=document.createElement("button");d.className="pc swap"+tierCls(o);
+    d.innerHTML=`<div class="top"><b></b></div><div class="prow"><div class="pips">${pipHtml(L,0)}</div><span class="lv"></span></div><span class="ef"></span>`;
+    d.querySelector("b").textContent=o.ic+" "+o.n;const lv=d.querySelector(".lv");lv.textContent=L>=CMAX?"MAX":`Lv ${L}`;if(L>=CMAX)lv.classList.add("max");
+    d.querySelector(".ef").textContent=cardText(o,L);
+    d.onclick=()=>{delete G.clv[id];G.cards=G.cards.filter(x=>x!==id);toast(`${o.n} swapped for ${c.n}`);takeCard(c,1)};
+    row.appendChild(d)});
+  const back=document.createElement("button");back.className="btn";back.textContent="Back to the cards";back.style.gridColumn="1/-1";back.style.justifySelf="start";
+  back.onclick=()=>showOffer(pick,title);row.appendChild(back);
+}
 function pipHtml(cur,nx){let h="";for(let k=1;k<=CMAX;k++)h+=`<i class="pip${k<=cur?" on":k===nx?" nx":""}${isMile(k)?" mile":""}${k===CMAX?" last":""}"></i>`;return h}
 function renderCards(){
-  const el=$("cards"),ids=Object.keys(G.clv);$("cardCount").textContent=ids.length?`(${ids.length})`:"";
-  if(!ids.length){el.innerHTML='<span class="hint">After every round you pick a bonus card. Picking the same card again levels it up to MAX (level 10). Tall pips are bonus levels.</span>';return}
+  const el=$("cards"),ids=Object.keys(G.clv);$("cardCount").textContent=`(${lasting().length}/${SLOTS})`;
+  if(!ids.length){el.innerHTML=`<span class="hint">After every round you pick a bonus card. Picking the same card again levels it up to MAX (level 10). Tall pips are bonus levels. You have ${SLOTS} slots for lasting cards; instant cards need none.</span>`;return}
   el.innerHTML="";
-  ids.sort((a,b)=>G.clv[b]-G.clv[a]).forEach(id=>{const c=CARDS[id],L=G.clv[id];
-    const d=document.createElement("div");d.className="pc"+(c.rare?" rare":"");
-    d.innerHTML=`<div class="top"><b></b><span class="lv"></span></div><div class="pips">${pipHtml(L,0)}</div><span class="ef"></span>`;
+  ids.sort((a,b)=>(!!CARDS[a].once-!!CARDS[b].once)||(G.clv[b]-G.clv[a])).forEach(id=>{const c=CARDS[id],L=G.clv[id];
+    const d=document.createElement("div");d.className="pc"+tierCls(c)+(c.once?" once":"");if(c.once)d.title="Instant card: doesn't use a slot";
+    d.innerHTML=`<div class="top"><b></b></div><div class="prow"><div class="pips">${pipHtml(L,0)}</div><span class="lv"></span></div><span class="ef"></span>`;
     d.querySelector("b").textContent=c.ic+" "+c.n;
-    const lv=d.querySelector(".lv");const nm=MILES.find(m=>m>L);lv.textContent=L>=CMAX?"MAX":`Lv ${L}/10`;if(L>=CMAX)lv.classList.add("max");
+    const lv=d.querySelector(".lv");const nm=MILES.find(m=>m>L);lv.textContent=L>=CMAX?"MAX":`Lv ${L}`;if(L>=CMAX)lv.classList.add("max");
     if(nm&&L<CMAX)d.title=`Next bonus at level ${nm}`;
     d.querySelector(".ef").textContent=c.once?(c.id==="chest"?`Picked ${L}×`:c.id==="lives"||c.id==="fortress"?`Total ${c.id==="lives"?"+"+Math.round(2*CURVE[L]):"+"+Math.round(4*CURVE[L])} lives`:cardText(c,L)):cardText(c,L);
     el.appendChild(d)});
@@ -2241,23 +2280,23 @@ function openStylebook(){
 
   // cards
   s=sec("Cards","Card choice after a round, and the owned-card list on the left.");r=el("div","sb-row");
-  const offer=(c,cur)=>{const nx=cur+1,b=el("div","card"+(c.rare?" rare":""));b.style.width="240px";
-    b.innerHTML=`<div class="ctop"><div class="ic"></div><span class="lvl"></span></div><b></b><p class="now"></p><p class="was"></p><div class="pips">${pipHtml(cur,nx)}</div><span class="label">${c.rare?"Rare":"Common"}</span>`;
+  const offer=(c,cur)=>{const nx=cur+1,b=el("div","card"+tierCls(c));b.style.width="240px";
+    b.innerHTML=`<div class="ctop"><div class="ic"></div><span class="lvl"></span></div><b></b><p class="now"></p><p class="was"></p><div class="pips">${pipHtml(cur,nx)}</div><span class="label">${tierName(c)}</span>`;
     b.querySelector(".ic").textContent=c.ic;b.querySelector("b").textContent=c.n;
     const lv=b.querySelector(".lvl");lv.textContent=(cur?(nx===CMAX?`Lv ${cur} → MAX`:`Lv ${cur} → ${nx}`):"NEW")+(isMile(nx)&&nx!==CMAX?" ★ Bonus":nx===CMAX?" ★★":"");
     if(nx===CMAX)lv.classList.add("max");else if(isMile(nx))lv.classList.add("mile");
     b.querySelector(".now").textContent=cardAdd(c,cur,nx);b.querySelector(".was").textContent=cur&&!c.once?`Total after: ${cardText(c,nx)}`:"";return b};
-  r.appendChild(item(offer(CARDS.dmg,0),"New card"));r.appendChild(item(offer(CARDS.rate,2),"Next level is a bonus"));r.appendChild(item(offer(CARDS["type-fence"],5),"Mastery"));r.appendChild(item(offer(CARDS.wrath,9),"Rare, last level"));
+  r.appendChild(item(offer(CARDS.dmg,0),"New card"));r.appendChild(item(offer(CARDS.rate,2),"Next level is a bonus"));r.appendChild(item(offer(CARDS["type-fence"],5),"Mastery"));r.appendChild(item(offer(CARDS.slayer,1),"Uncommon"));r.appendChild(item(offer(CARDS.wrath,9),"Rare, last level"));
   s.appendChild(r);
   r=el("div","sb-row");r.style.marginTop="12px";
-  const owned=(c,L)=>{const d=el("div","pc"+(c.rare?" rare":""));d.style.width="230px";
-    d.innerHTML=`<div class="top"><b></b><span class="lv"></span></div><div class="pips">${pipHtml(L,0)}</div><span class="ef"></span>`;
-    d.querySelector("b").textContent=c.ic+" "+c.n;const lv=d.querySelector(".lv");lv.textContent=L>=CMAX?"MAX":`Lv ${L}/10`;if(L>=CMAX)lv.classList.add("max");
+  const owned=(c,L)=>{const d=el("div","pc"+tierCls(c));d.style.width="230px";
+    d.innerHTML=`<div class="top"><b></b></div><div class="prow"><div class="pips">${pipHtml(L,0)}</div><span class="lv"></span></div><span class="ef"></span>`;
+    d.querySelector("b").textContent=c.ic+" "+c.n;const lv=d.querySelector(".lv");lv.textContent=L>=CMAX?"MAX":`Lv ${L}`;if(L>=CMAX)lv.classList.add("max");
     d.querySelector(".ef").textContent=cardText(c,L);return d};
-  r.appendChild(item(owned(CARDS.prosp,1),"Level 1"));r.appendChild(item(owned(CARDS.range,3),"Level 3 (bonus)"));r.appendChild(item(owned(CARDS.sawmill,6),"Level 6 (bonus)"));r.appendChild(item(owned(CARDS.overclock,10),"MAX"));
+  r.appendChild(item(owned(CARDS.prosp,1),"Level 1"));r.appendChild(item(owned(CARDS.range,3),"Level 3 (bonus)"));r.appendChild(item(owned(CARDS.bulk,4),"Uncommon"));r.appendChild(item(owned(CARDS.sawmill,6),"Level 6 (bonus)"));r.appendChild(item(owned(CARDS.overclock,10),"MAX"));
   s.appendChild(r);
   const all=el("p","hint");all.style.marginTop="10px";
-  all.textContent="All cards: "+Object.values(CARDS).map(c=>c.n+(c.rare?" (rare)":"")).join(", ")+".";s.appendChild(all);
+  all.textContent="All cards: "+Object.values(CARDS).map(c=>c.n+(c.rare?" (rare)":c.unc?" (uncommon)":"")).join(", ")+".";s.appendChild(all);
 
   // popups
   s=sec("Popups");r=el("div","sb-row");
