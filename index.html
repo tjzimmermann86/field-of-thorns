@@ -222,6 +222,17 @@ body.compact #mini{width:140px}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
 #soundOv{z-index:31}
 #setOv{z-index:25}
+#profOv{z-index:26}
+.av{width:30px;height:30px;flex-shrink:0;border:3px solid var(--ink);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:20px;line-height:1;vertical-align:middle}
+#bProf{display:inline-flex;align-items:center;gap:8px;padding:3px 10px 3px 4px}
+#bProf .av{width:26px;height:26px;font-size:17px;border-width:2px}
+.prow2{display:flex;align-items:center;gap:8px;padding:6px;border:3px solid var(--ink);background:var(--panel2)}
+.prow2.cur{background:var(--gold-soft);outline:3px solid var(--gold);outline-offset:-1px}
+.prow2 .pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left}
+.prow2 .pick b{display:block;font-size:22px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow2 .pick small{color:var(--muted);font-size:15px}
+.prow2 .btn{padding:2px 8px}
+.prow2 input{font:inherit;font-size:20px;flex:1;min-width:0;padding:2px 6px;border:2px solid var(--ink);background:var(--panel)}
 /* unlock animation: the padlock shakes, springs open and flies off, the reward lights up */
 #unlockOv{z-index:32}
 #unlockOv .modal{max-width:460px;background:#fffdf4;text-align:center}
@@ -405,6 +416,12 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="ul-txt"><b id="ulName"></b><span id="ulSub"></span></div>
   <div class="row" style="justify-content:center"><button class="btn go" id="ulGo">Continue</button></div>
 </div></div>
+<div class="ov" id="profOv" hidden><div class="modal px-box" style="max-width:440px;background:var(--panel)">
+  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Who is playing?</h2>
+  <p class="hint" style="margin:2px 0 12px">Every player has their own unlocked maps, scores and story campaign on this device.</p>
+  <div id="profList" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div class="row" style="margin-top:14px"><button class="btn goldb" id="profNew">+ New player</button><button class="btn go" id="profClose">Done</button></div>
+</div></div>
 <div class="ov" id="setOv" hidden><div class="modal px-box" style="max-width:380px;background:var(--panel)">
   <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Settings</h2>
   <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
@@ -427,7 +444,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="modal px-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
       <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Clear every map to unlock the next difficulty.</div></div>
-      <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
+      <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
     </div>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
@@ -563,7 +580,20 @@ function fmtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`<span class="cst"
 function txtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`${RMARK[k]}${fmt(c[k])}`);return p.length?p.join(" "):"free"}
 
 // ---------- storage ----------
-const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const RAW={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+// ---------- player profiles: every profile keeps its own progress, scores, story save and name ----------
+const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
+const PCOLS=["#3d7f44","#3a8fc2","#cf463d","#7a4fc7","#d99a1c","#2f8f80"],PROF_MAX=6;
+const newPid=()=>Math.random().toString(36).slice(2,8);
+let PROF=RAW.get("fot-profiles",null);
+if(!PROF||!PROF.list||!PROF.list.length){ // first start with profiles: the existing save becomes player 1
+  const id=newPid();PROF={list:[{id,name:"Player 1",col:PCOLS[0]}],cur:id};
+  try{for(const k of PROF_KEYS){const v=localStorage.getItem(k);if(v!=null)localStorage.setItem(`fot-p-${id}-${k}`,v)}}catch(e){}
+  RAW.set("fot-profiles",PROF)}
+if(!PROF.list.some(p=>p.id===PROF.cur))PROF.cur=PROF.list[0].id;
+const profKey=(id,k)=>`fot-p-${id}-${k}`;
+const curProf=()=>PROF.list.find(p=>p.id===PROF.cur);
+const LS={get(k,d){return RAW.get(PROF_KEYS.includes(k)?profKey(PROF.cur,k):k,d)},set(k,v){RAW.set(PROF_KEYS.includes(k)?profKey(PROF.cur,k):k,v)}};
 let progress=LS.get("pk-progress",{cleared:{}}); // cleared["d-m"]=true
 let personal=LS.get("pk-scores",{});            // key -> [{score,...}]
 const mkey=(d,m)=>`d${d}m${m}`;
@@ -1771,6 +1801,7 @@ cv.addEventListener("dblclick",ev=>{
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
+  if(!$("profOv").hidden){if(profEdit){profEdit=null;renderProfs()}else $("profOv").hidden=true;return true}
   if(!$("setOv").hidden){$("setOv").hidden=true;return true}
   if(!$("unlockOv").hidden){$("ulGo").click();return true}
   if(!$("soundOv").hidden){$("soundOv").hidden=true;return true}
@@ -2206,7 +2237,7 @@ async function webLoad(key){try{const r=await fetch(`/api/scores?key=${key}`);if
   try{
     if(!window.claude||!window.claude.use){
       $("lbO").hidden=true;if(!/^https?:$/.test(location.protocol))return;
-      try{const r=await fetch("/api/scores?key=d0m0");if(r.ok){WEB=true;myId=webId();overall.d0m0=(await r.json()).entries||[];$("lbO").hidden=false;$("lbName").value=LS.get("fot-name","");renderLb()}}catch(e){}
+      try{const r=await fetch("/api/scores?key=d0m0");if(r.ok){WEB=true;myId=webId();overall.d0m0=(await r.json()).entries||[];$("lbO").hidden=false;$("lbName").value=LS.get("fot-name","")||curProf().name;renderLb()}}catch(e){}
       return}
     USER=await window.claude.use("user");DB=await window.claude.use("db");
     if(!DB)return;
@@ -2220,7 +2251,7 @@ async function webLoad(key){try{const r=await fetch(`/api/scores?key=${key}`);if
   }catch(e){}
 })();
 async function submitOverall(key,entry){
-  if(WEB){try{await fetch("/api/scores",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key,id:myId,name:LS.get("fot-name",""),score:entry.score,win:entry.win,round:entry.round,time:entry.time})});delete overall[key]}catch(e){}return}
+  if(WEB){try{await fetch("/api/scores",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key,id:myId,name:LS.get("fot-name","")||curProf().name,score:entry.score,win:entry.win,round:entry.round,time:entry.time})});delete overall[key]}catch(e){}return}
   if(!DB||!myId)return;
   try{
     const ref=DB.doc("scores/"+myId);const cur=await ref.get();const best=(cur.exists&&cur.data().best)||{};
@@ -2402,7 +2433,36 @@ $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=tru
   storyArm=false;$("bStoryNew").textContent="New campaign";LS.set("fot-story",null);$("menu").hidden=true;newStory(null)};
 $("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
 $("bStyle").onclick=()=>{$("setOv").hidden=true;openStylebook()};
-$("bSet").onclick=()=>{$("setOv").hidden=false};$("setClose").onclick=()=>{$("setOv").hidden=true};
+$("bSet").onclick=()=>{$("setOv").hidden=false};
+// ---------- profile picker ----------
+const avHtml=p=>`<span class="av" style="background:${p.col}">${(p.name.trim()[0]||"?").toUpperCase()}</span>`;
+function profSummary(id){const pr=RAW.get(profKey(id,"pk-progress"),{cleared:{}}),n=Object.keys(pr.cleared||{}).length,st=RAW.get(profKey(id,"fot-story"),null);
+  return `${n} map${n===1?"":"s"} cleared`+(st?" · campaign running":"")}
+function saveProf(){RAW.set("fot-profiles",PROF);renderProfBtn()}
+function renderProfBtn(){const p=curProf();$("bProf").innerHTML=avHtml(p)+`<span></span>`;$("bProf").lastChild.textContent=p.name}
+let profArm=null,profEdit=null;
+function renderProfs(){
+  const el=$("profList");el.innerHTML="";
+  PROF.list.forEach(p=>{const row=document.createElement("div");row.className="prow2"+(p.id===PROF.cur?" cur":"");
+    if(profEdit===p.id){row.innerHTML=avHtml(p)+`<input maxlength="16" aria-label="Player name"><button class="btn go">Save</button>`;
+      const inp=row.querySelector("input");inp.value=p.name;const ok=()=>{const v=inp.value.trim().slice(0,16);if(v){p.name=v;if(p.id===PROF.cur)LS.set("fot-name",v)}profEdit=null;saveProf();renderProfs()};
+      row.querySelector(".btn").onclick=ok;inp.onkeydown=e=>{if(e.key==="Enter")ok();e.stopPropagation()};el.appendChild(row);setTimeout(()=>inp.focus(),0);return}
+    row.innerHTML=`<button class="pick">${avHtml(p)}<span style="min-width:0"><b></b><small>${profSummary(p.id)}${p.id===PROF.cur?" · playing now":""}</small></span></button><button class="btn" title="Rename" aria-label="Rename">✎</button>`+
+      (PROF.list.length>1&&p.id!==PROF.cur?`<button class="btn warn" title="Delete player" aria-label="Delete player">${profArm===p.id?"Sure?":"✕"}</button>`:"");
+    row.querySelector("b").textContent=p.name;
+    row.querySelector(".pick").onclick=()=>{if(p.id===PROF.cur){$("profOv").hidden=true;return}PROF.cur=p.id;saveProf();try{sessionStorage.setItem("fot-picked","1")}catch(e){}location.reload()};
+    const bs=row.querySelectorAll(".btn");bs[0].onclick=()=>{profEdit=p.id;renderProfs()};
+    if(bs[1])bs[1].onclick=()=>{if(profArm!==p.id){profArm=p.id;renderProfs();setTimeout(()=>{if(profArm===p.id){profArm=null;renderProfs()}},3000);return}
+      PROF_KEYS.forEach(k=>RAW.del(profKey(p.id,k)));PROF.list=PROF.list.filter(o=>o.id!==p.id);profArm=null;saveProf();renderProfs()};
+    el.appendChild(row)});
+  $("profNew").hidden=PROF.list.length>=PROF_MAX;
+}
+$("bProf").onclick=()=>{profArm=profEdit=null;renderProfs();$("profOv").hidden=false};
+$("profClose").onclick=()=>{$("profOv").hidden=true};
+$("profNew").onclick=()=>{const used=PROF.list.map(p=>p.col),col=PCOLS.find(c=>!used.includes(c))||PCOLS[PROF.list.length%PCOLS.length],id=newPid();
+  PROF.list.push({id,name:`Player ${PROF.list.length+1}`,col});profEdit=id;saveProf();renderProfs()};
+renderProfBtn();
+{let picked=false;try{picked=!!sessionStorage.getItem("fot-picked")}catch(e){}if(PROF.list.length>1&&!picked){try{sessionStorage.setItem("fot-picked","1")}catch(e){}renderProfs();$("profOv").hidden=false}}$("setClose").onclick=()=>{$("setOv").hidden=true};
 $("taUp").onclick=()=>{if(!sel||sel.L>=10)return;if(group)upgradeGroup();else upgrade(sel)};
 $("taDel").onclick=()=>{if(!sel)return;if(group)sellGroup();else sell(sel)};
 function renderSound(){
