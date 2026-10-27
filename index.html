@@ -11,7 +11,7 @@
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html,body{margin:0}body{font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Thorns">
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script>if("serviceWorker" in navigator&&location.protocol==="https:")addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}))</script>
 </head>
@@ -328,8 +328,8 @@ body.compact #main{flex:1;min-height:0;gap:6px;align-items:stretch}
 body.compact #stage{display:flex;align-items:center;justify-content:center;min-height:0;min-width:0}
 body.compact #cv{box-shadow:none}
 body.compact #rail{width:auto;gap:0;min-height:0}
-body.compact #rail>.sec:first-child{padding:6px;display:flex;flex-direction:column;min-height:0}
-body.compact #rail>.sec:first-child h3,body.compact #rail>.sec:first-child .hint{display:none}
+body.compact #buildSec{padding:6px;display:flex;flex-direction:column;min-height:0}
+body.compact #buildSec h3,body.compact #buildSec .hint{display:none}
 body.compact #info{padding:8px 10px}
 body.compact #info .tbl .k,body.compact #info .tbl .n{font-size:15px}
 body.compact #info .tbl{gap:1px 8px}
@@ -347,8 +347,29 @@ body.compact.port #stage{align-items:flex-start}
 #buildTip{display:none;font-size:14px;color:var(--muted);line-height:1.15;margin-top:4px}
 /* landscape: build bar is a 2-column strip on the right */
 body.compact.land #main{flex-direction:row}
-body.compact.land #build{grid-template-columns:repeat(2,58px);overflow-y:auto;align-content:start;min-height:0}
-body.compact.land #buildTip{width:120px}
+/* phones and tablets sideways: stats in a slim column on the left, controls above the build bar on the right, so the map gets the full height */
+body.compact.land #app{flex-direction:row;align-items:stretch}
+body.compact.land{padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+body.compact.land #hud{flex-direction:column;width:92px;flex-shrink:0;overflow-x:hidden;overflow-y:auto;gap:4px}
+body.compact.land #hud .stat{width:100%;padding:2px 7px}
+body.compact.land #hud .stat b{font-size:21px}
+body.compact.land .stat.rbox b{flex-direction:column;gap:0;font-size:18px}
+body.compact.land #next{flex-direction:column;align-items:stretch;width:100%;padding:4px 6px;gap:4px}
+body.compact.land #next .nrl .label{min-width:0}
+body.compact.land #curTxt,body.compact.land #nextInfo{font-size:14px;white-space:normal;overflow:visible;line-height:1.1}
+body.compact.land .nrl{white-space:normal;flex-wrap:wrap;gap:0 4px}
+body.compact.land .nr .nrl:first-child{display:none}
+body.compact.land #build{grid-template-columns:repeat(2,52px)}
+body.compact.land .bt{width:52px}
+body.compact.land #buildTip{width:108px}
+body.compact.land #bStart{width:100%;padding:4px 2px;font-size:16px}
+body.compact.land #main{min-width:0}
+body.compact.land #rail #ctrl{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;margin-bottom:6px;box-shadow:none}
+body.compact.land #rail #ctrl .btn{padding:3px 0;font-size:15px;min-width:0;box-shadow:2px 2px 0 var(--ink)}
+body.compact.land #rail #ctrl [hidden]{display:none!important}
+body.compact.land #build{grid-template-columns:repeat(2,52px);overflow-y:auto;align-content:start;min-height:0}
+body.compact.land #buildTip{width:108px}
+@media (max-height:450px){body.compact.land #buildTip{display:none}}
 /* portrait: build bar is a strip along the bottom */
 body.compact.port #main{flex-direction:column}
 body.compact.port #build{display:flex;overflow-x:auto}
@@ -382,7 +403,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       </div>
       <button class="btn goldb" id="bStart" title="Start the next round now (Space). Starting early pays bonus gold.">Start round 1</button>
     </div>
-    <div class="speed px-box" style="padding:4px 6px">
+    <div class="speed px-box" id="ctrl" style="padding:4px 6px">
       <button class="btn" id="bPause" aria-pressed="false" title="Pause (P)">II</button>
       <button class="btn" id="bSpd" title="Game speed">1x</button>
       <button class="btn" data-sp="1" aria-pressed="true">1x</button>
@@ -410,7 +431,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       </div>
     </div>
     <div id="rail">
-      <div class="sec px-box"><h3>Build</h3><div id="build"></div><div id="buildTip">Pick a tower</div>
+      <div class="sec px-box" id="buildSec"><h3>Build</h3><div id="build"></div><div id="buildTip">Pick a tower</div>
         <p class="hint" style="margin:8px 0 0">Pick a tower, then click grass tiles to build. Click an existing tower to replace it. Paths must always reach the exit. Esc or right-click stops building.</p></div>
       <div class="sec px-box" id="info"></div>
     </div>
@@ -434,6 +455,8 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
     <button class="btn" id="bSoundM">♪ Sound</button>
     <button class="btn" id="bStyle">Stylebook <span class="label">(for testing)</span></button>
+    <button class="btn goldb inst" id="bInstall" hidden>📲 Install as app</button>
+    <p class="hint" id="installHelp" hidden style="margin:0;color:var(--ink)"></p>
     <button class="btn warn" id="bReset">Reset progress</button>
   </div>
   <div class="row" style="margin-top:16px"><button class="btn go" id="setClose">Done</button></div>
@@ -451,7 +474,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="modal px-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
       <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Two ways to play: the story campaign or the challenge maps.</div></div>
-      <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
+      <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn goldb inst" id="bInstallTop" hidden>📲 Install</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
     </div>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
@@ -1857,7 +1880,9 @@ function layout(){
   const compact=coarse||innerWidth<1000||innerHeight<620;
   const land=innerWidth>=innerHeight;
   const b=document.body;b.classList.toggle("compact",compact);b.classList.toggle("land",compact&&land);b.classList.toggle("port",compact&&!land);
-  const gd=$("guide");
+  const gd=$("guide"),ctrl=$("ctrl");
+  // sideways on a touch screen the control buttons sit on the right above the build bar
+  if(compact&&land){if(ctrl.parentNode!==$("rail"))$("rail").insertBefore(ctrl,$("rail").firstChild)}else if(ctrl.parentNode!==$("hud"))$("hud").appendChild(ctrl);
   if(!compact){if(gd.parentNode!==$("left"))$("left").insertBefore(gd,$("left").firstChild);setCards(false);if(G&&G.story){storyLayout();return}cv.style.width="";cv.style.height="";return}
   if(gd.parentNode!==$("stage"))$("stage").appendChild(gd);
   if(G&&G.story){storyLayout();return}
@@ -2442,7 +2467,24 @@ $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=tru
   storyArm=false;$("bStoryNew").textContent="New campaign";LS.set("fot-story",null);$("menu").hidden=true;newStory(null)};
 $("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
 $("bStyle").onclick=()=>{$("setOv").hidden=true;openStylebook()};
-$("bSet").onclick=()=>{$("setOv").hidden=false};
+$("bSet").onclick=()=>{$("installHelp").hidden=true;$("setOv").hidden=false};
+// ---------- install as an app: Android/desktop use the browser's install prompt, iPhone needs Safari's "Add to Home Screen" ----------
+let installEvt=null;
+const isStandalone=()=>(window.matchMedia&&(matchMedia("(display-mode: standalone)").matches||matchMedia("(display-mode: fullscreen)").matches))||navigator.standalone===true;
+const canInstallHere=()=>location.protocol==="https:"&&window.top===window&&!isStandalone();
+const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function updInstall(){const ok=canInstallHere(),touch=window.matchMedia&&matchMedia("(pointer:coarse)").matches;$("bInstall").hidden=!ok;$("bInstallTop").hidden=!(ok&&touch)}
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;updInstall()});
+addEventListener("appinstalled",()=>{installEvt=null;updInstall();toast("Field of Thorns is installed. Start it from your home screen.","",true)});
+async function doInstall(){
+  if(installEvt){installEvt.prompt();try{await installEvt.userChoice}catch(e){}installEvt=null;updInstall();return}
+  const h=$("installHelp");
+  h.textContent=isIOS()?"On iPhone and iPad: open this page in Safari, tap the Share button (the square with the arrow) and choose “Add to Home Screen”.":
+    /Android/.test(navigator.userAgent)?"Open the browser menu (⋮ in the top corner) and choose “Install app” or “Add to Home screen”. If neither appears, open the page in Chrome.":
+    "Use the install icon at the right end of the address bar, or the browser menu → “Install Field of Thorns”.";
+  h.hidden=false;$("setOv").hidden=false;
+}
+$("bInstall").onclick=doInstall;$("bInstallTop").onclick=doInstall;updInstall();
 // ---------- profile picker ----------
 const avHtml=p=>`<span class="av" style="background:${p.col}">${(p.name.trim()[0]||"?").toUpperCase()}</span>`;
 function profSummary(id){const pr=RAW.get(profKey(id,"pk-progress"),{cleared:{}}),n=Object.keys(pr.cleared||{}).length,st=RAW.get(profKey(id,"fot-story"),null);
