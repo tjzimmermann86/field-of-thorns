@@ -469,7 +469,7 @@ const TOWERS={
   fire:{n:"Fire",key:"7",cost:{g:50,s:30},dmg:9,rate:2,range:1.3,rg:0.08,tg:"g",kind:"AOE",desc:"Burns every ground enemy around it."},
   flak:{n:"Flak",key:"8",cost:{g:40,w:30},dmg:15,rate:1.6,range:2.4,rg:0.17,tg:"a",kind:"Air",splash:0.8,desc:"Air only. Bursts hit nearby flyers."},
   hawk:{n:"Hawk",key:"9",cost:{g:60,w:40},dmg:46,rate:0.7,range:2.8,rg:0.22,tg:"a",kind:"Air",desc:"Air only. Homing missiles."},
-  market:{n:"Market",key:"M",cost:{g:80},eco:true,perRound:true,mode:"maps",prod:"g",rate:18,desc:"Pays bonus gold every time you clear a round, and each upgrade pays more. Builds on any free grass tile. Every extra market costs a bit more."},
+  market:{n:"Market",key:"M",cost:{g:80},eco:true,perRound:true,mode:"maps",prod:"g",rate:20,desc:"Pays bonus gold every time you clear a round, and each upgrade pays more. Builds on any free grass tile. Up to 3 per map."},
   mine:{n:"Gold Mine",key:"G",cost:{g:60,w:20},eco:true,mode:"story",prod:"g",node:4,rate:1.5,rg:0.6,desc:"Digs gold every second. Builds only on a glittering gold vein."},
   lumber:{n:"Lumber Camp",key:"L",cost:{g:40},eco:true,mode:"story",prod:"w",node:5,rate:1.2,rg:0.5,desc:"Cuts wood every second. Builds only on a pine grove."},
   quarry:{n:"Quarry",key:"Q",cost:{g:50,w:20},eco:true,mode:"story",prod:"s",node:6,rate:0.8,rg:0.35,desc:"Breaks stone every second. Builds only on a stone outcrop."},
@@ -756,7 +756,7 @@ function startRound(early){
 function earlyBonus(){return Math.floor(G.timer*(1+G.round*0.18))}
 function endRound(){
   const r=G.round;
-  const bonus=gc(C({g:15+r*3+Math.floor(G.gold*G.mods.interest),w:8+r*2,s:4+r}));
+  const bonus=gc(C({g:15+r*3+Math.floor(Math.min(G.gold*G.mods.interest,G.story?1e9:10*r)),w:8+r*2,s:4+r}));
   gain(bonus);SND.play("clear");
   let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08",4)}
   if(mk)gain(C({g:mk}));
@@ -781,9 +781,9 @@ const CARDS={};
   add({id:"dmg",n:"Sharp Tips",ic:"⚔",mod:{dmg:.10},txt:v=>`+${pct(v.dmg)} damage for all towers`});
   add({id:"range",n:"Eagle Eye",ic:"◎",mod:{range:.04},txt:v=>`+${pct(v.range)} range for all towers`});
   add({id:"rate",n:"Quick Hands",ic:"»",mod:{rate:.10},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
-  add({id:"prosp",n:"Prospector",ic:"$",mod:{mine:.10},txt:v=>G&&!G.story?`+${pct(v.mine)} gold from Markets`:`+${pct(v.mine)} gold from Gold Mines`});
-  add({id:"lucky",unc:1,n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>G&&!G.story?`+${pct(v.luck)} gold from slimes, chests are ${pct(v.luck)} bigger`:`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
-  add({id:"interest",unc:1,n:"Savings",ic:"%",mod:{interest:.01},txt:v=>`+${pct(v.interest)} of your gold paid out after every round`});
+  add({id:"prosp",n:"Prospector",ic:"$",mod:{mine:.10},txt:v=>G&&!G.story?`+${pct(v.mine/2)} gold from Markets`:`+${pct(v.mine)} gold from Gold Mines`});
+  add({id:"lucky",unc:1,n:"Lucky Finds",ic:"✦",mod:{luck:.20},txt:v=>G&&!G.story?`+${pct(v.luck/2)} gold from slimes, chests are ${pct(v.luck)} bigger`:`Slimes drop coins ${pct(v.luck)} more often, chests are ${pct(v.luck)} bigger`});
+  add({id:"interest",unc:1,n:"Savings",ic:"%",mod:{interest:.01},txt:v=>`+${pct(v.interest)} of your gold paid out after every round`+(G&&!G.story?" (max 10× the round number)":"")});
   add({id:"freeze",unc:1,n:"Deep Freeze",ic:"❄",mod:{slow:.04},txt:v=>`Frost slows ${pct(v.slow)} more`});
   add({id:"sawmill",n:"Sawmill",ic:"≡",mod:{wood:.20},txt:v=>`+${pct(v.wood)} wood from Lumber Camps`});
   add({id:"stonecut",n:"Stonecutter",ic:"■",mod:{stone:.20},txt:v=>`+${pct(v.stone)} stone from Quarries`});
@@ -803,7 +803,7 @@ const CARDS={};
   add({id:"wrath",n:"Wrath",ic:"⚔",rare:1,mod:{dmg:.20},txt:v=>`+${pct(v.dmg)} damage for all towers`});
   add({id:"overclock",n:"Overclock",ic:"»",rare:1,mod:{rate:.20},txt:v=>`+${pct(v.rate)} attack speed for all towers`});
   add({id:"hawkeye",n:"Hawkeye",ic:"◎",rare:1,mod:{range:.06},txt:v=>`+${pct(v.range)} range for all towers`});
-  add({id:"rush",n:"Boom Town",ic:"$",rare:1,mod:{mine:.20,wood:.20,stone:.20},txt:v=>G&&!G.story?`+${pct(v.mine)} gold from Markets`:`+${pct(v.mine)} from all mines, camps and quarries`});
+  add({id:"rush",n:"Boom Town",ic:"$",rare:1,mod:{mine:.20,wood:.20,stone:.20},txt:v=>G&&!G.story?`+${pct(v.mine/2)} gold from Markets`:`+${pct(v.mine)} from all mines, camps and quarries`});
   add({id:"fortress",n:"Fortress",ic:"♥",rare:1,once:true,give:L=>{G.lives+=livesAt(4,L)-livesAt(4,L-1)},txt:L=>`+${livesAt(4,L)-livesAt(4,L-1)} lives now (total +${livesAt(4,L)})`});
   add({id:"armory",n:"Armory",ic:"▲",rare:1,once:true,give:L=>{const n=L===CMAX?3:isMile(L)?2:1;addFree("sniper",n);addFree("tesla",n)},txt:L=>{const n=L===CMAX?3:isMile(L)?2:1;return n>1?`${n} free Snipers and ${n} free Teslas`:"A free Sniper and a free Tesla"}});
 })();
@@ -900,14 +900,14 @@ function renderCards(){
 
 // ---------- tower stats ----------
 function lvlStats(type,L){
-  const b=TOWERS[type];if(b.perRound)return{prod:b.rate+22.9*(Math.pow(1.4,L-1)-1)}; // each upgrade pays itself back in about 7 rounds
+  const b=TOWERS[type];if(b.perRound)return{prod:b.rate*L}; // 20 → 200 gold; early levels pay back fast, the last ones barely do
   if(b.eco)return{prod:b.rate+b.rg*(L-1)};if(b.wall)return{};
   if(b.thorn)return{dmg:b.dmg*Math.pow(1.55,L-1),rate:b.rate*(1+0.05*(L-1)),range:b.range+b.rg*(L-1),chain:0,slow:0,splash:0};
   return{dmg:b.dmg*(1+0.55*(L-1)),rate:b.rate*(1+0.05*(L-1)),range:b.range+b.rg*(L-1),
     chain:b.chain?b.chain+Math.floor((L-1)/3):0,slow:b.slow?b.slow+0.02*(L-1):0,splash:b.splash?b.splash*(1+0.03*(L-1)):0};
 }
 function withCards(type,s){
-  const b=TOWERS[type];if(b.eco)return{prod:s.prod*(1+G.mods[RKEY[b.prod]==="gold"?"mine":RKEY[b.prod]])};if(b.wall)return{};
+  const b=TOWERS[type];if(b.perRound)return{prod:s.prod*(1+G.mods.mine*0.5)};if(b.eco)return{prod:s.prod*(1+G.mods[RKEY[b.prod]==="gold"?"mine":RKEY[b.prod]])};if(b.wall)return{};
   return{...s,dmg:s.dmg*(1+G.mods.dmg+(G.mods.type[type]||0)),rate:s.rate*(1+G.mods.rate),range:s.range*(1+G.mods.range),slow:s.slow?Math.min(0.8,s.slow+G.mods.slow):0};
 }
 // cost to go from level L to L+1: same resource mix as the build cost
@@ -922,8 +922,9 @@ function cellBlockedForEnemies(i){
   return false;
 }
 function nodeOk(type,i){const t=G.map.ter[i],b=TOWERS[type];if(b&&b.node)return t===b.node?"":`${b.n}s need a ${NODE_N[b.node]}`;return t>=4&&t<=6?`Resource tiles are for mines, camps and quarries`:""}
+const MARKET_MAX=3;
 function canPlace(i,type){
-  const m=G.map;if(i<0||i>=m.N)return{ok:false,why:"Outside the map"};
+  const m=G.map;if((type||buildType)==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX)return{ok:false,why:`Only ${MARKET_MAX} markets per map`};if(i<0||i>=m.N)return{ok:false,why:"Outside the map"};
   if(m.ter[i]>=1&&m.ter[i]<=3)return{ok:false,why:"Blocked by terrain"};
   if(m.ter[i]>=7)return{ok:false,why:"You can't build here"};
   const nw=nodeOk(type||buildType,i);if(nw)return{ok:false,why:nw};
@@ -1063,7 +1064,7 @@ function damage(e,amt,tw){
         p0:e.p0,p1:e.p1,p2:e.p2,t:Math.max(0,e.t-k*0.15),len:e.len,slowT:0,slowA:0,fly:false,boss:false,ph:Math.random()*6,off:(Math.random()-0.5)*0.5})}
     if(e.king){G.kingDead=true;toast("The Slime King is defeated!","",true)}
     if(!G.story&&e.bounty){ // on the maps every slime pays gold, more in later rounds
-      const g=Math.max(1,Math.round(e.bounty*(1+r*0.07)*luck));gain(C({g}));if(e.boss)floatText(e.x,e.y-0.6,"+¤"+g,"#9a6a08")}
+      const g=Math.max(1,Math.round(e.bounty*(1+r*0.07)*(1+G.mods.luck*0.5)));gain(C({g}));if(e.boss)floatText(e.x,e.y-0.6,"+¤"+g,"#9a6a08")}
     if(e.boss){ // bosses always drop a treasure chest
       const f=e.kind==="big"?8:e.kind==="boss"?3:1,loot=gc(C({g:Math.round((20+r*2)*f*luck),w:Math.round((12+r)*f*luck),s:Math.round((8+r*0.6)*f*luck)}));
       gain(loot);floatText(e.x,e.y,"Chest! +"+txtC(loot),"#9a6a08",3.5);
@@ -1577,7 +1578,7 @@ function updHud(){
   if(G.phase==="wave"){$("bStart").disabled=true;$("bStart").textContent=document.body.classList.contains("compact")?"Wave":"Wave running"}
   else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
   else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
-  document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k)))});
+  document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k))||(k==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX))});
 }
 function renderBuild(){
   const el=$("build");if(G)ghost=hover>=0?hoverGhost(hover):null; // keep the preview in sync with the picked tower
@@ -1591,7 +1592,7 @@ function renderBuild(){
       el.appendChild(b)});
   }
   el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);b.hidden=!avail(k);
-    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":fmtC(listPrice(k));
+    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":k==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX?`${MARKET_MAX}/${MARKET_MAX}`:fmtC(listPrice(k));
     let f=b.querySelector(".free");if(G.free[k]){if(!f){f=document.createElement("span");f.className="free";b.appendChild(f)}f.textContent=`×${G.free[k]}`}else if(f)f.remove()});
 }
 function statRows(type,L,showNext){
