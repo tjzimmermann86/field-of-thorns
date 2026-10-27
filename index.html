@@ -53,11 +53,17 @@ button:focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 .stat.lives.bad{background:#f9d9d6}.stat.lives.bad b{color:var(--danger)}
 @keyframes livesPulse{50%{box-shadow:0 0 0 4px rgba(207,70,61,.45)}}
 .stat.lives.bad{animation:livesPulse 1.2s steps(2) infinite}
-#next{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:4px 12px;min-width:260px}
-#next .cd{font-size:30px;font-variant-numeric:tabular-nums;min-width:48px}
-#nextTag{font-family:var(--f-label);font-size:16px;padding:3px 6px;border:2px solid var(--ink);background:var(--panel2)}
-#nextTag.danger{background:#f7d2cf}
-#nextTag.air{background:#e3d8f6}
+#next{flex:1 1 420px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding:4px 12px;min-width:0}
+#next .cd{font-size:22px;font-weight:400;font-variant-numeric:tabular-nums}
+.nr{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.nrl{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;line-height:1.1;min-width:0;white-space:nowrap}
+#curTxt,#nextInfo{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nrl .label{width:34px;flex-shrink:0}
+#curTxt,#nextInfo{font-size:19px}
+#nextInfo{color:var(--muted)}
+.rtag{font-family:var(--f-label);font-size:15px;padding:1px 6px;border:2px solid var(--ink);background:var(--panel2);white-space:nowrap}
+.rtag.danger{background:#f7d2cf}
+.rtag.air{background:#e3d8f6}
 .speed{display:flex;gap:4px;align-items:center}
 .speed .btn{padding:6px 8px}
 .speed .btn[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
@@ -164,19 +170,25 @@ h2{font-size:20px}
 @media (max-height:500px){.cardrow{gap:8px;margin-top:8px}.card{padding:8px;gap:4px}.card .ic{width:34px;height:34px;font-size:20px}.card b{font-size:20px}.card p{font-size:16px}.modal{padding:12px}}
 
 /* ---------- touch / small screens: map fills the screen, build bar on the side or bottom, cards + info as panels ---------- */
-.xbtn,#bCards{display:none}
+.xbtn,#bCards,#bSpd{display:none}
+body.compact #bSpd{display:inline-block}
+body.compact [data-sp]{display:none}
 button{touch-action:manipulation}
 body.compact{height:100%;overflow:hidden;padding-block:6px}
 body.compact #app{height:100%;gap:6px;max-width:none}
-body.compact #hud{flex-wrap:nowrap;overflow-x:auto;gap:4px;flex-shrink:0;scrollbar-width:none}
+body.compact #hud{flex-wrap:nowrap;overflow-x:auto;gap:3px;flex-shrink:0;scrollbar-width:none}
 body.compact .stat{min-width:0;padding:2px 8px;box-shadow:none}
 body.compact .stat b{font-size:21px}
-body.compact .stat small,body.compact #nextInfo,body.compact #nextLbl{display:none}
+body.compact .stat small{display:none}
+body.compact #curTxt,body.compact #nextInfo{font-size:15px;white-space:nowrap}
+body.compact .nrl{flex-wrap:nowrap;gap:5px}
+body.compact .nrl .label{width:auto}
+body.compact .nr{gap:0}
 body.compact .label{font-size:12px}
 body.compact #next{min-width:0;flex:0 0 auto;flex-wrap:nowrap;padding:2px 8px;gap:8px;box-shadow:none}
 body.compact #next>div:nth-child(2){min-width:0!important;flex:0 1 auto}
-body.compact #next .cd{font-size:21px;min-width:0}
-body.compact #nextTag{font-size:13px;white-space:nowrap}
+body.compact #next .cd{font-size:16px}
+body.compact .rtag{font-size:12px;padding:0 4px}
 body.compact #bStart{padding:4px 8px;white-space:nowrap}
 body.compact .speed{box-shadow:none;flex-shrink:0;display:flex;gap:3px}
 body.compact .speed .btn{padding:4px 7px}
@@ -199,7 +211,7 @@ body.compact .bt canvas{width:32px;height:32px}
 body.compact .bt .nm,body.compact .bt .pr{font-size:14px}
 body.compact #buildTip{display:block}
 body.compact #hud>*{flex-shrink:0}
-@media (max-width:920px){body.compact .stat.time,body.compact #nextTag{display:none}}
+@media (max-width:920px){body.compact .stat.time,body.compact .rtag{display:none}}
 body.compact.port #stage{align-items:flex-start}
 #buildTip{display:none;font-size:14px;color:var(--muted);line-height:1.15;margin-top:4px}
 /* landscape: build bar is a 2-column strip on the right */
@@ -233,12 +245,15 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div class="stat px-box lives" id="sLives"><span class="label">Lives</span><b id="hLives">20/20</b><small id="hLivesTxt">Holding strong</small></div>
     <div class="stat px-box time"><span class="label">Time</span><b id="hTime">0:00</b><small id="hKills">0 kills</small></div>
     <div id="next" class="px-box">
-      <div><span class="label" id="nextLbl">Build first, then</span><div class="cd" id="hCd">Ready</div></div>
-      <div style="flex:1;min-width:140px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px"><span id="nextTag">Ground</span><span class="hint" id="nextInfo">25 enemies</span></div>
+      <div class="nr">
+        <div class="nrl"><span class="label">Now</span><span class="rtag" id="curTag" hidden></span><span id="curTxt">Build your maze</span></div>
+        <div class="nrl"><span class="label">Next</span><span class="rtag" id="nextTag">Ground</span><span id="nextInfo">Round 1 · 25 enemies</span><b class="cd" id="hCd"></b></div>
+      </div>
       <button class="btn goldb" id="bStart">Start round 1</button>
     </div>
     <div class="speed px-box" style="padding:4px 6px">
       <button class="btn" id="bPause" aria-pressed="false" title="Pause (P)">II</button>
+      <button class="btn" id="bSpd" title="Game speed">1x</button>
       <button class="btn" data-sp="1" aria-pressed="true">1x</button>
       <button class="btn" data-sp="2" aria-pressed="false">2x</button>
       <button class="btn" data-sp="3" aria-pressed="false">3x</button>
@@ -471,7 +486,7 @@ function newGame(d,m){
   G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
   sel=null;buildType=null;ghost=null;bgDirty=true;
   cv.width=(map.cols+2)*T;cv.height=(map.rows+2)*T;
-  renderBuild();renderInfo();renderCards();updHud(true);
+  renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);
   announceNext();
   if(typeof layout==="function")requestAnimationFrame(layout);
 }
@@ -491,6 +506,8 @@ function describeRound(r){
   if(t.big)parts.push("GIANT BOSS");
   return parts.join(" + ");
 }
+function shortRound(r){const t=roundType(r),p=[`R${r} · ${roundCount(r)}${t.fly?" flying":""}`];
+  if(t.mini)p.push(`${1+Math.floor(r/15)} mini`);if(t.boss)p.push("boss");if(t.big)p.push("GIANT");return p.join(" + ")}
 function tagFor(r){const t=roundType(r);if(t.big)return["Giant boss","danger"];if(t.boss)return["Boss","danger"];if(t.fly&&t.mini)return["Flying + mini-boss","air"];if(t.fly)return["Flying","air"];if(t.mini)return["Mini-boss","danger"];return["Ground",""]}
 function announceNext(){
   const r=G.round+1;if(r>50)return;const t=roundType(r);
@@ -1065,11 +1082,16 @@ function updHud(){
   {const h=COIN+fmt(G.gold);if($("hGold").innerHTML!==h)$("hGold").innerHTML=h}$("hGpm").textContent=`+${gpm()} / min`;
   $("hRound").textContent=`${G.round}/50`;$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
-  const r=G.phase==="wave"?G.round:G.round+1;
-  if(G.phase==="wave"){$("nextLbl").textContent=`Round ${G.round} — enemies left`;$("hCd").textContent=G.queue.length+G.enemies.length;$("bStart").disabled=true;$("bStart").textContent="Wave running"}
-  else if(G.round===0){$("nextLbl").textContent="Build first, then";$("hCd").textContent="Ready";$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
-  else{$("nextLbl").textContent=`Round ${r} in`;$("hCd").textContent=Math.ceil(G.timer);$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
-  const [tg,cl]=tagFor(Math.min(50,r));$("nextTag").textContent=tg;$("nextTag").className=cl;$("nextInfo").textContent=describeRound(Math.min(50,r));
+  // Now: the current round and its total enemies. Next: preview of the coming round.
+  const nx=G.round+1;
+  const cmp=document.body.classList.contains("compact"),rd=r=>cmp?shortRound(r):`Round ${r} · ${describeRound(r)}`;
+  if(G.phase==="wave"){setTag("curTag",G.round);setTxt("curTxt",rd(G.round))}
+  else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=50?"All 50 rounds done":cmp?`R${G.round} cleared`:`Round ${G.round} cleared`)}
+  if(nx<=50){setTag("nextTag",nx);setTxt("nextInfo",rd(nx))}else{$("nextTag").hidden=true;setTxt("nextInfo","Last round — hold on!")}
+  setTxt("hCd",G.phase==="countdown"&&G.round>0?`in ${Math.ceil(G.timer)}s`:"");
+  if(G.phase==="wave"){$("bStart").disabled=true;$("bStart").textContent=document.body.classList.contains("compact")?"Wave":"Wave running"}
+  else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
+  else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
   document.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",G.gold<price(k))});
 }
 function renderBuild(){
@@ -1108,6 +1130,8 @@ function updBuildTip(){
   if(!b.eco){const s=withCards(buildType,lvlStats(buildType,1));t+=` · ${fmt1(s.dmg)} dmg · range ${fmt1(s.range)} · ${TGTXT[b.tg]}`}else t+=" · gold every minute";
   el.textContent=t+". Tap a tile twice to build.";
 }
+function setTag(id,r){const [tg,cl]=tagFor(r),e=$(id);e.hidden=!cl; // plain ground rounds need no tag
+  setTxt(id,tg);e.className="rtag "+cl}
 function setTxt(id,v){const e=$(id);if(e&&e.textContent!==String(v))e.textContent=v}
 function renderInfo(live,hoverType){
   const el=$("info");
@@ -1199,7 +1223,9 @@ document.addEventListener("keydown",ev=>{
 });
 function togglePause(){G.paused=!G.paused;document.body.classList.toggle("paused",G.paused);$("bPause").setAttribute("aria-pressed",G.paused);$("bPause").textContent=G.paused?"▶":"II"}
 $("bPause").onclick=togglePause;
-document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{G.speed=+b.dataset.sp;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",o===b))});
+$("bSpd").onclick=()=>setSpeed(G.speed%3+1); // compact: one button cycles 1x → 2x → 3x
+function setSpeed(v){G.speed=v;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",+o.dataset.sp===v));$("bSpd").textContent=v+"x"}
+document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
 $("bStart").onclick=()=>startRound(true);
 $("bMenu").onclick=()=>openMenu(true);
 function setCards(open){document.body.classList.toggle("cards-open",open);$("bCards").setAttribute("aria-expanded",open)}
