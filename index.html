@@ -50,9 +50,9 @@ button:focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 
 /* HUD */
 #hud{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
-.stat{display:flex;flex-direction:column;justify-content:center;padding:4px 12px;min-width:92px}
+.stat{display:flex;flex-direction:column;justify-content:center;padding:4px 10px;min-width:84px}
 .stat b{font-size:30px;font-variant-numeric:tabular-nums;line-height:1.05}
-.stat small{font-size:16px;color:var(--muted)}
+.stat small{font-size:15px;color:var(--muted)}
 .stat.gold b{color:#9a6a08}
 
 .stat.rbox b{display:flex;gap:10px;color:var(--ink)}
@@ -67,10 +67,12 @@ button:focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 #next{flex:1 1 300px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding:4px 12px;min-width:0}
 #next .cd{font-size:22px;font-weight:400;font-variant-numeric:tabular-nums}
 .nr{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.nrl{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;line-height:1.1;min-width:0;white-space:nowrap}
+.nrl{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;line-height:1.1;min-width:0;white-space:nowrap}
 #curTxt,#nextInfo{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.nrl .label{width:34px;flex-shrink:0}
-#curTxt,#nextInfo{font-size:19px}
+.nrl .rtag,.nrl .cd{flex-shrink:0}
+.nrl .label{min-width:34px;flex-shrink:0}
+#bStart{padding:6px 8px;white-space:nowrap}
+#curTxt,#nextInfo{font-size:18px}
 #nextInfo{color:var(--muted)}
 .rtag{font-family:var(--f-label);font-size:15px;padding:1px 6px;border:2px solid var(--ink);background:var(--panel2);white-space:nowrap}
 .rtag.danger{background:#f7d2cf}
@@ -258,9 +260,9 @@ body.compact #guide b{font-size:16px}body.compact #guide p{font-size:13px;line-h
 @media (max-height:500px){.cardrow{gap:8px;margin-top:8px}.card{padding:8px;gap:4px}.card .ic{width:34px;height:34px;font-size:20px}.card b{font-size:20px}.card p{font-size:16px}.modal{padding:12px}}
 
 /* ---------- touch / small screens: map fills the screen, build bar on the side or bottom, cards + info as panels ---------- */
-.xbtn,#bCards,#bSpd{display:none}
-body.compact #bSpd{display:inline-block}
-body.compact [data-sp]{display:none}
+.xbtn,#bCards{display:none}
+[data-sp]{display:none} /* one speed button cycles 1x → 2x → 3x, which leaves room for the round info */
+#bSpd{min-width:44px}
 button{touch-action:manipulation}
 body.compact{height:100%;overflow:hidden;padding-block:6px}
 body.compact #app{height:100%;gap:6px;max-width:none}
@@ -334,10 +336,10 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div class="stat px-box time"><span class="label">Time</span><b id="hTime">0:00</b><small id="hKills">0 kills</small></div>
     <div id="next" class="px-box">
       <div class="nr">
-        <div class="nrl"><span class="label">Now</span><span class="rtag" id="curTag" hidden></span><span id="curTxt">Build your maze</span></div>
-        <div class="nrl"><span class="label">Next</span><span class="rtag" id="nextTag">Ground</span><span id="nextInfo">Round 1 · 25 enemies</span><b class="cd" id="hCd"></b></div>
+        <div class="nrl"><span class="label">Now</span><span id="curTxt">Build your maze</span><span class="rtag" id="curTag" hidden></span></div>
+        <div class="nrl"><span class="label">Next</span><span id="nextInfo">Round 1 · 25 enemies</span><span class="rtag" id="nextTag">Ground</span><b class="cd" id="hCd"></b></div>
       </div>
-      <button class="btn goldb" id="bStart">Start round 1</button>
+      <button class="btn goldb" id="bStart" title="Start the next round now (Space). Starting early pays bonus gold.">Start round 1</button>
     </div>
     <div class="speed px-box" style="padding:4px 6px">
       <button class="btn" id="bPause" aria-pressed="false" title="Pause (P)">II</button>
@@ -691,7 +693,7 @@ function guideTiles(){const m=G.map,x=7,out=[];for(let y=m.mid-2;y<=m.mid+1;y++)
 function roundType(r){
   return{fly:r%7===0,big:r===25||r===50,boss:r%10===0&&r!==50,mini:r%3===0&&!(r%10===0)&&r!==25&&r!==50};
 }
-function roundCount(r){return 25+Math.round((r-1)*250/49)}
+function roundCount(r){return 5*Math.round((25+(r-1)*250/49)/5)} // always ends in 0 or 5
 function baseHp(r){return G.story?20*Math.pow(1+0.08*(r-1),1.75)*DIFFS[G.d].hp:20*Math.pow(1+0.08*(r-1),1.75)*(1+0.0008*(r-1)*(r-1))*DIFFS[G.d].hp} // maps: same start, late rounds get much tougher (about 3x by round 50)
 function tierColor(r){return r<10?["#7cc957","#4f9a3a"]:r<20?["#5cc7b5","#2f8f80"]:r<30?["#6a9be0","#3f6cb0"]:r<40?["#b27ddc","#7d4fae"]:["#e0707a","#ab3f4a"]}
 // ---------- special slimes ----------
@@ -723,7 +725,7 @@ function describeRound(r){
   if(t.big)parts.push(r===50?"THE SLIME KING":"the Bog Tyrant");
   return parts.join(" + ");
 }
-function shortRound(r){const t=roundType(r),p=[`R${r} · ${roundCount(r)}${t.fly?` (${flyCount(r)} fly)`:""}`];
+function shortRound(r){const t=roundType(r),p=[`R${r} · ${roundCount(r)}${t.fly?" + air":""}`];
   if(t.mini)p.push(`${1+Math.floor(r/15)} mini`);if(t.boss)p.push("boss");if(t.big)p.push("GIANT");return p.join(" + ")}
 function tagFor(r){const t=roundType(r);if(t.big)return[r===50?"The King":"Giant boss","danger"];if(t.boss)return["Boss","danger"];if(t.fly&&t.mini)return["Flying + mini-boss","air"];if(t.fly)return["Flying","air"];if(t.mini)return["Mini-boss","danger"];return["Ground",""]}
 function announceNext(){
@@ -1561,7 +1563,7 @@ const mmss=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60
 const $=id=>document.getElementById(id);
 function updHud(){
   if(!G.story){const h=`<span class="rv">${COIN}${fmt(Math.floor(G.gold))}</span>`;if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
-   const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Gold")lb.textContent="Gold";const mp=marketPay();setTxt("hRate",mp?`Markets +${fmt(mp)} / round`:"Slimes pay gold")}
+   const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Gold")lb.textContent="Gold";const mp=marketPay();setTxt("hRate",mp?`Markets +${fmt(mp)}/round`:"Kills pay gold")}
   else{const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Resources")lb.textContent="Resources";const h=["g","w","s"].map(k=>`<span class="rv">${RHTML[k]}${fmt(Math.floor(G[RKEY[k]]))}</span>`).join("");if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
    const rt=rates();const t=G.round<1?"Mines start with round 1":["g","w","s"].map(k=>`+${fmt1(rt[k])}/s`).join("  ");setTxt("hRate",t)}
   $("hRound").textContent=`${G.round}`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
@@ -1570,14 +1572,14 @@ function updHud(){
   $("lblRound").textContent="Round";
   // Now: the current round and its total enemies. Next: preview of the coming round.
   const nx=G.round+1;
-  const cmp=document.body.classList.contains("compact"),rd=r=>cmp?shortRound(r):`Round ${r} · ${describeRound(r)}`;
+  const cmp=document.body.classList.contains("compact"),rd=r=>cmp?shortRound(r):`R${r}: ${roundCount(r)} enemies`; // the tag after it says boss, flying, …
   if(G.phase==="wave"){setTag("curTag",G.round);setTxt("curTxt",rd(G.round))}
-  else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=50?"The swarm is broken":cmp?`R${G.round} cleared`:`Round ${G.round} cleared`)}
+  else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=50?"The swarm is broken":`R${G.round} cleared`)}
   if(nx<=50){setTag("nextTag",nx);setTxt("nextInfo",rd(nx))}else{$("nextTag").hidden=true;setTxt("nextInfo","???")}
-  setTxt("hCd",G.phase==="countdown"&&G.round>0?`in ${Math.ceil(G.timer)}s`:"");
+  setTxt("hCd","");const cdTxt=G.phase==="countdown"&&G.round>0?` · ${Math.ceil(G.timer)}s`:""; // the countdown sits on the Start button
   if(G.phase==="wave"){$("bStart").disabled=true;$("bStart").textContent=document.body.classList.contains("compact")?"Wave":"Wave running"}
   else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
-  else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
+  else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`▶ +${COIN}${earlyBonus()}${cdTxt}`}
   document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k))||(k==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX))});
 }
 function renderBuild(){
