@@ -1248,8 +1248,9 @@ function frame(now){
   let rdt=Math.min(0.1,(now-last)/1000);last=now;
   if(G&&G.story&&!G.paused)tickTalk(rdt);
   if(toastT>0){toastT-=rdt;if(toastT<=0)document.getElementById("toast").hidden=true}
+  // the clock keeps running while you pick a card, so the time shows how long the whole level took
+  if(G&&!G.over&&!G.paused&&document.getElementById("menu").hidden&&document.getElementById("storyOv").hidden)G.stats.time+=rdt;
   if(G&&!G.over&&!G.paused&&G.phase!=="cards"&&document.getElementById("menu").hidden&&document.getElementById("storyOv").hidden){
-    G.stats.time+=rdt;
     const steps=G.speed;for(let s=0;s<steps;s++)step(rdt);
     for(const f of G.fx)if(f.k==="txt")f.t-=rdt; // numbers stay readable at 2x and 3x
   }
@@ -1719,6 +1720,18 @@ cv.addEventListener("dblclick",ev=>{
   sel=tw;group=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L);if(group.length<2)group=null;renderInfo();
 });
 cv.addEventListener("contextmenu",e=>e.preventDefault());
+// Esc closes whatever window is open, topmost first
+function escClose(){
+  if(!$("soundOv").hidden){$("soundOv").hidden=true;return true}
+  if(!$("styleOv").hidden){$("styleOv").hidden=true;if(location.hash==="#stylebook")history.replaceState(null,"",location.pathname);return true}
+  if(!$("cardsOv").hidden){const back=[...$("cardRow").querySelectorAll(".btn")].find(b=>b.textContent.startsWith("Back"));if(back)back.click();return true}
+  if(!$("storyOv").hidden){$("stGo").click();return true}
+  if(!$("menu").hidden){if(!$("bResume").hidden)$("bResume").click();return true}
+  if(document.body.classList.contains("cards-open")){setCards(false);return true}
+  if(!$("talk").hidden&&G&&G.story){$("talk").click();return true}
+  return false;
+}
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&escClose())ev.stopImmediatePropagation()},true);
 document.addEventListener("keydown",ev=>{
   if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden||!$("soundOv").hidden)return;
   const k=ev.key.toUpperCase();
