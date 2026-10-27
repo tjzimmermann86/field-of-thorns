@@ -9,3 +9,8 @@ A pixel-art tower defense game. Grow a maze of thorns to steer the slimes, build
 - Plays with mouse and keyboard, or on tablets and phones in landscape
 
 The whole game is a single static `index.html` — no build step. Deployed on Vercel straight from this repo.
+
+## Setup on Vercel
+
+- Static game: `index.html`, plus `manifest.webmanifest`, `sw.js` and `icons/` so it can be installed to a phone home screen and played offline.
+- Shared ranking: `api/scores.js` (a Vercel serverless function). Connect an **Upstash Redis** store from the Vercel Marketplace to this project (Storage tab); it adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Redeploy afterwards. Without it the game still runs and keeps personal rankings in the browser.
