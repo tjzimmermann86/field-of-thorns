@@ -162,6 +162,34 @@ h2{font-size:20px}
 #toast.air{background:#e3d8f6}
 #toast.big{top:38%;font-size:32px;padding:16px 24px;border-width:4px}
 #toast.boss{background:#f7d2cf}
+#styleOv{align-items:flex-start;overflow:auto;z-index:30}
+#styleBox{max-width:1180px;background:var(--panel);max-height:none}
+.sb-sec{margin-top:22px;padding-top:12px;border-top:3px dashed var(--line)}
+.sb-sec h2{font-family:var(--f-ui);font-weight:400;font-size:28px}
+.sb-sec>.hint{margin:2px 0 10px}
+.sb-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.sb-item{display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.sb-cap{font-size:14px;color:var(--muted)}
+.sb-sw{width:84px;height:44px;border:3px solid var(--ink)}
+.sb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.sb-tw{border:3px solid var(--ink);background:var(--panel2);padding:8px;display:flex;flex-direction:column;gap:4px}
+.sb-tw .cvs{display:flex;gap:8px;align-items:flex-end}
+.sb-tw canvas{image-rendering:pixelated;background:#a9d47c;border:2px solid var(--ink)}
+.sb-tw b{font-size:21px;font-weight:400}
+.sb-tw .st{font-size:15px;color:var(--muted);line-height:1.25;font-variant-numeric:tabular-nums}
+.sb-cv{image-rendering:pixelated;background:#a9d47c;border:2px solid var(--ink)}
+.sb-toast{position:static!important;transform:none!important;display:inline-block}
+#guide{padding:10px 12px;background:#fffdf4;border-color:var(--gold);margin-bottom:10px}
+#left #guide{box-shadow:none}
+#guide .gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#guide #gSkip{display:inline-block;float:none;font-size:15px;padding:2px 8px;margin:0}
+#guide b{display:block;font-size:22px;font-weight:400;margin-top:2px}
+#guide p{margin:4px 0 0;font-size:17px;line-height:1.3}
+#gNeed{margin-top:6px;font-size:17px;color:#9a6a08;padding:2px 6px;background:var(--gold-soft);border-left:4px solid var(--gold)}
+.glow{outline:4px solid var(--gold)!important;outline-offset:1px;animation:glowp 1s steps(2) infinite}
+@keyframes glowp{50%{outline-color:#fff2b0}}
+body.compact #guide{position:absolute;right:8px;top:8px;z-index:6;width:min(320px,48%);padding:6px 8px;margin:0}
+body.compact #guide b{font-size:18px}body.compact #guide p{font-size:14px}body.compact #gNeed{font-size:14px}
 @media (max-width:980px){
   .menu-grid{grid-template-columns:1fr}
   .card{min-height:0}
@@ -235,7 +263,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   body.compact #rotate{display:flex;position:fixed;inset:0;z-index:40;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:24px;font-size:22px}
 }
 @media (prefers-reduced-motion:reduce){body.compact #left{transition:none}}
-@media (prefers-reduced-motion:reduce){.card:hover{transform:none}.stat.lives.bad{animation:none}}
+@media (prefers-reduced-motion:reduce){.glow{animation:none}.card:hover{transform:none}.stat.lives.bad{animation:none}}
 </style>
 
 <div id="app">
@@ -266,6 +294,11 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div id="stage">
       <canvas id="cv" width="960" height="576"></canvas>
       <div id="toast" class="px-box" hidden></div>
+      <div id="guide" class="px-box" hidden role="dialog" aria-live="polite">
+        <div class="gtop"><span class="label" id="gStep"></span><button class="btn xbtn" id="gSkip" title="Skip the guide">Skip guide</button></div>
+        <b id="gTitle"></b><p id="gBody"></p><div id="gNeed"></div>
+        <div class="row" style="margin-top:6px"><button class="btn go" id="gNext">Next</button></div>
+      </div>
     </div>
     <div id="rail">
       <div class="sec px-box"><h3>Build</h3><div id="build"></div><div id="buildTip">Pick a tower</div>
@@ -275,6 +308,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   </div>
 </div>
 
+<div class="ov" id="styleOv" hidden><div class="modal px-box" id="styleBox"></div></div>
 <div id="rotate"><b>Turn your phone sideways</b><span class="hint">Field of Thorns plays in landscape so the map is big enough to tap.</span></div>
 <div class="ov" id="menu">
   <div class="modal px-box">
@@ -286,7 +320,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
         <div><div class="label" style="margin-bottom:6px">Difficulty</div><div class="tabs" id="diffTabs"></div></div>
         <div><div class="label" style="margin-bottom:6px">Map</div><div class="maps" id="mapList"></div></div>
-        <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn" id="bReset">Reset progress</button></div>
+        <div class="row" style="margin-top:0"><button class="btn go" id="bPlay" style="font-size:18px;padding:10px 22px">Play</button><button class="btn goldb" id="bHow">How to play</button><button class="btn" id="bStyle">Stylebook</button><button class="btn" id="bReset">Reset progress</button></div>
         <p class="how">Every 3rd round brings mini-bosses (2 lives), every 10th a boss (3–4 lives), rounds 25 and 50 a giant boss (5 lives). Every 7th round flies over your maze, so keep some anti-air ready. Beating round 25 grants a rare card.</p>
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
@@ -477,7 +511,7 @@ let menuD=0, menuM=0;
 const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 let bgCanvas=document.createElement("canvas"),bgDirty=true;
 
-function newGame(d,m){
+function newGame(d,m,opt){
   const map=buildMap(m,d);
   G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].gold,lives:20,round:0,
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
@@ -489,7 +523,40 @@ function newGame(d,m){
   renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);
   announceNext();
   if(typeof layout==="function")requestAnimationFrame(layout);
+  const wantGuide=(opt&&opt.guide)||(d===0&&m===0&&!LS.get("fot-guide-done",false)&&!(opt&&opt.noGuide));
+  startGuide(wantGuide);
 }
+
+// ---------- beginner guide (Easy · Meadow) ----------
+const GUIDE=[
+  {t:"Welcome to Field of Thorns",b:"Slimes enter at the red IN gate and crawl to the green EXIT. Every slime that gets out costs a life. Survive 50 rounds with at least one of your 20 lives left.",hl:"gates"},
+  {t:"The sand path is their route",b:"Slimes always take the shortest way to the exit. That route is drawn as the sand path. Everything you build blocks its tile, and the path bends around it. A longer path keeps them in front of your towers for longer. This is the heart of the game.",hl:"path"},
+  {t:"Grow a thorn wall",b:"Pick Thorns and place them on the marked tiles across the path. Watch the path move around them. You can never close the way completely: the game stops you if a tile would block the last route.",hl:"thorns",glow:'#build .bt[data-t="fence"]',need:()=>{const n=G.towers.filter(t=>t.type==="fence").length;return n>=4?null:`Place 4 Thorns (${n}/4)`}},
+  {t:"See the detour?",b:"The path now runs around your wall, so it got longer. Thorns also scratch slimes that walk right past them, and every upgrade multiplies that damage. Weak now, deadly later.",hl:"path"},
+  {t:"Build an Arrow tower",b:"Pick Arrow and place it next to the path, close to the bend. While you aim, the circle shows how far it shoots and the line shows the new path.",glow:'#build .bt[data-t="arrow"]',need:()=>G.towers.some(t=>t.type==="arrow")?null:"Place an Arrow tower"},
+  {t:"Add a second tower",b:"One tower is not enough for 25 slimes. Place another Arrow, or a Frost tower to slow them down.",need:()=>G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length>=2?null:"Place a second tower"},
+  {t:"Check your tower",b:"Select a tower to see its damage now and after the next upgrade. Upgrades add damage and range. Purple numbers come from your bonus cards.",need:()=>sel&&sel.type!=="fence"?null:"Select one of your towers"},
+  {t:"Start round 1",b:"Ready? Press Start. Round 1 waits for you; later rounds start on their own after 30 seconds, and starting early pays bonus gold.",glow:"#bStart",need:()=>G.round>=1?null:"Press Start"},
+  {t:"Hold the line",b:"Kills pay gold, and you can keep building during the wave. If slimes slip through, add towers near the end of the path.",need:()=>G.round>=1&&G.phase!=="wave"?null:"Survive round 1"},
+  {t:"You're ready",b:"After each round you pick a bonus card. Picking the same card again levels it up. Watch the top bar: flyers come every 7th round and ignore your maze, so build Flak or Hawk in time. Bosses cost several lives. Good luck!"},
+];
+function startGuide(on){G.guide=on?{i:0}:null;renderGuide()}
+function guideStep(){return G&&G.guide?GUIDE[G.guide.i]:null}
+function renderGuide(){
+  const box=$("guide");document.querySelectorAll(".glow").forEach(e=>e.classList.remove("glow"));
+  const st=guideStep();box.hidden=!st;if(!st)return;
+  const need=st.need?st.need():null;
+  $("gStep").textContent=`Guide ${G.guide.i+1}/${GUIDE.length}`;$("gTitle").textContent=st.t;$("gBody").textContent=st.b;
+  $("gNeed").textContent=need||"";$("gNeed").hidden=!need;
+  $("gNext").hidden=!!need;$("gNext").textContent=G.guide.i===GUIDE.length-1?"Let's play":"Next";
+  if(st.glow&&need){const e=document.querySelector(st.glow);if(e)e.classList.add("glow")}
+  G.guide.key=G.guide.i+"|"+need;
+}
+function guideTick(){const st=guideStep();if(!st)return;const need=st.need?st.need():null;
+  if(G.guide.key!==G.guide.i+"|"+need){if(st.need&&!need&&!G.guide.done){G.guide.done=true;setTimeout(()=>{if(G.guide){G.guide.done=false;guideNext()}},700)}renderGuide()}}
+function guideNext(){if(!G.guide)return;if(G.guide.i>=GUIDE.length-1){endGuide();return}G.guide.i++;renderGuide()}
+function endGuide(){LS.set("fot-guide-done",true);G.guide=null;renderGuide()}
+function guideTiles(){const m=G.map,x=7,out=[];for(let y=m.mid-2;y<=m.mid+1;y++)out.push(y*m.cols+x);return out}
 
 // ---------- rounds ----------
 function roundType(r){
@@ -836,7 +903,7 @@ function frame(now){
     const steps=G.speed;for(let s=0;s<steps;s++)step(rdt);
   }
   if(G)draw(now/1000);
-  hudAcc+=rdt;if(hudAcc>0.2&&G){hudAcc=0;updHud();if(sel)renderInfo(true)}
+  hudAcc+=rdt;if(hudAcc>0.2&&G){hudAcc=0;updHud();if(sel)renderInfo(true);guideTick()}
   requestAnimationFrame(frame);
 }
 function step(dt){
@@ -1054,9 +1121,18 @@ function draw(t){
   // selected tower round damage label
   if(sel&&!group&&!TOWERS[sel.type].wall&&!TOWERS[sel.type].eco){const s=`${fmt(sel.rd)} dmg this round`;ctx.font=`${T*0.5}px "VT323",monospace`;ctx.textAlign="center";const x=(sel.x+1)*T,y=(sel.y+1)*T-T*0.95;const w=ctx.measureText(s).width+14;ctx.fillStyle="#253225";ctx.fillRect(x-w/2,y-T*0.26,w,T*0.52);ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(s,x,y+1)}
   if(G.paused){ctx.fillStyle="rgba(37,50,37,.35)";ctx.fillRect(0,0,cv.width,cv.height);ctx.font=`${T*1.2}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText("PAUSED",cv.width/2,cv.height/2);ctx.font=`${T*0.5}px "VT323",monospace`;ctx.fillText("Building and buying are locked. Press P or ▶ to resume.",cv.width/2,cv.height/2+T*0.9);return}
+  // guide highlights
+  const gs=guideStep();
+  if(gs&&gs.hl){const pulse=0.45+0.35*Math.sin(t*5);ctx.lineWidth=5;ctx.strokeStyle=`rgba(217,154,28,${pulse})`;
+    const box=(fx,fy)=>ctx.strokeRect(fx*T+3,fy*T+3,T-6,T-6);
+    if(gs.hl==="gates"){m.gates.forEach(g=>{const p=spawnPoint(m,g);box(Math.floor(p.x+1),Math.floor(p.y+1))});m.exits.forEach((e,k)=>e.cells.forEach(i=>{const p=gatePoint(m,k,i);box(Math.floor(p.x+1),Math.floor(p.y+1))}))}
+    if(gs.hl==="path"){ctx.fillStyle=`rgba(217,154,28,${pulse*0.35})`;for(const i of G.path)ctx.fillRect((i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,T,T)}
+    if(gs.hl==="thorns")for(const i of guideTiles())if(!G.occ[i]){box(i%m.cols+1,((i/m.cols)|0)+1);ctx.fillStyle=`rgba(217,154,28,${pulse*0.3})`;ctx.fillRect((i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,T,T)}
+  }
   // hover ghost
   if(buildType&&hover>=0&&ghost&&(ghost.replace||ghost.same)){
-    const x=hover%m.cols,y=(hover/m.cols)|0,r=ghost.replace;
+    const x=hover%m.cols,y=(hover/m.cols)|0,r=ghost.replace,nb=TOWERS[buildType];
+    if(!nb.eco)showR(x+0.5,y+0.5,withCards(buildType,lvlStats(buildType,1)).range,ghost.ok||ghost.same?"#d99a1c":"#cf463d");
     ctx.strokeStyle=ghost.ok?"#d99a1c":"#cf463d";ctx.lineWidth=4;ctx.setLineDash([8,6]);ctx.strokeRect((x+1)*T+2,(y+1)*T+2,T-4,T-4);ctx.setLineDash([]);
     const lines=ghost.same?["Already a "+TOWERS[buildType].n]:[`Replace ${TOWERS[r.old.type].n} → ${TOWERS[buildType].n}`,`+¤${r.back} back · −¤${r.cost} = ${r.back-r.cost>=0?"+":"−"}¤${Math.abs(r.back-r.cost)}`];
     ctx.font=`${T*0.48}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";
@@ -1092,10 +1168,10 @@ function updHud(){
   if(G.phase==="wave"){$("bStart").disabled=true;$("bStart").textContent=document.body.classList.contains("compact")?"Wave":"Wave running"}
   else if(G.round===0){$("bStart").disabled=G.phase!=="countdown";$("bStart").textContent=document.body.classList.contains("compact")?"Start":"Start round 1"}
   else{$("bStart").disabled=G.phase!=="countdown";$("bStart").innerHTML=document.body.classList.contains("compact")?`Go +${COIN}${earlyBonus()}`:`Start now +${COIN}${earlyBonus()}`}
-  document.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",G.gold<price(k))});
+  document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",G.gold<price(k))});
 }
 function renderBuild(){
-  const el=$("build");
+  const el=$("build");if(G)ghost=hover>=0?hoverGhost(hover):null; // keep the preview in sync with the picked tower
   if(!el.children.length){
     ORDER.forEach(k=>{const b=document.createElement("button");b.className="bt";b.dataset.t=k;b.title=`${TOWERS[k].n}: ${TOWERS[k].desc} (key ${TOWERS[k].key})`;
       b.innerHTML=`<span class="key">${TOWERS[k].key}</span><canvas width="64" height="64"></canvas><span class="nm">${TOWERS[k].n}</span><span class="pr"></span>`;
@@ -1223,6 +1299,7 @@ document.addEventListener("keydown",ev=>{
 });
 function togglePause(){G.paused=!G.paused;document.body.classList.toggle("paused",G.paused);$("bPause").setAttribute("aria-pressed",G.paused);$("bPause").textContent=G.paused?"▶":"II"}
 $("bPause").onclick=togglePause;
+$("gNext").onclick=guideNext;$("gSkip").onclick=endGuide;
 $("bSpd").onclick=()=>setSpeed(G.speed%3+1); // compact: one button cycles 1x → 2x → 3x
 function setSpeed(v){G.speed=v;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",+o.dataset.sp===v));$("bSpd").textContent=v+"x"}
 document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
@@ -1237,7 +1314,9 @@ function layout(){
   const compact=coarse||innerWidth<1000||innerHeight<620;
   const land=innerWidth>=innerHeight;
   const b=document.body;b.classList.toggle("compact",compact);b.classList.toggle("land",compact&&land);b.classList.toggle("port",compact&&!land);
-  if(!compact){cv.style.width="";cv.style.height="";setCards(false);return}
+  const gd=$("guide");
+  if(!compact){if(gd.parentNode!==$("left"))$("left").insertBefore(gd,$("left").firstChild);cv.style.width="";cv.style.height="";setCards(false);return}
+  if(gd.parentNode!==$("stage"))$("stage").appendChild(gd);
   const st=$("stage").getBoundingClientRect();if(!st.width||!st.height)return;
   const k=Math.min(st.width/cv.width,st.height/cv.height);
   cv.style.width=Math.floor(cv.width*k)+"px";cv.style.height=Math.floor(cv.height*k)+"px";
@@ -1345,18 +1424,128 @@ function renderLb(){
   }
 }
 $("lbP").onclick=()=>{lbMode="personal";renderLb()};$("lbO").onclick=()=>{lbMode="overall";renderLb()};
+// ---------- stylebook: every visual piece of the game on one page ----------
+function openStylebook(){
+  const box=$("styleBox");box.innerHTML="";
+  const el=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e};
+  const sec=(title,hint)=>{const s=el("section","sb-sec");s.appendChild(el("h2","",title));if(hint)s.appendChild(el("p","hint",hint));box.appendChild(s);return s};
+  const item=(node,cap)=>{const w=el("div","sb-item");w.appendChild(node);if(cap)w.appendChild(el("span","sb-cap",cap));return w};
+  const cvs=(w,h,draw)=>{const c=document.createElement("canvas");c.width=w;c.height=h;c.className="sb-cv";const x=c.getContext("2d");x.imageSmoothingEnabled=false;draw(x);return c};
+  const head=el("div","");head.style.cssText="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap";
+  head.appendChild(el("div","",'<h1>Stylebook</h1><div class="hint">Every button, tower, enemy and card in Field of Thorns, drawn by the live game code.</div>'));
+  const close=el("button","btn","Close");close.onclick=()=>{$("styleOv").hidden=true;if(location.hash==="#stylebook")history.replaceState(null,"",location.pathname)};head.appendChild(close);box.appendChild(head);
+
+  // colours
+  let s=sec("Colours","Interface tokens and the main map colours.");let r=el("div","sb-row");
+  const cs=getComputedStyle(document.documentElement);
+  ["--bg","--panel","--panel2","--ink","--muted","--line","--gold","--gold-soft","--danger","--ice","--go","--rare"].forEach(k=>{const v=cs.getPropertyValue(k).trim();const sw=el("div","sb-sw");sw.style.background=v;r.appendChild(item(sw,`${k} ${v}`))});
+  [["Grass","#a9d47c"],["Path","#ead8a4"],["Water","#7cc6e8"],["Thorn vine","#4a7c2e"],["Berry","#c23b4a"],["Coin","#f4c84a"]].forEach(([n,v])=>{const sw=el("div","sb-sw");sw.style.background=v;r.appendChild(item(sw,`${n} ${v}`))});
+  s.appendChild(r);
+
+  // type
+  s=sec("Typography","Silkscreen for the game title, VT323 for everything else.");
+  s.appendChild(el("div","",'<h1 style="margin:0">Field of Thorns</h1><div class="sb-cap">Title · Silkscreen</div>'));
+  s.appendChild(el("div","",'<div style="font-size:30px">Round 12 · 80 enemies 0123456789</div><div class="sb-cap">Large numbers · VT323 30px</div>'));
+  s.appendChild(el("div","",'<div style="font-size:19px">Slimes always take the shortest way to the exit.</div><div class="sb-cap">Body · VT323 19px</div>'));
+  s.appendChild(el("div","",'<span class="label">Section label</span><div class="sb-cap">Label · VT323 uppercase</div>'));
+
+  // buttons
+  s=sec("Buttons and controls");r=el("div","sb-row");
+  [['<button class="btn">Default</button>',"Default"],['<button class="btn go">Upgrade '+COIN+'30 <span class="kb">U</span></button>',"Primary (go)"],
+   ['<button class="btn goldb">Start now +'+COIN+'24</button>',"Gold"],['<button class="btn warn">Sell +'+COIN+'35 <span class="kb">S</span></button>',"Warning"],
+   ['<button class="btn go" disabled>Upgrade '+COIN+'90</button>',"Disabled"],['<button class="btn" aria-pressed="true" style="background:var(--ink);color:var(--panel)">3x</button>',"Pressed"],
+   ['<button class="tab" aria-pressed="false"><b>Normal</b><small>+30% enemy HP · 0/4 maps</small></button>',"Tab"],['<button class="tab" aria-pressed="true"><b>Easy</b><small>Base enemy HP</small></button>',"Tab selected"],
+   ['<button class="tab" disabled><b>Hard</b><small>Locked</small></button>',"Tab locked"],['<span class="tag">Ground + Air</span><span class="tag">Single</span>',"Tags"],
+   ['<span class="rtag air">Flying</span> <span class="rtag danger">Boss</span>',"Round tags"]].forEach(([h,c])=>r.appendChild(item(el("div","",h),c)));
+  s.appendChild(r);
+
+  // HUD
+  s=sec("Top bar");r=el("div","sb-row");
+  r.appendChild(item(el("div","stat px-box gold",`<span class="label">Gold</span><b>${COIN}250</b><small>+40 / min</small>`),"Gold"));
+  r.appendChild(item(el("div","stat px-box lives",`<span class="label">Lives</span><b>20/20</b><small>Holding strong</small>`),"Lives 15+"));
+  r.appendChild(item(el("div","stat px-box lives warn",`<span class="label">Lives</span><b>11/20</b><small>Under pressure</small>`),"Lives 7–14"));
+  r.appendChild(item(el("div","stat px-box lives bad",`<span class="label">Lives</span><b>4/20</b><small>Falling apart!</small>`),"Lives 0–6"));
+  [16,24,40].forEach(px=>{const c=el("span","",COIN);c.style.fontSize=px+"px";r.appendChild(item(c,`Coin ${px}px`))});
+  s.appendChild(r);
+
+  // build buttons
+  s=sec("Build buttons");r=el("div","sb-row");
+  const btn=(k,state)=>{const b=el("button","bt"+(state==="poor"?" poor":""),`<span class="key">${TOWERS[k].key}</span><canvas width="64" height="64"></canvas><span class="nm">${TOWERS[k].n}</span><span class="pr">${state==="free"?"FREE":COIN+TOWERS[k].cost}</span>`);
+    if(state==="sel")b.setAttribute("aria-pressed","true");if(state==="free")b.appendChild(el("span","free","×1"));
+    const c=b.querySelector("canvas").getContext("2d");c.imageSmoothingEnabled=false;c.save();c.scale(64/T*0.9,64/T*0.9);drawTower(c,k,T*0.06,T*0.3,1,0,null);c.restore();return b};
+  r.appendChild(item(btn("arrow"),"Normal"));r.appendChild(item(btn("frost","sel"),"Selected"));r.appendChild(item(btn("sniper","poor"),"Too expensive"));r.appendChild(item(btn("tesla","free"),"Free token"));
+  s.appendChild(r);
+
+  // towers
+  s=sec("Towers","Level 1 and level 10, with their stats before cards.");const g=el("div","sb-grid");
+  ORDER.forEach(k=>{const b=TOWERS[k],card=el("div","sb-tw");const row=el("div","cvs");
+    [1,10].forEach(L=>row.appendChild(cvs(80,96,x=>{x.save();x.scale(80/T,80/T);drawTower(x,k,0,T*0.35,L,0,null);x.restore()})));
+    card.appendChild(row);card.appendChild(el("b","",`${b.n} <span class="sb-cap">${COIN}${b.cost} · key ${b.key}</span>`));
+    if(b.eco){const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","st",`Gold / min ${a.income} → ${z.income}`))}
+    else{const a=lvlStats(k,1),z=lvlStats(k,10);card.appendChild(el("div","",`<span class="tag">${TGTXT[b.tg]}</span><span class="tag">${b.kind}</span>`));
+      card.appendChild(el("div","st",`Damage ${fmt1(a.dmg)} → ${fmt1(z.dmg)}<br>Shots/s ${fmt1(a.rate)} → ${fmt1(z.rate)}<br>Range ${fmt1(a.range)} → ${fmt1(z.range)}<br>DPS ${fmt1(a.dmg*a.rate)} → ${fmt1(z.dmg*z.rate)}`))}
+    card.appendChild(el("div","st",b.desc));g.appendChild(card)});
+  s.appendChild(g);
+
+  // thorn shapes
+  s=sec("Thorn shapes","Straight runs, rounded corners, T-junctions and crosses. Berries grow with the level.");r=el("div","sb-row");
+  const shape=(name,L_,R_,U_,D_,lv)=>r.appendChild(item(cvs(96,96,x=>{x.save();x.scale(96/T*0.8,96/T*0.8);drawFence(x,T*0.12,T*0.2,L_,R_,U_,D_,lv);x.restore()}),name));
+  shape("Single",0,0,0,0,1);shape("Horizontal",1,1,0,0,1);shape("Vertical",0,0,1,1,3);shape("Corner",0,1,0,1,4);shape("Corner",1,0,1,0,6);shape("T-junction",1,1,0,1,8);shape("Cross",1,1,1,1,10);
+  s.appendChild(r);
+
+  // enemies
+  s=sec("Enemies","Slime colour changes every 10 rounds. Health bars turn yellow and red as they drop.");r=el("div","sb-row");
+  const keep=G.round;
+  const mob=(kind,round,hpf,cap)=>{r.appendChild(item(cvs(110,110,x=>{G.round=round;const e={kind,fly:kind==="fly",boss:["mini","boss","big"].includes(kind),x:110/2/T-1,y:(kind==="big"?78:70)/T-1,off:0,ph:1,hitT:0,hp:hpf,maxHp:1,slowT:0};drawEnemy(x,e,0)}),cap))};
+  mob("grunt",1,1,"Slime · rounds 1–9");mob("grunt",12,0.7,"Rounds 10–19");mob("grunt",22,0.45,"Rounds 20–29");mob("grunt",33,0.3,"Rounds 30–39");mob("grunt",45,0.15,"Rounds 40–50");
+  mob("fly",7,1,"Flyer");mob("mini",3,1,"Mini-boss · 2 lives");mob("boss",10,0.6,"Boss · 3–4 lives");mob("big",25,1,"Giant boss · 5 lives");
+  G.round=keep;s.appendChild(r);
+
+  // cards
+  s=sec("Cards","Card choice after a round, and the owned-card list on the left.");r=el("div","sb-row");
+  const offer=(c,cur)=>{const nx=cur+1,b=el("div","card"+(c.rare?" rare":""));b.style.width="240px";
+    b.innerHTML=`<div class="ctop"><div class="ic"></div><span class="lvl"></span></div><b></b><p class="now"></p><p class="was"></p><div class="pips">${pipHtml(cur,nx)}</div><span class="label">${c.rare?"Rare":"Common"}</span>`;
+    b.querySelector(".ic").textContent=c.ic;b.querySelector("b").textContent=c.n;
+    const lv=b.querySelector(".lvl");lv.textContent=(cur?(nx===CMAX?`Lv ${cur} → MAX`:`Lv ${cur} → ${nx}`):"NEW")+(isMile(nx)&&nx!==CMAX?" ★ Bonus":nx===CMAX?" ★★":"");
+    if(nx===CMAX)lv.classList.add("max");else if(isMile(nx))lv.classList.add("mile");
+    b.querySelector(".now").textContent=cardText(c,nx);b.querySelector(".was").textContent=cur&&!c.once?`Now: ${cardText(c,cur)}`:"";return b};
+  r.appendChild(item(offer(CARDS.dmg,0),"New card"));r.appendChild(item(offer(CARDS.rate,2),"Next level is a bonus"));r.appendChild(item(offer(CARDS["type-fence"],5),"Mastery"));r.appendChild(item(offer(CARDS.wrath,9),"Rare, last level"));
+  s.appendChild(r);
+  r=el("div","sb-row");r.style.marginTop="12px";
+  const owned=(c,L)=>{const d=el("div","pc"+(c.rare?" rare":""));d.style.width="230px";
+    d.innerHTML=`<div class="top"><b></b><span class="lv"></span></div><div class="pips">${pipHtml(L,0)}</div><span class="ef"></span>`;
+    d.querySelector("b").textContent=c.ic+" "+c.n;const lv=d.querySelector(".lv");lv.textContent=L>=CMAX?"MAX":`Lv ${L}/10`;if(L>=CMAX)lv.classList.add("max");
+    d.querySelector(".ef").textContent=cardText(c,L);return d};
+  r.appendChild(item(owned(CARDS.bounty,1),"Level 1"));r.appendChild(item(owned(CARDS.range,3),"Level 3 (bonus)"));r.appendChild(item(owned(CARDS.market===undefined?CARDS.trade:CARDS.trade,6),"Level 6 (bonus)"));r.appendChild(item(owned(CARDS.overclock,10),"MAX"));
+  s.appendChild(r);
+  const all=el("p","hint");all.style.marginTop="10px";
+  all.textContent="All cards: "+Object.values(CARDS).map(c=>c.n+(c.rare?" (rare)":"")).join(", ")+".";s.appendChild(all);
+
+  // popups
+  s=sec("Popups");r=el("div","sb-row");
+  [["",'Not enough gold'],["air","Next round: Flying enemies! They ignore your maze"],["boss","Next round: Boss incoming"],["big","Round 5 starts — 45 enemies. Good luck!"]].forEach(([c,t])=>{const d=el("div","px-box sb-toast "+c);d.id="";d.style.cssText="padding:10px 16px;font-size:"+(c==="big"?"28px":"20px")+";background:"+(c==="air"?"#e3d8f6":c==="boss"?"#f7d2cf":"var(--panel)");d.textContent=t;r.appendChild(item(d,c?c+" popup":"default popup"))});
+  s.appendChild(r);
+  const gd=el("div","px-box");gd.style.cssText="width:360px;padding:10px 12px;background:#fffdf4;border-color:var(--gold)";
+  gd.innerHTML='<span class="label">Guide 3/10</span><b style="display:block;font-size:22px;font-weight:400">Grow a thorn wall</b><p style="margin:4px 0 0;font-size:17px">Pick Thorns and place them on the marked tiles.</p><div style="margin-top:6px;font-size:17px;color:#9a6a08;padding:2px 6px;background:var(--gold-soft);border-left:4px solid var(--gold)">Place 4 Thorns (1/4)</div>';
+  s.appendChild(item(gd,"Beginner guide box"));
+
+  $("styleOv").hidden=false;$("styleOv").scrollTop=0;
+}
 function openMenu(resumable){
   if(G&&!G.over&&resumable)$("bResume").hidden=false;else $("bResume").hidden=true;
   if(G){menuD=G.d;menuM=G.m}
   renderMenu();$("menu").hidden=false;
 }
 $("bResume").onclick=()=>{$("menu").hidden=true};
+$("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
+$("bStyle").onclick=()=>openStylebook();
 $("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;$("menu").hidden=true;newGame(menuD,menuM)};
 let resetArm=false;
 $("bReset").onclick=()=>{if(!resetArm){resetArm=true;$("bReset").textContent="Click again to erase";setTimeout(()=>{resetArm=false;$("bReset").textContent="Reset progress"},3000);return}
   progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
 
-newGame(0,0);
+newGame(0,0,{noGuide:true});
+if(location.hash==="#stylebook")setTimeout(()=>openStylebook(),0);
 openMenu(false);
 layout();
 requestAnimationFrame(frame);
