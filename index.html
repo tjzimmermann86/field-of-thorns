@@ -1234,7 +1234,8 @@ function placeAct(){
   if(!(G&&tw&&!G.over&&!buildType&&G.towers.includes(tw)&&$("menu").hidden&&$("cardsOv").hidden)){if(!el.hidden)el.hidden=true;return}
   const r=cv.getBoundingClientRect(),sr=$("stage").getBoundingClientRect(),c=G.cam;
   const sx=v=>r.left-sr.left+((v+1)*T-c.x)*c.z/cv.width*r.width,sy=v=>r.top-sr.top+((v+1)*T-c.y)*c.z/cv.height*r.height;
-  const max=tw.L>=10||TOWERS[tw.type].wall,up=$("taUp");up.hidden=max;
+  const max=tw.L>=10||TOWERS[tw.type].wall,up=$("taUp"); // stays in place at max level so Sell never slides under the finger
+  if(max){up.classList.add("off");if($("taCost").textContent!=="MAX")$("taCost").textContent="MAX";up.title="Max level"}
   if(!max){const list=group||[tw],cost=list.reduce((a,t)=>t.L<10?addC(a,upCost(t.type,t.L)):a,C()),one=upCost(tw.type,tw.L);
     up.classList.toggle("off",!afford(one));const h=fmtC(cost);if($("taCost").innerHTML!==h)$("taCost").innerHTML=h;
     up.title=(group?`Upgrade all ${group.length}`:"Upgrade")+" (U)";}
@@ -2336,7 +2337,7 @@ $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=tru
   storyArm=false;$("bStoryNew").textContent="New campaign";LS.set("fot-story",null);$("menu").hidden=true;newStory(null)};
 $("bHow").onclick=()=>{$("menu").hidden=true;newGame(0,0,{guide:true})};
 $("bStyle").onclick=()=>openStylebook();
-$("taUp").onclick=()=>{if(!sel)return;if(group)upgradeGroup();else upgrade(sel)};
+$("taUp").onclick=()=>{if(!sel||sel.L>=10)return;if(group)upgradeGroup();else upgrade(sel)};
 $("taDel").onclick=()=>{if(!sel)return;if(group)sellGroup();else sell(sel)};
 function renderSound(){
   const st=SND.st;["music","sfx"].forEach(k=>{$("sv-"+k).value=st[k];setTxt("sn-"+k,st[k]===0?"Off":st[k])});
