@@ -1045,22 +1045,40 @@ const KINDS={
   heal:{n:"Healer",hp:1.2,spd:1.35,col:["#f6a8c0","#d0708f"],info:"New enemy: Healer. It mends the slimes around it, so take it out first."},
   eat:{n:"Thorn-eater",hp:1.3,spd:1.5,col:["#3f6b2a","#24401a"],info:"New enemy: Thorn-eater. It stops to chew through a thorn bush beside its path."},
   spawn:{n:"Spawnling",hp:0.22,spd:1.9,col:["#e08ad8","#a8509f"]},
+  rabbit:{n:"Rabbit",hp:0.35,spd:2.3,gold:0.3,info:"New enemy: Rabbits. They come in packs of 10, very fast but weak. Gatlings and Arrows mow them down."},
+  thief:{n:"Raccoon thief",hp:0.9,spd:1.9,info:"New enemy: Raccoon thief. If it gets through, it steals gold instead of a life."},
+  ghost:{n:"Ghost",hp:1.0,spd:1.35,info:"New enemy: Ghost. For its first 2 seconds nothing can hit it, so towers right at the entrance shoot at thin air."},
+  burrow:{n:"Mole",hp:1.3,spd:1.2,info:"New enemy: Mole. Every few tiles it digs underground, where nothing can hit it, and speeds along. A mole slowed by Frost can't dig."},
+  shield:{n:"Shield bearer",hp:2.2,spd:1.1,info:"New enemy: Shield bearer. Its shield catches single shots aimed at the slimes right behind it. Mortar, Fire, Tesla, Flak and Ballista get around it."},
+  golem:{n:"Rock golem",hp:2.6,spd:0.95,info:"New enemy: Rock golem. Frost can't slow it, but Mortar shells do double damage."},
+  shaman:{n:"Shaman",hp:1.3,spd:1.25,info:"New enemy: Shaman. Every few seconds it gives the slimes around it a burst of speed. Take it out first."},
+  snail:{n:"Snail",hp:3.0,spd:0.75,info:"New enemy: Snail. Very slow and very tough, and its slime trail makes the slimes walking next to it faster."},
+  imp:{n:"Fire imp",hp:1.1,spd:1.5,info:"New enemy: Fire imp. Fire towers can't hurt it, and when it dies it explodes and stuns the towers next to it for a second."},
+  balloon:{n:"Balloon goblin",hp:1.1,spd:1.15,fly:true,info:"New enemy: Balloon goblin. It floats over your maze with a slime in its basket and drops it where it is popped. If it gets through it costs 2 lives."},
 };
+const SHIELDABLE=["arrow","gatling","sniper","hawk","frost"];
 const ARMOR_WEAK=["arrow","gatling","hawk"];
 // flying rounds: 40% flyers, the rest walks the maze as usual
 function flyCount(r){return roundType(r).fly?Math.round(roundCount(r)*0.4):0}
 function roundMix(r){const n=roundCount(r)-flyCount(r),m={armor:0,split:0,heal:0,eat:0},R=eqR(r);
   if(R>=5)m.armor=Math.max(1,Math.floor(n*Math.min(0.25,0.08+0.004*R)));if(R>=8)m.split=Math.max(1,Math.floor(n*Math.min(0.18,0.06+0.003*R)));
-  if(R>=12)m.heal=Math.max(1,Math.floor(n*0.05));if(R>=15)m.eat=Math.max(1,Math.floor(n*0.04));return m}
-function mixText(m){const names={armor:["armored","armored"],split:["splitter","splitters"],heal:["healer","healers"],eat:["thorn-eater","thorn-eaters"]};
-  return Object.keys(m).filter(k=>m[k]).map(k=>`${m[k]} ${names[k][m[k]>1?1:0]}`).join(", ")}
+  if(R>=12)m.heal=Math.max(1,Math.floor(n*0.05));if(R>=15)m.eat=Math.max(1,Math.floor(n*0.04));
+  const add=(k,from,v)=>{if(r>=from)m[k]=Math.max(1,Math.floor(v))};
+  if(r>=5&&r%2===1)add("thief",5,n*0.04);add("ghost",7,n*0.08);add("burrow",9,n*0.06);add("shield",11,n/15);add("golem",13,n*0.06);add("shaman",14,n/20);add("snail",16,n/25);add("imp",17,n*0.06);
+  // all specials together stay below 75% of the slimes
+  const tot=Object.values(m).reduce((a,v)=>a+v,0),cap=Math.floor(n*0.75);if(tot>cap)for(const k in m)if(m[k])m[k]=Math.max(1,Math.floor(m[k]*cap/tot));
+  if(r>=4&&r%5===4)m.rabbit=10*Math.min(2,1+Math.floor(r/15)); // rabbit packs come on top
+  return m}
+function mixText(m){const names={armor:["armored","armored"],split:["splitter","splitters"],heal:["healer","healers"],eat:["thorn-eater","thorn-eaters"],thief:["thief","thieves"],ghost:["ghost","ghosts"],burrow:["mole","moles"],shield:["shield bearer","shield bearers"],golem:["golem","golems"],shaman:["shaman","shamans"],snail:["snail","snails"],imp:["fire imp","fire imps"],rabbit:["rabbit","rabbits"]};
+  return Object.keys(m).filter(k=>m[k]&&k!=="rabbit").map(k=>`${m[k]} ${names[k][m[k]>1?1:0]}`).join(", ")}
 // queue n slimes of which mix[k] are special, shuffled with a fixed seed so the preview matches
-function pushMix(n,mix,hp,extra,seed){const list=[];for(const k in mix)for(let j=0;j<mix[k];j++)list.push(k);while(list.length<n)list.push("grunt");
+function pushMix(n,mix,hp,extra,seed){const list=[];for(const k in mix)if(k!=="rabbit")for(let j=0;j<mix[k];j++)list.push(k);while(list.length<n)list.push("grunt");
   const R=rng(seed);for(let i=list.length-1;i>0;i--){const j=(R()*(i+1))|0;[list[i],list[j]]=[list[j],list[i]]}
-  for(const k of list){const K=KINDS[k];G.queue.push({kind:k,hp:hp*(K?K.hp:1),spd:K?K.spd:1.45,lives:1,bounty:1,...extra})}}
+  for(let p=0;p<(mix.rabbit||0)/10;p++){const at=(R()*(list.length+1))|0;list.splice(at,0,...Array(10).fill("rabbit"))}
+  for(const k of list){const K=KINDS[k],q={kind:k,hp:hp*(K?K.hp:1),spd:K?K.spd:1.45,lives:1,bounty:1,...extra};if(K&&K.gold)q.bounty*=K.gold;if(k==="rabbit")q.gap=0.13;G.queue.push(q)}}
 function describeRound(r){
   const t=roundType(r),n=roundCount(r),parts=[];
-  const mt=mixText(roundMix(r)),nf=flyCount(r);if(nf)parts.push(`${nf} flyers`);parts.push(`${n-nf} ${nf?"ground":"enemies"}${mt?` (${mt})`:""}`);
+  const mx=roundMix(r),mt=mixText(mx),nf=flyCount(r),nb=nf&&r>=12?Math.floor(nf*0.25):0;if(nf)parts.push(`${nf} flyers${nb?` (${nb} balloon goblins)`:""}`);parts.push(`${n-nf} ${nf?"ground":"enemies"}${mt?` (${mt})`:""}`);if(mx.rabbit)parts.push(`${mx.rabbit} rabbits`);
   if(t.mini)parts.push(`${1+Math.floor(r/9)} mini-boss`);
   if(t.boss)parts.push("boss");
   if(t.big)parts.push(r===LAST?"THE SLIME KING":"the Bog Tyrant");
@@ -1086,8 +1104,8 @@ function startRound(early){
   G.round++;G.phase="wave";G.timer=0;G.rnd={fly:0,nonFlak:false};
   const r=G.round,t=roundType(r),hp=baseHp(r),hb=bossHp(r),n=roundCount(r),kb=killGold(r);
   G.queue=[];
-  const nf=flyCount(r);pushMix(n-nf,roundMix(r),hp,{bounty:kb},r*97);
-  if(nf){const R=rng(r*131);for(let k=0;k<nf;k++)G.queue.splice((R()*(G.queue.length+1))|0,0,{kind:"fly",hp:hp*0.8,spd:1.75,lives:1,bounty:kb})}
+  const nf=flyCount(r),nb=r>=12?Math.floor(nf*0.25):0;pushMix(n-nf,roundMix(r),hp,{bounty:kb},r*97);
+  if(nf){const R=rng(r*131);for(let k=0;k<nf;k++)G.queue.splice((R()*(G.queue.length+1))|0,0,k<nb?{kind:"balloon",hp:hp*KINDS.balloon.hp,spd:KINDS.balloon.spd,lives:2,bounty:kb*1.5,pass:hp}:{kind:"fly",hp:hp*0.8,spd:1.75,lives:1,bounty:kb})}
   if(t.mini){const c=1+Math.floor(r/9);for(let k=0;k<c;k++)G.queue.push({kind:"mini",hp:Math.max(hb*9,hp*3),spd:1.05,lives:2,bounty:8*GOLDF})}
   if(t.boss)G.queue.push({kind:"boss",hp:hb*28,spd:0.85,lives:r>=18?4:3,bounty:25*GOLDF});
   if(t.big)G.queue.push({kind:"big",hp:hb*(r===LAST?75:55),spd:0.65,lives:5,bounty:60*GOLDF});
@@ -1403,7 +1421,7 @@ function upgrade(tw){
 const ctr=(m,i)=>({x:i%m.cols+0.5,y:((i/m.cols)|0)+0.5});
 function spawn(spec){
   const m=G.map,g=spec.camp!=null?{side:"camp",cell:CAMP_DEFS[spec.camp].y*m.cols+CAMP_DEFS[spec.camp].x}:m.gates[(G.spawnIdx=(G.spawnIdx||0)+1)%m.gates.length],sp=spawnPoint(m,g);
-  const e={...spec,maxHp:spec.hp,x:sp.x,y:sp.y,slowT:0,slowA:0,fly:spec.kind==="fly",
+  const e={...spec,maxHp:spec.hp,x:sp.x,y:sp.y,slowT:0,slowA:0,fly:spec.kind==="fly"||!!(KINDS[spec.kind]&&KINDS[spec.kind].fly),age:0,digCd:3,pulse:2,
     boss:["mini","boss","big"].includes(spec.kind),ph:Math.random()*6,off:(Math.random()-0.5)*0.24};
   if(e.fly){let best=0,bd=1e9;m.exits.forEach((_,k)=>{const g=exitCenter(m,k),d=Math.hypot(g.x-e.x,g.y-e.y);if(d<bd){bd=d;best=k}});e.gate=exitCenter(m,best);e.mode="fly"}
   else{e.mode="walk";e.cell=g.cell;const c=ctr(m,g.cell);e.prev=g.cell-Math.sign(Math.round((c.x-sp.x)))-Math.sign(Math.round(c.y-sp.y))*m.cols;e.p2={x:sp.x,y:sp.y};pickNext(e)}
@@ -1422,7 +1440,8 @@ function pickNext(e){
 }
 function bez(e,t){const a=(1-t)*(1-t),b=2*(1-t)*t,c=t*t;return{x:a*e.p0.x+b*e.p1.x+c*e.p2.x,y:a*e.p0.y+b*e.p1.y+c*e.p2.y}}
 function moveEnemy(e,dt){
-  const sp=e.spd*(e.slowT>0?1-e.slowA:1)*(G.env?G.env.spd:1)*(e.mode==="walk"&&(G.map.ter[e.cell]===T_ROAD||G.map.ter[e.cell]===T_PBRIDGE)?1.4:1)*(e.mode==="walk"&&G.map.ter[e.cell]===T_MUD?0.6:1)*(e.mode==="walk"&&G.map.ter[e.cell]===T_ICE?1.6:1)*(!e.fly&&G.map.paved?1.25:1)*dt;e.ph+=dt*8;
+  e.age+=dt;if(e.hasteT>0)e.hasteT-=dt;if(e.trailT>0)e.trailT-=dt;if(e.pulseFx>0)e.pulseFx-=dt;
+  const sp=e.spd*(e.hasteT>0?1.5:1)*(e.trailT>0?1.3:1)*(e.dig>0?1.8:1)*(e.slowT>0?1-e.slowA:1)*(G.env?G.env.spd:1)*(e.mode==="walk"&&(G.map.ter[e.cell]===T_ROAD||G.map.ter[e.cell]===T_PBRIDGE)?1.4:1)*(e.mode==="walk"&&G.map.ter[e.cell]===T_MUD?0.6:1)*(e.mode==="walk"&&G.map.ter[e.cell]===T_ICE?1.6:1)*(!e.fly&&G.map.paved?1.25:1)*dt;e.ph+=dt*8;
   if(e.slowT>0)e.slowT-=dt;
   if(e.chew){e.ph+=dt*16;e.chew.t-=dt;if(e.chew.t<=0)eatThorn(e);return}
   if(e.mode==="fly"){const dx=e.gate.x-e.x,dy=e.gate.y-e.y,d=Math.hypot(dx,dy);if(d<=sp){leak(e);return}e.x+=dx/d*sp;e.y+=dy/d*sp;return}
@@ -1433,6 +1452,7 @@ function moveEnemy(e,dt){
     else{move-=left;e.t=1;
       if(e.next<0){const q=bez(e,1);e.x=q.x;e.y=q.y;leak(e);return}
       e.prev=e.cell;e.cell=e.next;pickNext(e);
+      if(e.kind==="burrow"){if(e.dig>0)e.dig--;else if(--e.digCd<=0&&!(e.slowT>0)){e.dig=3;e.digCd=5}}
       if(e.kind==="eat"&&!e.ate){const m=G.map,x=e.cell%m.cols,y=(e.cell/m.cols)|0;
         for(const [dx,dy] of DIRS){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=m.cols||Y>=m.rows)continue;const o=G.occ[Y*m.cols+X];if(o&&o.type==="fence"){e.chew={tw:o,t:2.5};break}}
         if(e.chew){const q=bez(e,e.t);e.x=q.x;e.y=q.y;return}}}
@@ -1450,13 +1470,17 @@ function progressLeft(e){
   return G.dist[e.cell]+1-e.t;
 }
 function leak(e){
+  if(e.kind==="thief"){e.dead=true;const g=Math.min(Math.floor(G.gold),Math.max(20,Math.round(G.gold*0.1)));G.gold-=g;SND.play("leak");floatText(Math.min(e.x,G.map.cols-0.5),Math.max(0.5,Math.min(e.y,G.map.rows-0.5)),`-¤${g} stolen!`,"#cf463d");return}
   e.dead=true;if(!G.inf)G.lives-=e.lives;G.stats.leaked+=e.lives;SND.play("leak");
   floatText(Math.min(e.x,G.map.cols-0.5),Math.max(0.5,Math.min(e.y,G.map.rows-0.5)),`-${e.lives} ${e.lives>1?"lives":"life"}`,"#cf463d");
   if(G.lives<=0){G.lives=0;finish(false)}
 }
 function damage(e,amt,tw){
   if(e.dead||hidden(e))return;
-  let a=amt*(e.fly?1+G.mods.air:1)*(e.boss?1+G.mods.boss:1)*(e.kind==="armor"&&ARMOR_WEAK.includes(tw.type)?0.4:1);
+  if(e.kind==="imp"&&tw.type==="fire")return;
+  if(!e.fly&&e.kind!=="shield"&&SHIELDABLE.includes(tw.type)){const pl=progressLeft(e);
+    for(const o of G.enemies)if(o.kind==="shield"&&!o.dead&&!hidden(o)&&o!==e&&Math.hypot(o.x-e.x,o.y-e.y)<1.6&&progressLeft(o)<pl){G.fx.push({k:"pop",x:o.x-0.2,y:o.y-0.2,t:0.15,c:"#c3c9c8",s:0.6});e=o;break}}
+  let a=amt*(e.kind==="golem"&&tw.type==="mortar"?2:1)*(e.fly?1+G.mods.air:1)*(e.boss?1+G.mods.boss:1)*(e.kind==="armor"&&ARMOR_WEAK.includes(tw.type)?0.4:1);
   const hp0=e.hp,real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
   if(e.hp<=0){
     e.dead=true;G.stats.kills++;SND.play(e.kind==="boss"||e.kind==="big"?"boss":"kill");
@@ -1466,6 +1490,8 @@ function damage(e,amt,tw){
       G.enemies.push({kind:"spawn",hp:e.maxHp*K.hp,maxHp:e.maxHp*K.hp,spd:K.spd,lives:1,bounty:0,lvl:e.lvl,camp:e.camp,x:e.x,y:e.y,mode:"walk",cell:e.cell,next:e.next,prev:e.prev,
         p0:e.p0,p1:e.p1,p2:e.p2,t:Math.max(0,e.t-k*0.15),len:e.len,slowT:0,slowA:0,fly:false,boss:false,ph:Math.random()*6,off:(Math.random()-0.5)*0.5})}
     if(e.king){G.kingDead=true;toast("The Slime King is defeated!","",true)}
+    if(e.kind==="imp"){G.fx.push({k:"boom",x:e.x,y:e.y,r:1.4,t:0.3,c:"#f08a3a"});for(const o of G.towers)if(!TOWERS[o.type].eco&&!TOWERS[o.type].wall&&o.type!=="fence"&&Math.hypot(o.x-e.x,o.y-e.y)<=1.5)o.stun=1}
+    if(e.kind==="balloon")dropPassenger(e);
     if(!G.story&&e.bounty){ // on the maps every slime pays gold, more in later rounds
       const g=Math.max(1,Math.round(e.bounty*(1+r*0.07)*(1+G.mods.luck*0.5)));gain(C({g}));if(e.boss)floatText(e.x,e.y-0.6,"+¤"+g,"#9a6a08")}
     if(e.boss){ // bosses always drop a treasure chest
@@ -1476,15 +1502,25 @@ function damage(e,amt,tw){
   }
 }
 
+// a popped balloon goblin drops its slime on the nearest path tile
+function dropPassenger(e){const m=G.map;let best=-1,bd=1e9;for(const i of G.path){const c=ctr(m,i),d=Math.hypot(c.x-e.x,c.y-e.y);if(d<bd&&G.dist[i]<1e8){bd=d;best=i}}if(best<0)return;
+  const c=ctr(m,best),o={kind:"grunt",hp:e.pass||e.maxHp,maxHp:e.pass||e.maxHp,spd:1.45*(G.story?1:1.3),lives:1,bounty:e.bounty/1.5,lvl:e.lvl,camp:e.camp,x:c.x,y:c.y,mode:"walk",cell:best,prev:-1,p2:{x:c.x,y:c.y},
+    slowT:0,slowA:0,fly:false,boss:false,ph:Math.random()*6,off:0,age:9,digCd:3,pulse:2};pickNext(o);G.enemies.push(o);floatText(c.x,c.y-0.4,"Dropped!","#7a52c0")}
+// shamans hand out speed bursts, snails leave a fast trail
+function auraTick(dt){for(const e of G.enemies){if(e.dead)continue;
+  if(e.kind==="shaman"){e.pulse-=dt;if(e.pulse<=0){e.pulse=4;e.pulseFx=0.4;G.fx.push({k:"ring",x:e.x,y:e.y,r:2,t:0.25,c:"#7cc957"});for(const o of G.enemies)if(!o.dead&&!o.fly&&o!==e&&Math.hypot(o.x-e.x,o.y-e.y)<=2)o.hasteT=1.5}}
+  else if(e.kind==="snail"){for(const o of G.enemies)if(!o.dead&&!o.fly&&o!==e&&Math.hypot(o.x-e.x,o.y-e.y)<=1.3)o.trailT=0.3}}}
 // ---------- towers ----------
 function inRange(tw,e,R){return Math.hypot(e.x-tw.x,e.y-tw.y)<=R}
 // a ground slime inside a tunnel can't be seen or hit
-function hidden(e){return !e.fly&&e.mode==="walk"&&G.map.ter[e.cell]===T_TUN}
+function hidden(e){return e.dig>0||(e.kind==="ghost"&&e.age<2)||(!e.fly&&e.mode==="walk"&&G.map.ter[e.cell]===T_TUN)}
+const inTunnel=e=>!e.fly&&e.mode==="walk"&&G.map.ter[e.cell]===T_TUN;
 function canHit(tw,e){const tg=TOWERS[tw.type].tg;return !e.dead&&!hidden(e)&&e.x>-0.2&&(e.fly?tg.includes("a"):tg.includes("g"))}
 function towerTick(tw,dt){
   const b=TOWERS[tw.type];if(tw.flash>0)tw.flash-=dt;
   if(b.wall)return;
   if(b.eco)return; // production runs in produce()
+  if(tw.stun>0){tw.stun-=dt;return}
   tw.cd-=dt;if(tw.cd>0)return;
   const s=withCards(tw.type,lvlStats(tw.type,tw.L));if(G.env){s.range*=G.env.range;s.rate*=G.env.rate}
   const cands=G.enemies.filter(e=>canHit(tw,e)&&inRange(tw,e,s.range));
@@ -1521,7 +1557,7 @@ function projTick(p,dt){
   if(d<=st){
     p.dead=true;
     if(p.k==="flak"){G.fx.push({k:"boom",x:e.x,y:e.y,r:p.sp,t:0.22,c:"#9fb4c9"});for(const o of G.enemies)if(!o.dead&&o.fly&&Math.hypot(o.x-e.x,o.y-e.y)<=p.sp)damage(o,p.dmg,p.tw)}
-    else{if(p.k==="frost"){e.slowA=Math.max(e.slowT>0?e.slowA:0,p.slow);e.slowT=2}damage(e,p.dmg,p.tw)}
+    else{if(p.k==="frost"&&e.kind!=="golem"){e.slowA=Math.max(e.slowT>0?e.slowA:0,p.slow);e.slowT=2}damage(e,p.dmg,p.tw)}
   }else{p.x+=dx/d*st;p.y+=dy/d*st;p.a=Math.atan2(dy,dx)}
 }
 
@@ -1804,9 +1840,9 @@ function step(dt){dustTick(dt);
   if(G.story){storyStep(dt);if(G.over)return;for(const c of G.camps)if(c.hit>0)c.hit-=dt}
   if(G.phase==="countdown"&&G.round>0){G.timer-=dt;if(G.timer<=0){G.timer=0;startRound(false)}}
   if(G.phase==="wave"){
-    if(G.queue.length){G.spawnT-=dt;if(G.spawnT<=0){spawn(G.queue.shift());G.spawnT=G.spawnGap}}
+    if(G.queue.length){G.spawnT-=dt;if(G.spawnT<=0){const q=G.queue.shift();spawn(q);G.spawnT=q.gap&&G.queue[0]&&G.queue[0].gap?q.gap:G.spawnGap}}
   }
-  for(const e of G.enemies)if(!e.dead)moveEnemy(e,dt);
+  auraTick(dt);for(const e of G.enemies)if(!e.dead)moveEnemy(e,dt);
   if(G.over)return;
   for(const tw of G.towers)towerTick(tw,dt);
   produce(dt);
@@ -2258,33 +2294,107 @@ function drawTurret(c,type,ox,oy,L,t,tw){
     case"hawk":r(4,0,8,6,"#5e6f5c");r(5,-3,2,4,"#ffffff");r(9,-3,2,4,"#ffffff");r(5,-4,2,1,"#cf463d");r(9,-4,2,1,"#cf463d");r(4,4,8,1,"#3f4d3e");break;
   }
 }
+// ---------- enemy looks: every kind has its own body; map themes swap in local creatures ----------
+const SKIN={meadow:{fly:"bee"},autumn:{armor:"squirrel",fly:"crow"},winter:{grunt:"snow",rabbit:"penguin",fly:"owl"},desert:{armor:"scorpion",burrow:"worm",fly:"vulture"},swamp:{grunt:"toad",eat:"leech",fly:"mosquito"}};
+function lookOf(e){if(e.look)return e.look;if(e.kind==="big")return e.king||(!G.story&&G.round>=LAST)?"king":"tyrant";
+  const th=G.story?null:(mapDef(G.d,G.m).th||"meadow"),s=th&&SKIN[th];return (s&&s[e.kind])||e.kind}
+const LOOK_SC={big:2.4,king:2.4,tyrant:2.4,boss:1.9,mini:1.4,spawn:0.65,rabbit:0.95,penguin:0.95,snail:1.15,golem:1.25,imp:0.85,thief:0.9,balloon:1.1};
+const LOOK_TOP={balloon:16,king:13,boss:10,shaman:12,rabbit:11,heal:9,mini:10,scorpion:9,fly:7,bee:7,crow:7,owl:8,vulture:7,mosquito:7,ghost:9};
+function tierOf(r){return r<10?0:r<20?1:r<30?2:r<40?3:4}
+// r(x,y,w,h,colour) paints in sprite units; h(colour) turns white while the enemy flashes from a hit
+function paintEnemy(L,r,h,e,b,t){
+  const ph=e.ph||0,f=Math.sin(ph*1.6)>0?-1:1,wob=Math.sin(ph)*0.8;
+  const eyes=(x,y,c)=>{r(x,y,2,2,"#ffffff");r(x+4,y,2,2,"#ffffff");r(x+1,y+1,1,1,c||"#253225");r(x+5,y+1,1,1,c||"#253225")};
+  const blob=(c1,c2,yo)=>{yo=yo||0;r(-5,-3-b+yo,10,6+b,h(c1));r(-4,-5-b+yo,8,2,h(c1));r(-6,-1+yo,12,4,h(c1));r(-6,2+yo,12,1,h(c2))};
+  switch(L){
+  case"grunt":{const ti=tierOf(e.lvl||(G.story?G.round:eqR(G.round))),[c1,c2]=tierColor(e.lvl||(G.story?G.round:eqR(G.round)));
+    blob(c1,c2);eyes(-3,-3-b);
+    if(ti>=1){r(-3,-6-b,1,1,h(c2));r(0,-6-b,1,1,h(c2));r(2,-6-b,1,1,h(c2))}
+    if(ti>=2){r(-3,-7-b,1,1,h(c2));r(-0.5,-8-b,1.5,2,h(c2));r(2,-7-b,1,1,h(c2))}
+    if(ti>=3){r(-7,-5-b,2,1,h("#efe6c8"));r(-7,-6-b,1,1,h("#efe6c8"));r(5,-5-b,2,1,h("#efe6c8"));r(6,-6-b,1,1,h("#efe6c8"))}
+    if(ti>=4){r(-3,-4-b,2,1,"#253225");r(1,-4-b,2,1,"#253225");r(-2,1,1,1,"#ffffff");r(1,1,1,1,"#ffffff")}
+    break}
+  case"snow":{blob("#eef6fb","#9fc4dc");eyes(-3,-3-b,"#3f6cb0");r(-1,-7-b,2,1,h("#9fd8f0"));r(-0.5,-8-b,1,3,h("#9fd8f0"));r(-4,3,1,1.5,h("#bfe3f5"));r(3,3,1,1.5,h("#bfe3f5"));r(-1,0,2,1,h("#f08a3a"));break}
+  case"toad":{r(-6,-2,12,5,h("#5f8f3a"));r(-5,-3-b,10,2,h("#5f8f3a"));r(-4,1,8,2,h("#d7e3a0"));r(-5,-5-b,3,3,h("#5f8f3a"));r(2,-5-b,3,3,h("#5f8f3a"));r(-4,-4-b,1,1,"#253225");r(3,-4-b,1,1,"#253225");r(-4,-1,8,1,h("#2f4d1f"));r(-7,2,2,1,h("#4a7a2a"));r(5,2,2,1,h("#4a7a2a"));break}
+  case"armor":{ // beetle in a pot helmet
+    r(-6,-2,11,5,h("#5f6b6a"));r(-5,-4-b,9,2,h("#7f8b8a"));r(-1,-4-b,1,7,h("#3f4847"));r(-5,-3-b,3,1,h("#a7b1b0"));
+    r(4,-2-b,4,4,h("#4a5453"));r(4,-4-b,4,2,h("#c3c9c8"));r(3,-3-b,6,1,h("#8e9796"));r(6,-1-b,1,1,"#ffffff");r(8,-6-b,1,2,h("#3f4847"));r(6,-6-b,1,1,h("#3f4847"));
+    for(const x of[-5,-2,1])r(x,3,1,1.5,h("#2f3638"));break}
+  case"squirrel":{r(-8,-7-b,4,8,h("#d9822b"));r(-9,-8-b,3,3,h("#e89a48"));r(-4,-2-b,8,5+b,h("#a8642a"));r(-3,0,6,3,h("#e8c89a"));r(2,-5-b,4,4,h("#a8642a"));
+    r(1,-7-b,6,2,h("#7a4a1a"));r(3,-8-b,1,1,h("#5a3a1a"));r(4,-4-b,1,1,"#253225");r(6,-3-b,1,1,"#253225");r(-3,3,2,1,h("#7a4a1a"));r(2,3,2,1,h("#7a4a1a"));break}
+  case"scorpion":{r(-5,-1,9,4,h("#c9a25a"));for(const x of[-4,-1,2])r(x,-1,1,4,h("#a8823a"));r(-7,-3-b,2,3,h("#c9a25a"));r(-8,-5-b,2,2,h("#c9a25a"));r(-6,-7-b,3,2,h("#c9a25a"));r(-4,-8-b,2,2,h("#7a1f2a"));
+    r(4,0,3,2,h("#c9a25a"));r(7,-1,2,1,h("#a8823a"));r(7,2,2,1,h("#a8823a"));r(4,0,1,1,"#253225");for(const x of[-4,-1,2])r(x,3,1,1,h("#7a5a2a"));break}
+  case"split":{ // frog spawn: a wobbling bag with three blobs inside
+    const w=Math.sin(ph*1.3)*0.6;r(-6-w,-4-b,12+2*w,7+b,h("rgba(232,170,226,.75)"));r(-5,-6-b,10,2,h("rgba(232,170,226,.75)"));
+    r(-4,-2-b,3,3,h("#a8509f"));r(1,-3-b,3,3,h("#a8509f"));r(-1,0,3,3,h("#a8509f"));r(-3,-1-b,1,1,"#253225");r(2,-2-b,1,1,"#253225");r(0,1,1,1,"#253225");r(-4,-5-b,2,1,"#ffffff");break}
+  case"spawn":{blob("#e08ad8","#a8509f");eyes(-3,-3-b);break}
+  case"heal":{ // mushroom
+    r(-2,-1,4,4,h("#f4e8d0"));r(-1,0,1,1,"#253225");r(1,0,1,1,"#253225");r(-6,-5-b,12,4,h("#e86a9a"));r(-4,-7-b,8,2,h("#e86a9a"));
+    r(-4,-5-b,2,2,"#ffffff");r(1,-6-b,2,2,"#ffffff");r(3,-4-b,1,1,"#ffffff");r(-6,-2-b,12,1,h("#b84a72"));
+    if(e.healed&&Math.sin(t*6)>0){r(-7,-9-b,1,1,"rgba(246,168,192,.9)");r(6,-10-b,1,1,"rgba(246,168,192,.9)")}break}
+  case"eat":{ // caterpillar
+    const ch=e.chew&&Math.sin(ph)>0?1:0;for(let k=0;k<4;k++){const y=Math.sin(ph+k)*0.7;r(-7+k*3,-2+y,3,4,h(k%2?"#5f9238":"#4a7c2e"));r(-7+k*3,2+y,1,1,h("#24401a"))}
+    r(5,-4-b,4,5,h("#3f6b2a"));r(6,-3-b,1,1,"#ffffff");r(8,-3-b,1,1,"#ffffff");r(6,-1-b+ch,3,1,"#24401a");r(6,-6-b,1,2,h("#24401a"));r(8,-6-b,1,2,h("#24401a"));break}
+  case"leech":{const ch=e.chew&&Math.sin(ph)>0?1:0;r(-7,-1,13,3,h("#5a2a2a"));r(-6,-3-b,10,2,h("#6e3434"));r(5,-3-b,3,4,h("#7a3a3a"));r(6,-2-b+ch,2,2,h("#cf463d"));r(-5,-2-b,8,1,h("#8a4a4a"));r(3,-3-b,1,1,"#f4e27a");break}
+  case"fly":{r(-7,-4+f+wob,5,3,h("#a585e0"));r(2,-4+f+wob,5,3,h("#a585e0"));r(-8,-3+f+wob,1,2,h("#7a52c0"));r(7,-3+f+wob,1,2,h("#7a52c0"));r(-2,-4+wob,4,5,h("#5a3a90"));r(-2,-5+wob,1,1,h("#5a3a90"));r(1,-5+wob,1,1,h("#5a3a90"));r(-1,-3+wob,1,1,"#f4e27a");r(1,-3+wob,1,1,"#f4e27a");break}
+  case"bee":{r(-5,-6+f+wob,4,3,"rgba(220,240,255,.85)");r(1,-6+f+wob,4,3,"rgba(220,240,255,.85)");r(-4,-3+wob,8,5,h("#f4c84a"));r(-2,-3+wob,1,5,h("#253225"));r(1,-3+wob,1,5,h("#253225"));r(4,-2+wob,2,3,h("#253225"));r(-5,-1+wob,1,1,h("#253225"));r(3,-2+wob,1,1,"#ffffff");break}
+  case"crow":{r(-8,-3+f+wob,6,2,h("#2a2a33"));r(2,-3+f+wob,6,2,h("#2a2a33"));r(-3,-4+wob,6,5,h("#1f1f26"));r(3,-3+wob,2,1,h("#e0a526"));r(1,-3+wob,1,1,"#ffffff");r(-4,0+wob,2,2,h("#1f1f26"));break}
+  case"owl":{r(-7,-3+f+wob,4,3,h("#c8ced0"));r(3,-3+f+wob,4,3,h("#c8ced0"));r(-3,-5+wob,6,7,h("#eef1f2"));r(-2,-3+wob,2,2,h("#f4c84a"));r(1,-3+wob,2,2,h("#f4c84a"));r(-1,-2+wob,1,1,"#253225");r(2,-2+wob,1,1,"#253225");r(0,-1+wob,1,1,h("#e0a526"));r(-3,-6+wob,1,1,h("#c8ced0"));r(2,-6+wob,1,1,h("#c8ced0"));break}
+  case"vulture":{r(-9,-3+f+wob,7,2,h("#6e4a2a"));r(2,-3+f+wob,7,2,h("#6e4a2a"));r(-3,-3+wob,6,4,h("#5a3a1a"));r(-2,-4+wob,4,1,h("#efe6c8"));r(1,-6+wob,3,3,h("#e8a0a0"));r(4,-5+wob,1,1,h("#c8a24a"));r(2,-5+wob,1,1,"#253225");break}
+  case"mosquito":{r(-6,-5+f+wob,4,2,"rgba(220,240,255,.8)");r(2,-5+f+wob,4,2,"rgba(220,240,255,.8)");r(-3,-3+wob,6,2,h("#6f7877"));r(3,-3+wob,4,1,h("#3d4548"));r(-4,-2+wob,1,1,h("#cf463d"));
+    for(const x of[-2,0,2])r(x,-1+wob,0.5,4,h("#3d4548"));r(1,-4+wob,1,1,"#cf463d");break}
+  case"balloon":{ // balloon goblin carrying a slime
+    r(-4,-15+wob,8,7,h("#cf463d"));r(-3,-16+wob,6,1,h("#cf463d"));r(-3,-14+wob,2,2,"#f08a8a");r(0,-8+wob,1,3,"#6e5a4e");
+    r(-4,-5+wob,8,4,h("#8a5a30"));r(-4,-5+wob,8,1,h("#a8763a"));r(-3,-8+wob,3,3,h("#5f9238"));r(-3,-7+wob,1,1,"#253225");r(-4,-8+wob,1,1,h("#5f9238"));r(1,-7+wob,3,2,h("#7cc957"));r(2,-7+wob,1,1,"#ffffff");break}
+  case"mini":{ // slime knight
+    blob("#f2a14a","#c06f20");r(-5,-6-b,10,3,h("#9aa6a8"));r(-4,-7-b,8,1,h("#c3c9c8"));r(-3,-4-b,6,1,"#253225");r(-0.5,-9-b,1,2,h("#cf463d"));
+    r(-9,-3,4,6,h("#3f6cb0"));r(-8,-2,2,4,h("#f4c84a"));r(6,-10-b,1,13,h("#6e5a4e"));r(7,-10-b,4,3,h("#cf463d"));break}
+  case"boss":{ // mud troll
+    r(-6,-5-b,12,8+b,h("#7a5a3a"));r(-5,-7-b,10,2,h("#7a5a3a"));r(-5,-8-b,4,1,h("#5f9238"));r(1,-8-b,3,1,h("#5f9238"));r(-8,-3,2,6,h("#6a4a2a"));r(6,-3,2,6,h("#6a4a2a"));
+    r(-3,-5-b,2,1,"#f4e27a");r(1,-5-b,2,1,"#f4e27a");r(-3,-2-b,6,1,"#3a2a1a");r(-3,-3-b,1,2,"#ffffff");r(2,-3-b,1,2,"#ffffff");r(-4,1,8,1,h("#5a3a1a"));break}
+  case"tyrant":{ // the Bog Tyrant: a huge toad
+    r(-7,-3,14,6,h("#4a7a2a"));r(-6,-5-b,12,2,h("#4a7a2a"));r(-5,0,10,3,h("#c8d890"));r(-6,-8-b,4,3,h("#4a7a2a"));r(2,-8-b,4,3,h("#4a7a2a"));
+    r(-5,-7-b,2,2,"#f4e27a");r(3,-7-b,2,2,"#f4e27a");r(-4,-6-b,1,1,"#253225");r(4,-6-b,1,1,"#253225");for(const [x,y] of[[-4,-3],[0,-4],[3,-2],[-2,-1]])r(x,y-b,1,1,h("#2f5a1a"));
+    r(-5,-2,10,1,h("#2a3a1a"));if(Math.sin(t*3)>0.85){r(4,-2,5,1,"#e86a9a");r(8,-3,2,2,"#e86a9a")}r(-4,-10-b,8,2,h("#f4c84a"));r(-4,-11-b,1,1,h("#f4c84a"));r(3,-11-b,1,1,h("#f4c84a"));break}
+  case"king":{ // the Slime King: crown, cape and sceptre
+    r(-7,-4,14,7,h("#a8322a"));blob("#8b5ccf","#5c3399");eyes(-3,-3-b);r(-4,-8-b,8,2,h("#f4c84a"));r(-4,-10-b,2,2,h("#f4c84a"));r(-1,-10-b,2,2,h("#f4c84a"));r(2,-10-b,2,2,h("#f4c84a"));r(-1,-9-b,2,1,h("#cf463d"));
+    r(7,-9-b,1,11,h("#c8a24a"));r(6,-11-b,3,2,h("#f4c84a"));r(7,-12-b,1,1,h("#9fd8f0"));break}
+  case"rabbit":{const hop=Math.abs(Math.sin(ph*1.5))*2;r(-4,-2-hop,8,5,h("#e8dcc8"));r(-5,1-hop,2,2,h("#e8dcc8"));r(1,-6-hop,5,5,h("#e8dcc8"));r(1,-11-hop,2,5,h("#e8dcc8"));r(4,-11-hop,2,5,h("#e8dcc8"));
+    r(1.5,-10-hop,1,3,h("#f0a8b8"));r(4.5,-10-hop,1,3,h("#f0a8b8"));r(4,-4-hop,1,1,"#253225");r(6,-3-hop,1,1,h("#e86a9a"));r(-5,-1-hop,2,2,"#ffffff");break}
+  case"penguin":{r(-3,-6-b,6,9+b,h("#253225"));r(-2,-3-b,4,6+b,h("#f4f4f0"));r(-1,-5-b,1,1,"#ffffff");r(1,-5-b,1,1,"#ffffff");r(0,-4-b,2,1,h("#f08a3a"));r(-3,3,2,1,h("#f08a3a"));r(1,3,2,1,h("#f08a3a"));r(-4,-2,1,3,h("#253225"));r(3,-2,1,3,h("#253225"));break}
+  case"burrow":{if(e.dig>0){r(-5,0,10,3,h("#7a5a3a"));r(-3,-1,6,1,h("#8a6a4a"));r(-6,2,1,1,"#5a3a1a");r(5,1,1,1,"#5a3a1a");break}
+    r(-5,-3-b,10,6+b,h("#4a3f3a"));r(-4,-5-b,8,2,h("#4a3f3a"));r(-1,-2-b,2,1,h("#f0a8b8"));r(-3,-4-b,1,1,"#253225");r(2,-4-b,1,1,"#253225");
+    r(-8,0,3,2,h("#e8c8a8"));r(5,0,3,2,h("#e8c8a8"));r(-8,2,1,1,"#ffffff");r(7,2,1,1,"#ffffff");break}
+  case"worm":{if(e.dig>0){r(-5,0,10,3,h("#c9a25a"));r(-3,-1,6,1,h("#e0c080"));break}
+    for(let k=0;k<3;k++)r(-6+k*3,-1+Math.sin(ph+k)*0.6,3,4,h(k%2?"#c8a070":"#b88a58"));r(3,-6-b,4,8+b,h("#d8b080"));r(3,-6-b,4,2,h("#7a1f2a"));r(4,-5-b,2,1,"#ffffff");break}
+  case"ghost":{const ga=(e.age||9)<2?0.35:0.85;const g=(x,y,w,hh,c)=>r(x,y,w,hh,h(c.replace("A",ga)));
+    g(-5,-6-wob,10,9,"rgba(240,244,255,A)");g(-4,-8-wob,8,2,"rgba(240,244,255,A)");for(let k=0;k<5;k++)g(-5+k*2,3-wob+((k+Math.floor(ph))%2),2,1,"rgba(240,244,255,A)");
+    r(-3,-4-wob,2,3,`rgba(37,50,37,${ga})`);r(1,-4-wob,2,3,`rgba(37,50,37,${ga})`);r(-1,0-wob,2,1,`rgba(37,50,37,${ga})`);break}
+  case"snail":{r(-9,2,4,1,"rgba(200,230,255,.55)");r(-6,-1,12,4,h("#9aaa8a"));r(4,-4-b,3,4,h("#9aaa8a"));r(4,-7-b,1,3,h("#7a8a6a"));r(6,-7-b,1,3,h("#7a8a6a"));r(4,-8-b,1,1,"#253225");r(6,-8-b,1,1,"#253225");
+    r(-5,-7-b,8,7,h("#c07a3a"));r(-4,-8-b,6,1,h("#c07a3a"));r(-3,-5-b,4,3,h("#e0a050"));r(-2,-4-b,2,1,h("#8a4a1a"));break}
+  case"shield":{blob("#6a8aa8","#4a6a88");eyes(-3,-3-b);r(-9,-7-b,6,10+b,h("#9aa6a8"));r(-8,-6-b,4,8+b,h("#c3c9c8"));r(-7,-4-b,2,4,h("#cf463d"));r(-9,-7-b,6,1,h("#6f7877"));break}
+  case"shaman":{blob("#7a52c0","#5a3a90");eyes(-3,-3-b,"#f4e27a");r(-4,-7-b,1,3,h("#cf463d"));r(-2,-8-b,1,3,h("#f4c84a"));r(0,-9-b,1,4,h("#3f9a5a"));r(2,-8-b,1,3,h("#3a8fc2"));
+    r(6,-8-b,1,11,h("#8a5a30"));const gl=e.pulseFx>0||Math.sin(t*4)>0.6;r(5,-10-b,3,3,gl?"#bff0a0":"#7cc957");break}
+  case"golem":{r(-6,-6-b,12,9+b,h("#8a8f8a"));r(-5,-8-b,10,2,h("#9aa09a"));r(-5,-8-b,4,1,h("#5f9238"));r(-8,-3,2,5,h("#7a7f7a"));r(6,-3,2,5,h("#7a7f7a"));
+    r(-3,-5-b,2,1,"#f4e27a");r(1,-5-b,2,1,"#f4e27a");r(-2,-2-b,1,3,"#5a5f5a");r(3,-1,1,2,"#5a5f5a");r(-6,2,12,1,h("#5a5f5a"));break}
+  case"imp":{const fl=Math.sin(t*14)>0?1:0;r(-4,-4-b,8,7+b,h("#cf463d"));r(-3,-6-b,6,2,h("#cf463d"));r(-4,-8-b,1,2,h("#7a1f2a"));r(3,-8-b,1,2,h("#7a1f2a"));
+    r(-1,-10-b-fl,2,3,"#f4c84a");r(-2,-3-b,1,1,"#f4e27a");r(1,-3-b,1,1,"#f4e27a");r(-2,0,4,1,"#7a1f2a");r(4,0,3,1,h("#a8322a"));r(7,-1,1,1,h("#a8322a"));break}
+  case"thief":{r(-8,-2,3,2,h("#6f7877"));r(-8,-1,1,1,"#253225");r(-6,-1,1,1,"#253225");r(-5,-4-b,9,7+b,h("#8e9796"));r(-4,-6-b,7,2,h("#8e9796"));r(-5,-6-b,1,1,h("#6f7877"));r(3,-6-b,1,1,h("#6f7877"));
+    r(-4,-4-b,7,2,"#253225");r(-3,-4-b,1,1,"#ffffff");r(1,-4-b,1,1,"#ffffff");r(-1,-1-b,1,1,"#253225");r(3,-2,4,4,h("#c8a070"));r(4,-3,2,1,h("#8a6a3a"));r(4,0,1,1,h("#f4c84a"));break}
+  default:blob("#7cc957","#4f9a3a");eyes(-3,-3-b)}
+}
 function drawEnemy(c,e,t){
-  const px=(e.x+1)*T+e.off*T*0.4,py=(e.y+1)*T+e.off*T*0.5;
-  const sc=e.kind==="big"?2.4:e.kind==="boss"?1.9:e.kind==="mini"?1.4:e.kind==="spawn"?0.65:1;
+  const px=(e.x+1)*T+e.off*T*0.4,py=(e.y+1)*T+e.off*T*0.5,L=lookOf(e);
+  const sc=LOOK_SC[L]||(e.kind==="spawn"?0.65:1);
   const u=U*sc;const r=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(px+x*u),Math.round(py+y*u),Math.ceil(w*u),Math.ceil(h*u))};
-  const hit=e.hitT>0;
-  if(e.fly){
-    r(-3,5,6,1.5,"rgba(0,0,0,.15)");
-    const f=Math.sin(e.ph*1.6)>0?-1:1,b=Math.sin(e.ph)*0.8;
-    const body=hit?"#ffffff":"#7a52c0",wing=hit?"#ffffff":"#a585e0";
-    r(-7,-4+f+b,5,3,wing);r(2,-4+f+b,5,3,wing);r(-2,-4+b,4,5,body);r(-1,-3+b,1,1,"#f4e27a");r(1,-3+b,1,1,"#f4e27a");
-  }else{
-    const [cl,cd]=e.kind==="mini"?["#f2a14a","#c06f20"]:e.kind==="boss"?["#e05a4f","#a8322a"]:e.kind==="big"?["#8b5ccf","#5c3399"]:KINDS[e.kind]?KINDS[e.kind].col:tierColor(e.lvl||(G.story?G.round:eqR(G.round)));
-    const b=Math.abs(Math.sin(e.ph))*1;
-    r(-5,3,10,1.5,"rgba(0,0,0,.18)");
-    const col=hit?"#ffffff":cl;
-    r(-5,-3-b,10,6+b,col);r(-4,-5-b,8,2,col);r(-6,-1,12,4,col);r(-6,2,12,1,hit?"#fff":cd);
-    r(-3,-3-b,2,2,"#ffffff");r(1,-3-b,2,2,"#ffffff");r(-2,-2-b,1,1,"#253225");r(2,-2-b,1,1,"#253225");
-    if(e.kind==="mini"){r(-5,-7-b,2,2,"#f4e27a");r(3,-7-b,2,2,"#f4e27a")}
-    if(e.kind==="armor"){r(-4,-6-b,8,2,"#c3c9c8");r(-5,-5-b,10,1,"#8e9796");r(-6,0,12,1,"#8e9796");r(-1,-6-b,2,1,"#e1e6e4")}
-    if(e.kind==="split"){r(0,-5-b,1,7+b,"#7d2f78");r(-1,-1,1,2,"#7d2f78")}
-    if(e.kind==="heal"){r(-1,-8-b,2,4,"#ffffff");r(-2.5,-6.5-b,5,1,"#ffffff");r(-1,-8-b,2,4,"rgba(232,106,154,.25)")}
-    if(e.kind==="eat"){const ch=e.chew&&Math.sin(e.ph)>0?1:0;r(-3,1-ch,6,1,"#24401a");for(let k=-3;k<3;k+=2)r(k,0-ch,1,1,"#ffffff");r(-6,-2,1,2,"#5f9238");r(5,-2,1,2,"#5f9238")}
-    if(e.kind==="boss"||e.kind==="big"){r(-4,-8-b,8,2,"#f4c84a");r(-4,-10-b,2,2,"#f4c84a");r(-1,-10-b,2,2,"#f4c84a");r(2,-10-b,2,2,"#f4c84a")}
-    if(e.slowT>0)r(-6,0,12,1,"#9fd8f0");
-  }
+  const hit=e.hitT>0,h=col=>hit?"#ffffff":col;
+  if(e.fly)r(-3,5,6,1.5,"rgba(0,0,0,.15)");else if(!(e.dig>0))r(-5,3,10,1.5,"rgba(0,0,0,.18)");
+  paintEnemy(L,r,h,e,e.fly?0:Math.abs(Math.sin(e.ph))*1,t);
+  if(e.slowT>0&&!e.fly)r(-6,0,12,1,"#9fd8f0");
+  if(e.hasteT>0)r(-7,-1,2,1,"#7cc957");
+  if(e.dig>0||(e.kind==="ghost"&&e.age<2))return; // no health bar while it can't be hit
   // health bar
-  const w=Math.max(22,T*0.6*sc*0.8),hy=py-(e.fly?10:9)*u-6-(e.boss?2*u:0);
+  const w=Math.max(22,T*0.6*sc*0.8),hy=py-(LOOK_TOP[L]||(e.fly?10:9))*u-6-(e.boss?2*u:0);
   c.fillStyle="#253225";c.fillRect(px-w/2-1,hy-1,w+2,6);
   const f=Math.max(0,e.hp/e.maxHp);c.fillStyle="#e7e7e7";c.fillRect(px-w/2,hy,w,4);
   c.fillStyle=f>0.5?"#4caf50":f>0.25?"#e0a526":"#cf463d";c.fillRect(px-w/2,hy,w*f,4);
@@ -2308,10 +2418,11 @@ function draw(t){
   // entities sorted by y
   const ents=[];
   for(const tw of G.towers)ents.push({y:tw.y,f:()=>{drawTower(ctx,tw.type,(tw.x-0.5+1)*T,(tw.y-0.5+1)*T,tw.L,t,tw);
+    if(tw.stun>0&&Math.sin(t*20)>0){ctx.fillStyle="#f4e27a";ctx.fillRect((tw.x+0.75)*T,(tw.y+0.45)*T,6,6);ctx.fillRect((tw.x+1.15)*T,(tw.y+0.55)*T,6,6)}
     if(tw.flash>0){ctx.fillStyle=`rgba(255,240,150,${tw.flash})`;ctx.fillRect((tw.x+0.5)*T,(tw.y+0.5)*T-T*0.4,T,T*1.4)}
     if(!TOWERS[tw.type].wall&&!(tw.type==="fence"&&tw.L<2)){const bx=(tw.x+1)*T+T*0.14,by=(tw.y+1)*T+T*0.08;ctx.fillStyle="#253225";ctx.fillRect(bx,by,T*0.42,T*0.38);ctx.fillStyle="#fff";ctx.font=`${T*0.42}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(tw.L,bx+T*0.21,by+T*0.2)}
   }});
-  for(const e of G.enemies)if(!e.fly)ents.push({y:e.y,f:()=>{const h=hidden(e);if(h)ctx.globalAlpha=0.28;drawEnemy(ctx,e,t);if(h)ctx.globalAlpha=1}});
+  for(const e of G.enemies)if(!e.fly)ents.push({y:e.y,f:()=>{const h=inTunnel(e);if(h)ctx.globalAlpha=0.28;drawEnemy(ctx,e,t);if(h)ctx.globalAlpha=1}});
   ents.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   for(const e of G.enemies)if(e.fly)drawEnemy(ctx,e,t);
   // projectiles
@@ -2621,17 +2732,17 @@ function calcScore(win){
 // One big land. Camps (enemy buildings with HP) send raids to the village. Destroying a camp captures its zone.
 const CAMP_DEFS=[
   {name:"Bog camp",x:9,y:8,stage:0,lvl:1,hp:3000,period:40,size:1,nodes:[1,0,1],mix:{armor:.1}},
-  {name:"West Grove camp",x:21,y:21,stage:2,lvl:6,hp:3500,period:38,size:1,nodes:[1,2,0],mix:{split:.15,eat:2}},
-  {name:"East Grove camp",x:31,y:30,stage:2,lvl:7,hp:3500,period:38,size:1,nodes:[0,2,1],mix:{armor:.1,eat:2}},
-  {name:"Lake fort",x:27,y:9,stage:3,lvl:12,hp:7000,period:36,size:1,fly:true,nodes:[2,0,1],mix:{heal:.08,armor:.1}},
-  {name:"North Highland camp",x:44,y:16,stage:4,lvl:18,hp:9000,period:36,size:1,mini:true,nodes:[1,0,2],mix:{armor:.2,split:.1,heal:.05,eat:2}},
-  {name:"East Highland camp",x:51,y:26,stage:4,lvl:19,hp:9000,period:36,size:1,mini:true,nodes:[1,1,1],mix:{armor:.2,split:.1,heal:.05,eat:2}},
-  {name:"South Highland camp",x:42,y:31,stage:4,lvl:19,hp:9000,period:36,size:1,mini:true,nodes:[0,1,2],mix:{armor:.2,split:.1,heal:.05,eat:2}},
-  {name:"Slimehold",x:49,y:5,stage:5,lvl:26,hp:26000,period:34,size:2,town:true,nodes:[2,0,0],mix:{armor:.2,split:.12,heal:.06,eat:3}},
+  {name:"West Grove camp",x:21,y:21,stage:2,lvl:6,hp:3500,period:38,size:1,nodes:[1,2,0],mix:{split:.15,eat:2,thief:.05}},
+  {name:"East Grove camp",x:31,y:30,stage:2,lvl:7,hp:3500,period:38,size:1,nodes:[0,2,1],mix:{armor:.1,eat:2,burrow:.06}},
+  {name:"Lake fort",x:27,y:9,stage:3,lvl:12,hp:7000,period:36,size:1,fly:true,nodes:[2,0,1],mix:{heal:.08,armor:.1,ghost:.08}},
+  {name:"North Highland camp",x:44,y:16,stage:4,lvl:18,hp:9000,period:36,size:1,mini:true,nodes:[1,0,2],mix:{armor:.2,split:.1,heal:.05,eat:2,golem:.06}},
+  {name:"East Highland camp",x:51,y:26,stage:4,lvl:19,hp:9000,period:36,size:1,mini:true,nodes:[1,1,1],mix:{armor:.2,split:.1,heal:.05,eat:2,shield:.05}},
+  {name:"South Highland camp",x:42,y:31,stage:4,lvl:19,hp:9000,period:36,size:1,mini:true,nodes:[0,1,2],mix:{armor:.2,split:.1,heal:.05,eat:2,imp:.06}},
+  {name:"Slimehold",x:49,y:5,stage:5,lvl:26,hp:26000,period:34,size:2,town:true,nodes:[2,0,0],mix:{armor:.2,split:.12,heal:.06,eat:3,shaman:.04,snail:.03}},
   // optional side camps: asleep until you attack them
   {name:"Bandit hideout",x:2,y:13,stage:99,side:true,lvl:6,hp:4000,period:40,size:1,nodes:[1,0,0],mix:{armor:.15},reward:"rare"},
-  {name:"Witch's hut",x:17,y:2,stage:99,side:true,lvl:12,hp:6500,period:38,size:1,nodes:[0,1,1],mix:{heal:.15},reward:"lives"},
-  {name:"Smugglers' cove",x:53,y:33,stage:99,side:true,lvl:18,hp:9000,period:36,size:1,nodes:[1,0,1],mix:{split:.15,armor:.1},reward:"ballista"},
+  {name:"Witch's hut",x:17,y:2,stage:99,side:true,lvl:12,hp:6500,period:38,size:1,nodes:[0,1,1],mix:{heal:.15,ghost:.1,shaman:.04},reward:"lives"},
+  {name:"Smugglers' cove",x:53,y:33,stage:99,side:true,lvl:18,hp:9000,period:36,size:1,nodes:[1,0,1],mix:{split:.15,armor:.1,thief:.12},reward:"ballista"},
 ];
 const OBJ=[
   {t:"Hold the village",d:"The Bog camp in the north is sending raids. Survive three of them.",camps:[0],done:()=>!G.camps[0].alive||(G.camps[0].raids>=3&&!G.queue.length&&!G.enemies.length)},
@@ -3155,10 +3266,17 @@ function openStylebook(){
   // enemies
   s=sec("Enemies","Slime colour changes every 6 rounds. Health bars turn yellow and red as they drop.");r=el("div","sb-row");
   const keep=G.round;
-  const mob=(kind,round,hpf,cap)=>{r.appendChild(item(cvs(110,110,x=>{G.round=round;const e={kind,fly:kind==="fly",boss:["mini","boss","big"].includes(kind),x:110/2/T-1,y:(kind==="big"?78:70)/T-1,off:0,ph:1,hitT:0,hp:hpf,maxHp:1,slowT:0};drawEnemy(x,e,0)}),cap))};
+  const mob=(kind,round,hpf,cap,look)=>{r.appendChild(item(cvs(110,110,x=>{G.round=round;const fl=kind==="fly"||!!(KINDS[kind]&&KINDS[kind].fly),e={kind,look,fly:fl,boss:["mini","boss","big"].includes(kind),x:110/2/T-1,y:(kind==="big"?96:kind==="boss"?88:kind==="balloon"?84:72)/T-1,off:0,ph:1,hitT:0,hp:hpf,maxHp:1,slowT:0,age:9};drawEnemy(x,e,0)}),cap))};
   mob("grunt",1,1,"Slime · rounds 1–6");mob("grunt",8,0.7,"Rounds 7–12");mob("grunt",14,0.45,"Rounds 13–18");mob("grunt",20,0.3,"Rounds 19–24");mob("grunt",27,0.15,"Rounds 25–30");
   mob("armor",6,1,"Armored · weak to Mortar, Fire, Tesla");mob("split",9,0.8,"Splitter · bursts into 3");mob("spawn",9,1,"Spawnling");mob("heal",12,0.6,"Healer · mends neighbours");mob("eat",15,1,"Thorn-eater · eats a bush");
-  mob("fly",7,1,"Flyer");mob("mini",3,1,"Mini-boss · 2 lives");mob("boss",10,0.6,"Boss · 3–4 lives");mob("big",25,1,"Giant boss · 5 lives");
+  mob("fly",7,1,"Flyer (story)","fly");mob("mini",3,1,"Mini-boss · 2 lives");mob("boss",10,0.6,"Boss · 3–4 lives");mob("big",15,1,"Bog Tyrant · 5 lives","tyrant");mob("big",30,1,"Slime King · 5 lives","king");
+  s.appendChild(r);s=sec("New enemies","Each one shows a tip the first time it appears.");r=el("div","sb-row");
+  mob("rabbit",4,1,"Rabbit · packs of 10, fast");mob("thief",5,1,"Raccoon thief · steals gold");mob("ghost",7,1,"Ghost · can't be hit for 2 s");mob("burrow",9,1,"Mole · digs under");
+  mob("shield",11,1,"Shield bearer · blocks single shots");mob("golem",13,1,"Rock golem · no slow, 2× Mortar");mob("shaman",14,1,"Shaman · speed bursts");mob("snail",16,1,"Snail · fast trail");
+  mob("imp",17,1,"Fire imp · fireproof, stuns");mob("balloon",12,1,"Balloon goblin · drops a slime");
+  s.appendChild(r);s=sec("Map themes","Local looks for the same enemies.");r=el("div","sb-row");
+  mob("fly",7,1,"Meadow · bee","bee");mob("armor",6,1,"Autumn · squirrel","squirrel");mob("fly",7,1,"Autumn · crow","crow");mob("grunt",5,1,"Winter · snow slime","snow");mob("rabbit",4,1,"Winter · penguin","penguin");mob("fly",7,1,"Winter · owl","owl");
+  mob("armor",6,1,"Desert · scorpion","scorpion");mob("burrow",9,1,"Desert · sand worm","worm");mob("fly",7,1,"Desert · vulture","vulture");mob("grunt",5,1,"Swamp · toad","toad");mob("eat",15,1,"Swamp · leech","leech");mob("fly",7,1,"Swamp · mosquito","mosquito");
   G.round=keep;s.appendChild(r);
 
   // cards
