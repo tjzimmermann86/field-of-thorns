@@ -570,6 +570,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div id="cardsGain" class="px-box" hidden style="display:inline-block;margin:6px 0 4px;padding:3px 10px;background:var(--gold-soft);font-size:21px"></div>
     <div class="hint" id="cardsSub">Picking a card again levels it up (max 10). Levels 3 and 6 give a bonus step, MAX gives a double bonus — the tall pips. The timer is paused while you choose.</div>
     <div class="cardrow" id="cardRow"></div>
+    <div class="row" id="cardsSkipRow" style="margin-top:10px"><button class="btn" id="cardsSkip">Skip — take no card</button></div>
   </div>
 </div>
 
@@ -1229,7 +1230,7 @@ const tierCls=c=>c.rare?" rare":c.unc?" unc":"",tierName=c=>c.rare?"Rare":c.unc?
 function showOffer(pick,title){
   $("cardsTitle").textContent=title;$("cardsSub").hidden=false;
   const row=$("cardRow");row.innerHTML="";row.className="cardrow";
-  const full=lasting().length>=SLOTS;
+  const full=lasting().length>=SLOTS;$("cardsSkipRow").hidden=false;
   pick.forEach(c=>{
     const cur=lvlOf(c.id),nx=cur+1,swap=full&&!cur&&!c.once;
     const b=document.createElement("button");b.className="card"+tierCls(c);
@@ -1246,6 +1247,7 @@ function showOffer(pick,title){
   });
   $("cardsOv").hidden=false;
 }
+function skipCard(){$("cardsOv").hidden=true;toast("No card taken this time");afterCard()}
 function takeCard(c,nx){
   SND.play("card");G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();if(Object.values(G.clv).filter(L=>L>=CMAX).length>=3)ach("cards3");
   if(isMile(nx))toast(nx===CMAX?`${c.n} is MAX — double bonus unlocked!`:`${c.n} reached level ${nx} — bonus step!`,"",true);
@@ -1253,7 +1255,7 @@ function takeCard(c,nx){
 }
 // slots full: give up one owned card for the new one
 function chooseSwap(c,pick,title){
-  $("cardsTitle").textContent=`Swap a card for ${c.n}`;$("cardsSub").hidden=true;
+  $("cardsTitle").textContent=`Swap a card for ${c.n}`;$("cardsSub").hidden=true;$("cardsSkipRow").hidden=true;
   const row=$("cardRow");row.innerHTML="";row.className="swaprow";
   const info=document.createElement("p");info.className="hint";info.style.gridColumn="1/-1";info.style.margin="0";
   info.textContent=`${c.n} starts at level 1: ${cardText(c,1)}. The card you give up is gone, including its levels.`;row.appendChild(info);
@@ -3196,7 +3198,7 @@ function openMenu(resumable){
   renderMenu();$("menu").hidden=false;
 }
 $("bResume").onclick=()=>{$("menu").hidden=true};
-$("bAch").onclick=openAch;$("achClose").onclick=()=>{$("achOv").hidden=true};
+$("cardsSkip").onclick=skipCard;$("bAch").onclick=openAch;$("achClose").onclick=()=>{$("achOv").hidden=true};
 $("achTabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{achF=b.dataset.f;renderAch()});
 $("achOv").addEventListener("click",ev=>{if(ev.target.id==="achOv")$("achOv").hidden=true});
 let storyArm=false;
