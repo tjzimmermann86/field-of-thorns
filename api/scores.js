@@ -3,7 +3,7 @@
 // KV_REST_API_URL / KV_REST_API_TOKEN (older setups: UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN).
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const KEY_RE = /^(d[0-4]m[0-3]|story)$/;
+const KEY_RE = /^(s?d[0-4]m[0-3]|story)$/;
 const ID_RE = /^[a-z0-9]{8,32}$/;
 
 async function redis(commands) {
