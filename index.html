@@ -1029,11 +1029,12 @@ function roundType(r){
 }
 function roundCount(r){return 5*Math.round((10+(r-1)*50/29)/5)} // 10 → 60, always ends in 0 or 5
 function unitHp(R){return 20*Math.pow(1+0.08*(R-1),1.75)*(1+0.0008*(R-1)*(R-1))} // health of one slime on the old 50-round curve
-function bossHp(r){return unitHp(eqR(r))*0.8*DIFFS[G.d].hp*HP_BASE} // bosses keep their old size
+const ramp=r=>1.1+0.7*(r-1)/(LAST-1); // 1.1 → 1.8: the 30-round maps were too easy, most of all late
+function bossHp(r){return unitHp(eqR(r))*0.8*ramp(r)*DIFFS[G.d].hp*HP_BASE} // bosses keep their old size
 const gapOf=r=>0.65-0.25*(r-1)/(LAST-1),oldGap=R=>Math.max(0.16,0.62-R*0.009);
 // a slime is as much tougher as it comes later than on the old curve, so the towers need the same damage per second
-function baseHp(r){if(G.story)return 20*Math.pow(1+0.08*(r-1),1.75)*DIFFS[G.d].hp*HP_BASE;const R=eqR(r);return unitHp(R)*gapOf(r)/oldGap(R)*0.8*DIFFS[G.d].hp*HP_BASE} // 0.8: they also walk faster
-function killGold(r){const R=eqR(r);return oldCount(R)/roundCount(r)*GOLDF} // gold weight per slime, so a round pays like the old one
+function baseHp(r){if(G.story)return 20*Math.pow(1+0.08*(r-1),1.75)*DIFFS[G.d].hp*HP_BASE;const R=eqR(r);return unitHp(R)*gapOf(r)/oldGap(R)*0.8*ramp(r)*DIFFS[G.d].hp*HP_BASE} // 0.8: they also walk faster
+function killGold(r){const R=eqR(r);return oldCount(R)/roundCount(r)*GOLDF*0.85} // gold weight per slime, so a round pays like the old one
 function tierColor(r){return r<10?["#7cc957","#4f9a3a"]:r<20?["#5cc7b5","#2f8f80"]:r<30?["#6a9be0","#3f6cb0"]:r<40?["#b27ddc","#7d4fae"]:["#e0707a","#ab3f4a"]}
 // ---------- special slimes ----------
 // armored: arrows/gatlings/hawks do 40% · split: bursts into 3 spawnlings · heal: mends neighbours · eat: chews one thorn bush
