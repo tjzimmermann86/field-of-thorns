@@ -1081,7 +1081,7 @@ function announceNext(){
 function startRound(early){
   if(G.story){if(early)callRaids();return}
   if(G.phase!=="countdown")return;if(early&&pausedBlock())return;
-  if(early&&G.round>0&&G.timer>1){G.earlyN=(G.earlyN||0)+1;if(G.earlyN>=12)ach("early");const b=earlyBonus();G.gold+=b;G.stats.earned+=b;floatText(2,G.map.mid,`+¤${b} early`,"#9a6a08")}
+  if(early&&G.round>0&&G.timer>1){G.earlyN=(G.earlyN||0)+1;const b=earlyBonus();G.gold+=b;G.stats.earned+=b;floatText(2,G.map.mid,`+¤${b} early`,"#9a6a08")}
   G.round++;G.phase="wave";G.timer=0;G.rnd={fly:0,nonFlak:false};
   const r=G.round,t=roundType(r),hp=baseHp(r),hb=bossHp(r),n=roundCount(r),kb=killGold(r);
   G.queue=[];
@@ -1638,38 +1638,38 @@ const SND=(()=>{
 // ---------- achievements: kept per player, counted over all games; test games never count ----------
 const ACH_GROUPS=["Slayer","Skill shots","Builder","Challenge","Story","Fun"];
 const ACHS=[
-  {id:"kill1k",g:0,t:"b",n:"Slime Squasher",d:"Defeat 1,000 slimes",cnt:"kills",goal:1000},
-  {id:"kill10k",g:0,t:"s",n:"Slime Smasher",d:"Defeat 10,000 slimes",cnt:"kills",goal:10000},
+  {id:"kill5k",g:0,t:"b",n:"Slime Squasher",d:"Defeat 5,000 slimes",cnt:"kills",goal:5000},
+  {id:"kill25k",g:0,t:"s",n:"Slime Smasher",d:"Defeat 25,000 slimes",cnt:"kills",goal:25000},
   {id:"kill100k",g:0,t:"l",n:"Slime Apocalypse",d:"Defeat 100,000 slimes",cnt:"kills",goal:100000},
-  {id:"boss10",g:0,t:"b",n:"Boss Hunter",d:"Defeat 10 bosses or giant bosses",cnt:"bosses",goal:10},
-  {id:"boss50",g:0,t:"s",n:"Boss Slayer",d:"Defeat 50 bosses or giant bosses",cnt:"bosses",goal:50},
+  {id:"boss25",g:0,t:"b",n:"Boss Hunter",d:"Defeat 25 bosses or giant bosses",cnt:"bosses",goal:25},
+  {id:"boss100",g:0,t:"s",n:"Boss Slayer",d:"Defeat 100 bosses or giant bosses",cnt:"bosses",goal:100},
   {id:"boss250",g:0,t:"g",n:"Kingbreaker",d:"Defeat 250 bosses or giant bosses",cnt:"bosses",goal:250},
-  {id:"spawn",g:0,t:"b",n:"Splitter Splatter",d:"Defeat 500 spawnlings",cnt:"spawn",goal:500},
-  {id:"healer",g:0,t:"s",n:"Healer's Bane",d:"Defeat 100 healers before they heal anyone",cnt:"healers",goal:100},
-  {id:"eater",g:0,t:"s",n:"Pest Control",d:"Defeat 100 thorn-eaters before they eat a bush",cnt:"eaters",goal:100},
+  {id:"spawn2k",g:0,t:"b",n:"Splitter Splatter",d:"Defeat 2,000 spawnlings",cnt:"spawn",goal:2000},
+  {id:"healer250",g:0,t:"s",n:"Healer's Bane",d:"Defeat 250 healers before they heal anyone",cnt:"healers",goal:250},
+  {id:"eater250",g:0,t:"s",n:"Pest Control",d:"Defeat 250 thorn-eaters before they eat a bush",cnt:"eaters",goal:250},
   {id:"oneshot",g:1,t:"g",n:"One Shot",d:"Defeat a boss with a single hit from full health"},
-  {id:"photo",g:1,t:"b",n:"Photo Finish",d:"Defeat a slime on the last tile before the exit"},
+  {id:"photoboss",g:1,t:"s",n:"Photo Finish",d:"Defeat a boss or mini-boss on the last tile before the exit"},
   {id:"buzzer",g:1,t:"s",n:"Buzzer Beater",d:"Defeat the last slime of a round on the last tile before the exit"},
   {id:"skewer",g:1,t:"s",n:"Skewer",d:"Hit 3 slimes with one Ballista bolt"},
   {id:"chain",g:1,t:"s",n:"Chain Reaction",d:"Defeat 5 slimes with one Tesla shot"},
-  {id:"overkill",g:1,t:"b",n:"Overkill",d:"Deal 10 times a slime's remaining health in one hit"},
+  {id:"overkill2",g:1,t:"s",n:"Overkill",d:"Deal 10 times a slime's full health in one hit"},
   {id:"air",g:1,t:"g",n:"Air Superiority",d:"Clear a flying round without a leak, every flyer downed by Flak"},
   {id:"hedge",g:2,t:"s",n:"Hedge Maze",d:"Have 100 thorn bushes on the map at once"},
   {id:"longway",g:2,t:"s",n:"Long Way Round",d:"Make the slimes' path 3 times longer than the straight route"},
-  {id:"maxlvl",g:2,t:"b",n:"Max Level",d:"Upgrade any tower to level 10"},
-  {id:"stacked",g:2,t:"g",n:"Fully Stacked",d:"Have 10 towers at level 10 at once"},
+  {id:"max5",g:2,t:"b",n:"Max Level",d:"Have 5 towers at level 10 at once"},
+  {id:"stacked20",g:2,t:"g",n:"Fully Stacked",d:"Have 20 towers at level 10 at once"},
   {id:"thorny",g:2,t:"g",n:"Thorny Situation",d:"One thorn bush defeats 1,000 slimes in one game"},
   {id:"tycoon",g:2,t:"s",n:"Tycoon",d:"Have 3 Markets (or 5 Gold Mines in the story) at level 10"},
   {id:"cards3",g:2,t:"g",n:"Card Collector",d:"Max out 3 cards in one game"},
   {id:"arsenal",g:2,t:"s",n:"Full Arsenal",d:"Research every tower in one game"},
   {id:"sellout",g:2,t:"b",n:"Sell-out",d:"Sell 100 buildings",cnt:"sold",goal:100},
   {id:"first",g:3,t:"b",n:"First Steps",d:"Finish the How to play guide"},
-  {id:"flawless",g:3,t:"g",n:"Flawless",d:"Win a map without losing a single life"},
+  {id:"flawlessH",g:3,t:"g",n:"Flawless",d:"Win a map on Hard or harder without losing a single life"},
   {id:"minimal",g:3,t:"g",n:"Minimalist",d:"Win a map with only Arrows, Thorns and Markets"},
-  {id:"nomarket",g:3,t:"s",n:"No Markets, No Problem",d:"Win a map without building a Market"},
-  {id:"speed",g:3,t:"s",n:"Speedrunner",d:"Win a map in under 12 minutes"},
-  {id:"early",g:3,t:"b",n:"Early Bird",d:"Start 12 rounds early in one game"},
-  {id:"clean",g:3,t:"g",n:"Clean Sheet",d:"No leaks for 12 rounds in a row"},
+  {id:"nomarketH",g:3,t:"s",n:"No Markets, No Problem",d:"Win a map on Hard or harder without building a Market"},
+  {id:"speedH",g:3,t:"g",n:"Speedrunner",d:"Win a map on Hard or harder in under 12 minutes"},
+  {id:"earlyAll",g:3,t:"s",n:"Early Bird",d:"Win a map and start every round from round 2 on early"},
+  {id:"hardAll",g:3,t:"g",n:"Hard as Thorns",d:"Clear every map on Hard",prog:()=>[MAPSETS[2].filter((_,m)=>isCleared(2,m)).length,MAPSETS[2].length]},
   {id:"nightmare",g:3,t:"l",n:"Nightmare Master",d:"Clear every map on Nightmare",prog:()=>[MAPSETS[4].filter((_,m)=>isCleared(4,m)).length,MAPSETS[4].length]},
   {id:"queen",g:4,t:"g",n:"Queen's Champion",d:"Finish the story campaign"},
   {id:"complete",g:4,t:"g",n:"Completionist",d:"Destroy all three side camps in one campaign"},
@@ -1679,14 +1679,16 @@ const ACHS=[
   {id:"bandit",g:4,t:"s",n:"Bandit Buster",d:"Destroy the Bandit hideout before the Bog camp"},
   {id:"royal",g:4,t:"g",n:"Royal Pardon",d:"Beat the Slime King with 15 or more lives left"},
   {id:"iron",g:4,t:"l",n:"Iron Thornwarden",d:"Finish the campaign without losing a life"},
-  {id:"thrifty",g:5,t:"s",n:"Thrifty",d:"End a game with more than 10,000 gold unspent"},
+  {id:"thrifty25",g:5,t:"s",n:"Thrifty",d:"End a game with more than 25,000 gold unspent"},
   {id:"hoard",g:5,t:"s",n:"Hoarder",d:"Own 5,000 wood and 5,000 stone at the same time"},
   {id:"pacifist",g:5,t:"b",n:"Pacifist Start",d:"Clear round 1 with only Thorns (and Markets), no towers"},
   {id:"close",g:5,t:"s",n:"Close Call",d:"Win with exactly 1 life left"},
 ];
 const ACH_BY={};ACHS.forEach(a=>ACH_BY[a.id]=a);
 const TIER={b:["Bronze","#b8793a"],s:["Silver","#9aa6a8"],g:["Gold","#d99a1c"],l:["Legendary","#7a4fc7"]};
-let ACH=LS.get("fot-ach",null);if(!ACH||!ACH.u)ACH={u:{},c:{}};let achDirty=false;const achQ=[];
+let ACH=LS.get("fot-ach",null);if(!ACH||!ACH.u)ACH={u:{},c:{}};
+for(const a of ACHS)if(!ACH.u[a.id]){const p=a.cnt?[ACH.c[a.cnt]||0,a.goal]:a.prog?a.prog():null;if(p&&p[0]>=p[1])ACH.u[a.id]=Date.now()} // goals reached before a goal changed
+let achDirty=false;const achQ=[];
 const ACH_PID=PROF.cur;function saveAch(){RAW.set(profKey(ACH_PID,"fot-ach"),ACH);achDirty=false}
 function ach(id){if(!ACH_BY[id]||ACH.u[id]||(G&&G.test))return;ACH.u[id]=Date.now();saveAch();achQ.push(ACH_BY[id]);if(achQ.length===1)achNextToast()}
 function achNextToast(){const a=achQ[0];if(!a)return;const show=()=>{SND.play("card");toast(`🏆 Achievement: ${a.n}`,"",true);setTimeout(()=>{achQ.shift();achNextToast()},2600)};
@@ -1698,8 +1700,8 @@ function achKill(e,a,hp0,tw){
   cnt("kills");if(e.kind==="boss"||e.kind==="big")cnt("bosses");if(e.kind==="spawn")cnt("spawn");
   if(e.kind==="heal"&&!e.healed)cnt("healers");if(e.kind==="eat"&&!e.ate)cnt("eaters");
   if((e.kind==="boss"||e.kind==="big")&&hp0>=e.maxHp-0.01)ach("oneshot");
-  if(a>=10*hp0)ach("overkill");
-  if(!e.fly&&e.mode==="walk"&&G.dist[e.cell]===0){ach("photo");if(!G.story&&G.phase==="wave"&&!G.queue.length&&G.enemies.every(o=>o===e||o.dead))ach("buzzer")}
+  if(e.kind!=="spawn"&&a>=10*e.maxHp)ach("overkill2");
+  if(!e.fly&&e.mode==="walk"&&G.dist[e.cell]===0){if(e.boss)ach("photoboss");if(!G.story&&G.phase==="wave"&&!G.queue.length&&G.enemies.every(o=>o===e||o.dead))ach("buzzer")}
   tw.kills=(tw.kills||0)+1;if(tw.type==="fence"&&tw.kills>=1000)ach("thorny");
   if(e.fly&&G.rnd){G.rnd.fly++;if(tw.type!=="flak")G.rnd.nonFlak=true}
 }
@@ -1709,26 +1711,28 @@ function achBuild(type){
   if(!G.story&&G.base>0){const d=Math.min(...G.map.ent.map(i=>G.dist[i]));if(d<1e8&&d>=3*G.base)ach("longway")}
 }
 function achLevels(){
-  if(G.towers.some(t=>t.L>=10))ach("maxlvl");
-  if(G.towers.filter(t=>t.L>=10&&!TOWERS[t.type].eco&&t.type!=="fence").length>=10)ach("stacked");
+  const mx=G.towers.filter(t=>t.L>=10&&!TOWERS[t.type].eco&&t.type!=="fence").length;if(mx>=5)ach("max5");if(mx>=20)ach("stacked20");
   if(G.towers.filter(t=>t.type==="market"&&t.L>=10).length>=3||G.towers.filter(t=>t.type==="mine"&&t.L>=10).length>=5)ach("tycoon");
 }
 function achRoundEnd(){
-  const lk=G.rs?G.stats.leaked-G.rs.lk:0;G.clean=lk?0:(G.clean||0)+1;if(G.clean>=12)ach("clean");
+  const lk=G.rs?G.stats.leaked-G.rs.lk:0;
   if(roundType(G.round).fly&&!lk&&G.rnd&&G.rnd.fly&&!G.rnd.nonFlak)ach("air");
   if(G.round===1&&!G.towers.some(t=>!["fence","market"].includes(t.type)))ach("pacifist");
 }
 function achFinish(win){
   if(G.test)return;
-  if(G.gold>10000)ach("thrifty");
+  if(G.gold>25000)ach("thrifty25");
   if(!win)return;if(G.lives===1)ach("close");
   if(G.story){ach("queen");if(G.lives>=15)ach("royal");if(!G.stats.leaked)ach("iron");return}
   const used=Object.keys(G.used||{});
-  if(!G.stats.leaked)ach("flawless");
+  const hard=G.d>=2,clr=(d,m)=>isCleared(d,m)||(d===G.d&&m===G.m); // this map counts as cleared already
+  if(hard&&!G.stats.leaked)ach("flawlessH");
   if(used.every(k=>["arrow","fence","market"].includes(k)))ach("minimal");
-  if(!used.includes("market"))ach("nomarket");
-  if(G.stats.time<12*60)ach("speed");
-  if(MAPSETS[4].every((_,m)=>isCleared(4,m)))ach("nightmare");
+  if(hard&&!used.includes("market"))ach("nomarketH");
+  if(hard&&G.stats.time<12*60)ach("speedH");
+  if((G.earlyN||0)>=LAST-1)ach("earlyAll");
+  if(MAPSETS[2].every((_,m)=>clr(2,m)))ach("hardAll");
+  if(MAPSETS[4].every((_,m)=>clr(4,m)))ach("nightmare");
 }
 addEventListener("pagehide",()=>{if(achDirty)saveAch()});
 
