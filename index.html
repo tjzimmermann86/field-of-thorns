@@ -170,6 +170,15 @@ h2{font-size:20px}
 .tab[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
 .tab[aria-pressed="true"] small{color:#cfe0c2}
 .tab:disabled{opacity:.55;cursor:not-allowed}
+#diffTabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))} /* all difficulty tabs share one width and row height */
+#diffTabs .tab{min-width:0;text-align:left}
+/* ranking tabs split their row evenly; the menu's top buttons all share one width */
+#lbTabs{display:grid;grid-template-columns:1fr 1fr}
+#lbTabs .tab{min-width:0;align-items:center}
+#menuTop{display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
+#menuTop .btn{min-width:130px;white-space:nowrap;justify-content:center;text-align:center}
+@media (max-width:600px){#menuTop{grid-auto-flow:row;grid-template-columns:1fr 1fr;width:100%}#menuTop .btn{min-width:0}}
+#bProf>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .mapc{border:3px solid var(--ink);background:var(--panel2);padding:8px;display:flex;flex-direction:column;gap:6px;text-align:left}
 .mapc canvas{width:100%;height:auto;image-rendering:pixelated;border:2px solid var(--ink)}
@@ -415,6 +424,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <button class="btn" data-sp="2" aria-pressed="false">2x</button>
       <button class="btn" data-sp="3" aria-pressed="false">3x</button>
       <button class="btn" id="bCards" aria-expanded="false">Cards</button>
+      <button class="btn goldb" id="bTestGold" hidden title="Test mode: add 1000 gold">+¤1000</button>
       <button class="btn" id="bFull" hidden title="Full screen" aria-label="Full screen">⛶</button>
       <button class="btn" id="bSound" title="Sound" aria-label="Sound settings">♪</button>
       <button class="btn" id="bMenu">Menu</button>
@@ -462,6 +472,14 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <button class="btn" id="bStyle">Stylebook <span class="label">(for testing)</span></button>
     <button class="btn goldb inst" id="bInstall" hidden>📲 Install as app</button>
     <p class="hint" id="installHelp" hidden style="margin:0;color:var(--ink)"></p>
+    <div class="px-box" style="padding:8px 10px;background:var(--panel2);box-shadow:none">
+      <label style="display:flex;gap:8px;align-items:center;font-size:19px"><input type="checkbox" id="tOn" style="width:18px;height:18px"> Test mode <span class="label">(for balancing)</span></label>
+      <div id="tOpts" style="margin-top:6px;display:flex;flex-direction:column;gap:6px">
+        <label style="display:flex;gap:8px;align-items:center">Start at round <input id="tRound" type="number" min="1" max="50" value="1" style="width:64px;font:inherit;padding:1px 4px;border:2px solid var(--ink)"></label>
+        <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tInf" style="width:18px;height:18px"> Infinite lives</label>
+        <p class="hint" style="margin:0">Test games are not ranked and unlock nothing. In the game, the <b>+¤1000</b> button adds gold and the speed button goes up to 5x. Starting later gives you gold to build with.</p>
+      </div>
+    </div>
     <button class="btn warn" id="bReset">Reset progress</button>
   </div>
   <div class="row" style="margin-top:16px"><button class="btn go" id="setClose">Done</button></div>
@@ -479,7 +497,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="modal px-box">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
       <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Two ways to play: the story campaign or the challenge maps.</div></div>
-      <div class="row" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn goldb inst" id="bInstallTop" hidden>📲 Install</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
+      <div class="row" id="menuTop" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn goldb inst" id="bInstallTop" hidden>📲 Install</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
     </div>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
@@ -496,8 +514,8 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       </div>
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
         <h3>Ranking <span class="label" id="lbFor"></span></h3>
-        <div class="tabs" style="margin-bottom:8px"><button class="tab" id="lbP" aria-pressed="true" style="min-width:0"><b>Personal</b></button><button class="tab" id="lbO" aria-pressed="false" style="min-width:0"><b>Overall</b></button></div>
-        <label id="lbNameRow" class="hint" hidden style="display:flex;gap:6px;align-items:center;margin-bottom:8px">Your name <input id="lbName" maxlength="20" placeholder="Thornwarden" style="font:inherit;font-size:17px;flex:1;min-width:0;padding:2px 6px;border:2px solid var(--ink);background:var(--panel)"></label>
+        <div class="tabs" id="lbTabs" style="margin-bottom:8px"><button class="tab" id="lbP" aria-pressed="true" style="min-width:0"><b>Personal</b></button><button class="tab" id="lbO" aria-pressed="false" style="min-width:0"><b>Overall</b></button></div>
+        <label id="lbNameRow" class="hint" hidden style="display:flex;gap:6px;align-items:center;margin-bottom:8px">Your name <input id="lbName" maxlength="12" placeholder="Thornwarden" style="font:inherit;font-size:17px;flex:1;min-width:0;padding:2px 6px;border:2px solid var(--ink);background:var(--panel)"></label>
         <div class="lb" id="lbList"></div>
       </div>
     </div>
@@ -511,6 +529,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <h2 id="stTitle" style="font-family:var(--f-ui);font-weight:400;font-size:34px;margin:2px 0 8px"></h2>
     <p class="hint" id="stIntro" style="font-size:19px;color:var(--ink);margin:0 0 10px"></p>
     <p class="hint" id="stBody" style="font-size:19px;margin:0"></p>
+    <div id="stRules" class="px-box" hidden style="margin-top:12px;padding:8px 12px;background:var(--gold-soft);border-color:var(--gold);box-shadow:none"></div>
     <div class="row"><button class="btn go" id="stGo" style="font-size:19px;padding:8px 20px">Begin</button></div>
   </div>
 </div>
@@ -531,7 +550,9 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <div class="label">Total score</div>
     <div class="score" id="resScore">0</div>
     <div class="hint" id="resRank"></div>
-    <div class="row"><button class="btn go" id="resNext">Next map</button><button class="btn" id="resRetry">Play again</button><button class="btn" id="resMenu">Menu</button></div>
+    <div id="logBox" hidden style="margin-top:10px"><textarea id="logTxt" readonly style="width:100%;height:230px;font:13px/1.35 ui-monospace,monospace;border:2px solid var(--ink);background:var(--panel2);color:var(--ink);padding:6px;white-space:pre;overflow:auto"></textarea>
+      <div class="row" style="margin-top:6px"><button class="btn goldb" id="logCopy">Copy round log</button><span class="hint" id="logHint"></span></div></div>
+    <div class="row"><button class="btn" id="resLog">Round log</button><button class="btn go" id="resNext">Next map</button><button class="btn" id="resRetry">Play again</button><button class="btn" id="resMenu">Menu</button></div>
   </div>
 </div>
 
@@ -541,18 +562,77 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
 // ---------- constants ----------
 let T=48, U=T/16; // tile size in canvas px; the story map uses smaller tiles
 const DIFFS=[
-  {name:"Easy",hp:1.00,start:{g:260,w:150,s:70}},
-  {name:"Normal",hp:1.30,start:{g:210,w:110,s:55}},
-  {name:"Hard",hp:1.70,start:{g:200,w:100,s:50}},
-  {name:"Expert",hp:2.20,start:{g:190,w:95,s:45}},
-  {name:"Nightmare",hp:2.90,start:{g:180,w:90,s:40}},
+  {name:"Easy",hp:0.70,start:{g:260,w:150,s:70}},
+  {name:"Normal",hp:1.00,start:{g:210,w:110,s:55}},
+  {name:"Hard",hp:1.30,start:{g:200,w:100,s:50}},
+  {name:"Expert",hp:1.70,start:{g:190,w:95,s:45}},
+  {name:"Nightmare",hp:2.25,start:{g:180,w:90,s:40}},
 ];
-const MAPS=[
-  {name:"Meadow",cols:20,rows:12,desc:"Open grass, no obstacles"},
-  {name:"Old Grove",cols:22,rows:13,desc:"Scattered trees"},
-  {name:"Lakeside",cols:24,rows:14,desc:"A lake and woods"},
-  {name:"Highlands",cols:26,rows:15,desc:"River, rocks, more exits"},
-];
+// Normal is the base (±0%); HP_BASE keeps Normal's slimes exactly as tough as before
+const HP_BASE=1.3;
+const hpTxt=d=>{const p=Math.round((DIFFS[d].hp-1)*100);return p===0?"Base enemy HP":`${p>0?"+":"−"}${Math.abs(p)}% enemy HP`};
+// ---------- challenge maps: every difficulty has its own list ----------
+// terrain: 0 grass 1 tree 2 water 3 rock | 4-6 resource nodes | 7 camp 8 village 9 cage (story)
+// 10 mountain: slimes can't cross it, nothing can be built · 11 high ground: a flat green spot on a mountain, towers only
+// 12 road: slimes run 40% faster, nothing can be built · 13 tunnel: slimes inside can't be hit
+const T_MOUNT=10,T_HIGH=11,T_ROAD=12,T_TUN=13,T_RIVER=14,T_BRIDGE=15,T_PBRIDGE=16; // river, wooden bridge, paved bridge
+// ---------- map themes: colours for ground, path, water and rock, plus one rule twist each ----------
+const T_MUD=17,T_ICE=18; // T_ICE: a frozen lake, walkable and fast, nothing can be built on it // swamp mud: slimes wade through it slowly, towers can stand in it
+const THEMES={
+  meadow:{n:"Meadow",g1:"#a9d47c",g2:"#a3cf75",tuft:"#8fbf63",border:"#9cc86e",p:["#ead8a4","#dcc790","#d8c286"],
+    water:[0x7c,0xc6,0xe8, 0x4f,0x9f,0xc6, 0xcf,0xee,0xfa, 0xb6,0xe3,0xf5],river:["#3d82c2","#3478b8","#25598e","#6aa8dc","#78b3e3"],
+    rock:{lit:"#b0a598",shade:"#857a6d",foot:"#8c8073",hi:"#a3988b",lo:"#6f655a",out:"#4e453c",snow:0.36},twist:""},
+  autumn:{n:"Autumn",g1:"#b9c674",g2:"#b2bf6c",tuft:"#d48a3c",border:"#a9b463",p:["#e6cf98","#d4ba80","#cdb27a"],
+    water:[0x74,0xb8,0xd6, 0x4a,0x8f,0xb2, 0xc8,0xe4,0xee, 0xa8,0xd4,0xe4],river:["#3a7cb4","#326fa8","#24578a","#64a0cf","#74acd8"],
+    rock:{lit:"#b0a598",shade:"#857a6d",foot:"#8c8073",hi:"#a3988b",lo:"#6f655a",out:"#4e453c",snow:0.3},twist:""},
+  winter:{n:"Winter",g1:"#eef3f6",g2:"#e5ecf1",tuft:"#cbd8e1",border:"#dbe4ea",p:["#cdb994","#b49d74","#bda783"],
+    water:[0xcf,0xe7,0xf3, 0x86,0xb4,0xcf, 0xf2,0xf9,0xfc, 0xa8,0xcf,0xe4],river:["#6fa8d4","#6aa0cb","#3f77a6","#c9e2f1","#e4f1f8"],
+    rock:{lit:"#c3c6c9",shade:"#8d949b",foot:"#a2a7ad",hi:"#d5d9dc",lo:"#7c838a",out:"#4a5056",snow:0.55,allSnow:true},
+    twist:"Frozen lakes: slimes can walk over the ice and slide 60% faster there. Towers can't stand on ice."},
+  desert:{n:"Desert",g1:"#ecd59c",g2:"#e5cd92",tuft:"#d1b276",border:"#dcc286",p:["#c9a567","#b08c52","#b9965b"],
+    water:[0x5c,0xb8,0xc9, 0x2f,0x86,0x96, 0xc9,0xec,0xd9, 0x9a,0xd8,0xde],river:["#3f9ab0","#3690a6","#24687a","#7cc2cf","#93d0da"],
+    rock:{lit:"#dcae74",shade:"#b07c48",foot:"#c4935c",hi:"#e6bf8a",lo:"#9a6a3c",out:"#6b4423",snow:0},
+    twist:"Dust storms blow in now and then and shorten tower range."},
+  swamp:{n:"Swamp",g1:"#86a061",g2:"#7f995a",tuft:"#647f45",border:"#738d50",p:["#b39c6a","#957f52","#a08a5c"],
+    water:[0x5f,0x7d,0x55, 0x3d,0x55,0x37, 0x84,0x9c,0x74, 0x72,0x8e,0x66],river:["#4f6e4a","#486643","#2f4630","#6f8c62","#7d9870"],
+    rock:{lit:"#a29a88",shade:"#7a725f",foot:"#857d6c",hi:"#9a927f",lo:"#625b4c",out:"#433d33",snow:0.3},
+    twist:"Mud patches slow slimes down to a crawl."},
+};
+let TH=THEMES.meadow; // the theme being drawn right now
+const themeOf=m=>THEMES[(m&&m.th)||"meadow"];
+const isBlk=t=>(t>=1&&t<=3)||t===T_MOUNT||t===T_HIGH||t===T_RIVER;
+const isWay=t=>t===T_ROAD||t===T_PBRIDGE||t===T_TUN; // paved: slimes run faster
+const MAP_W=26,MAP_H=15; // every challenge map has the same size
+const MAPDEFS={
+  // Easy
+  meadow:{th:"meadow",name:"Meadow",cols:MAP_W,rows:MAP_H,desc:"Open grass, no obstacles",st:"The first slimes ooze across the meadow. Open your first market, plant thorns across their way, and teach them that this village bites back.",gen:()=>{}},
+  grove:{th:"autumn",name:"Old Grove",cols:MAP_W,rows:MAP_H,desc:"Scattered trees",st:"Driven from the meadow, the swarm slips into the old grove. The pines offer plenty of places to hide.",gen:g=>g.trees(0.07)},
+  lake:{th:"meadow",name:"Lakeside",cols:MAP_W,rows:MAP_H,desc:"A lake and woods",st:"At the lake the Bog's water makes them swell. Hold the shore, or the village wells will turn to slime.",gen:g=>{g.trees(0.06);g.lake(0.5,0.3,3.4,2.2)}},
+  // Normal
+  clover:{th:"meadow",name:"Clover Hill",cols:MAP_W,rows:MAP_H,desc:"A few trees and a pond",st:"Spring on Clover Hill. The slimes think the pond is theirs. Show them otherwise.",gen:g=>{g.trees(0.04);g.lake(0.35,0.75,2.4,1.5)}},
+  birch:{th:"autumn",name:"Birchwood",cols:MAP_W,rows:MAP_H,desc:"Dense birch wood",st:"Pale birches stand close together here. Every gap between them is a road for the swarm.",gen:g=>g.trees(0.11)},
+  ponds:{th:"meadow",name:"Twin Ponds",cols:MAP_W,rows:MAP_H,desc:"Two ponds split the field",st:"Two ponds, two halves of a field. Make the slimes walk the long way around both.",gen:g=>{g.lake(0.3,0.3,2.6,1.8);g.lake(0.68,0.72,2.6,1.8);g.trees(0.03)}},
+  highlands:{th:"winter",name:"Highlands",cols:MAP_W,rows:MAP_H,seed:1231,desc:"River, rocks, a second exit",ex:["right","top"],st:"Rocks and a cold river with three wooden bridges. Some slimes have found a second way out over the top.",gen:(g,s)=>{g.sq(3,1,3);g.sq(6,2,2);g.sq(19,10,3);g.sq(17,11,2);g.lake(0.76,0.28,2.2,1.6);g.lake(0.2,0.74,2.1,1.5);g.trees(0.06);g.river(0.45,[3,s.rows-4,s.mid+2]);g.rocks(10)}},
+  oldroad:{th:"desert",paved:true,name:"Old Road",cols:MAP_W,rows:MAP_H,desc:"Cobbled tracks through the desert",st:"Old cobbles lie under the sand here. Wherever the slimes march, they walk on stone.",gen:g=>{g.trees(0.06);g.rocks(8)}},
+  foothills:{th:"desert",name:"Foothills",cols:MAP_W,rows:MAP_H,desc:"Mountains block the way",st:"The first mountains. Slimes can't climb them and nothing can be built on them, but flyers soar right over.",gen:g=>{g.sq(6,1,3);g.sq(9,2,2);g.sq(5,4,2);g.sq(17,8,3);g.sq(15,10,2);g.sq(20,10,2);g.sq(13,2,1);g.sq(4,10,3);g.sq(7,11,2);g.sq(2,12,2);g.sq(19,1,3);g.sq(22,2,2);g.sq(17,3,2);g.trees(0.03)}},
+  marsh:{th:"swamp",name:"Marsh",cols:MAP_W,rows:MAP_H,desc:"Murky ponds and mud",st:"Murky ponds lie all over the marsh, and the mud between them sucks at every slime.",gen:g=>{g.lake(0.22,0.28,2.3,1.7);g.lake(0.5,0.74,2.7,1.8);g.lake(0.76,0.3,2.4,1.7);g.lake(0.4,0.22,1.6,1.3);g.mud(6);g.trees(0.03)}},
+  // Hard, Expert and Nightmare
+  thornwood:{th:"autumn",name:"Thornwood",cols:MAP_W,rows:MAP_H,desc:"Thick woods and rocks",st:"The forest is so thick the slimes have to squeeze between the trunks. So do your walls.",gen:g=>{g.trees(0.12);g.rocks(6)}},
+  stones:{th:"desert",name:"Stone Garden",cols:MAP_W,rows:MAP_H,desc:"Rocks around a steep hill",st:"Boulders everywhere and a big mountain in the middle. The swarm has to go around it.",gen:g=>{g.sq(11,5,4);g.sq(9,7,2);g.sq(15,6,2);g.sq(12,9,2);g.sq(3,1,3);g.sq(6,2,2);g.sq(2,4,2);g.sq(19,10,3);g.sq(22,11,2);g.sq(17,12,2);g.rocks(20)}},
+  kingsroad:{th:"meadow",paved:true,name:"King's Road",cols:MAP_W,rows:MAP_H,desc:"The King's cobbled land, two gates",sp:["left","top"],st:"The King paved this whole valley for his army. His slimes come from two sides.",gen:g=>{g.trees(0.07);g.rocks(6)}},
+  ridge:{th:"winter",name:"The Ridge",cols:MAP_W,rows:MAP_H,desc:"A mountain wall with two passes",st:"A wall of mountains with only two narrow passes. Every slime has to squeeze through one of them.",gen:(g,s)=>{g.ridge(0.5,[3,s.rows-4]);g.lake(0.22,0.3,2.3,1.6);g.lake(0.78,0.72,2.4,1.7);g.lake(0.8,0.22,1.6,1.3);g.trees(0.04)}},
+  fjord:{th:"winter",name:"Frost Lakes",cols:MAP_W,rows:MAP_H,desc:"Frozen lakes everywhere, two gates",sp:["left","top"],st:"Round frozen lakes cover the valley. Slimes slide right across the ice, nothing can be built on it, and they come from two sides.",gen:g=>{g.lake(0.2,0.72,2.4,1.8);g.lake(0.42,0.32,2.6,1.9);g.lake(0.62,0.75,2.3,1.7);g.lake(0.83,0.3,2.2,1.8);g.lake(0.6,0.12,1.5,1.2);g.trees(0.03)}},
+  crossroads:{th:"desert",paved:true,name:"Crossroads",cols:MAP_W,rows:MAP_H,desc:"Cobbled crossroads, three gates",sp:["left","top","bottom"],st:"An old crossroads town in the sand. The swarm comes from three directions at once.",gen:g=>{g.trees(0.04);g.rocks(12)}},
+  molehills:{th:"autumn",name:"Mole Hills",cols:MAP_W,rows:MAP_H,desc:"Two mountain chains, one pass each",st:"Two chains of mountains, each with a single pass. Make the slimes walk the long way between them.",gen:(g,s)=>{g.ridge(0.31,[4],1,11);g.ridge(0.66,[10],3,13);g.trees(0.03)}},
+  flood:{th:"swamp",paved:true,name:"Floodplain",cols:MAP_W,rows:MAP_H,desc:"A river, two bridges, two exits",ex:["right","top"],st:"A deep river cuts the plain in two. Only two old stone bridges cross it, and nothing can be built on a bridge.",gen:(g,s)=>{g.river(0.42,[3,s.rows-4]);g.lake(0.8,0.3,2.6,1.8);g.mud(5);g.trees(0.04)}},
+  twinridge:{th:"meadow",name:"Twin Ridges",cols:MAP_W,rows:MAP_H,desc:"Two mountain walls, three passes",sp:["left","top"],st:"Two walls of rock, one behind the other. Every slime has to find a pass through both of them.",gen:(g,s)=>{g.ridge(0.33,[4,s.rows-5]);g.ridge(0.66,[s.mid]);g.trees(0.03)}},
+  slimepass:{th:"swamp",paved:true,name:"Slime Pass",cols:MAP_W,rows:MAP_H,desc:"Mountains, mud and water",sp:["left","top"],ex:["right","bottom"],st:"The King's own cobbled pass: mountains, mud and water. Hold it, and the swarm breaks.",gen:(g,s)=>{g.ridge(0.45,[s.mid-3,s.mid+3]);g.lake(0.91,0.8,1.6,1.8);g.mud(4);g.trees(0.04);g.rocks(6)}},
+};
+Object.keys(MAPDEFS).forEach((k,i)=>{const D=MAPDEFS[k];D.key=k;if(D.seed==null)D.seed=1000+i*77});
+const HARD_MAPS=["thornwood","stones","kingsroad","ridge","fjord","crossroads","molehills","flood","twinridge","slimepass"];
+const MAPSETS=[["meadow","grove","lake"],["clover","birch","ponds","highlands","oldroad","foothills","marsh"],HARD_MAPS,HARD_MAPS,HARD_MAPS];
+const mapsFor=d=>MAPSETS[d].map(k=>MAPDEFS[k]);
+const mapDef=(d,m)=>MAPDEFS[MAPSETS[d][m]];
 const TOWERS={
   arrow:{n:"Arrow",key:"1",cost:{g:30,w:20},dmg:12,rate:1.2,range:2.2,rg:0.18,tg:"ga",kind:"Single",desc:"Cheap all-rounder. Hits ground and air."},
   gatling:{n:"Gatling",key:"2",cost:{g:50,w:30},dmg:5,rate:5,range:2.0,rg:0.15,tg:"g",kind:"Single",desc:"Very fast shots at ground units."},
@@ -618,6 +698,8 @@ function txtC(c){const p=["g","w","s"].filter(k=>c[k]).map(k=>`${RMARK[k]}${fmt(
 
 // ---------- storage ----------
 const RAW={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+// ---------- test mode: start at a later round, infinite lives, gold on demand, 5x speed. Test games are never ranked ----------
+const TEST=Object.assign({on:false,round:1,inf:false},RAW.get("fot-test",{}));
 // ---------- player profiles: every profile keeps its own progress, scores, story save and name ----------
 const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-chal","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
 const PCOLS=["#3d7f44","#3a8fc2","#cf463d","#7a4fc7","#d99a1c","#2f8f80"],PROF_MAX=6;
@@ -628,6 +710,8 @@ if(!PROF||!PROF.list||!PROF.list.length){ // first start with profiles: the exis
   try{for(const k of PROF_KEYS){const v=localStorage.getItem(k);if(v!=null)localStorage.setItem(`fot-p-${id}-${k}`,v)}}catch(e){}
   RAW.set("fot-profiles",PROF)}
 if(!PROF.list.some(p=>p.id===PROF.cur))PROF.cur=PROF.list[0].id;
+const NAME_MAX=12; // player names stay short so the menu buttons keep their size
+PROF.list.forEach(p=>{p.name=String(p.name||"Player").slice(0,NAME_MAX)});
 const profKey=(id,k)=>`fot-p-${id}-${k}`;
 const curProf=()=>PROF.list.find(p=>p.id===PROF.cur);
 const LS={get(k,d){return RAW.get(PROF_KEYS.includes(k)?profKey(PROF.cur,k):k,d)},set(k,v){RAW.set(PROF_KEYS.includes(k)?profKey(PROF.cur,k):k,v)}};
@@ -635,27 +719,27 @@ let progress=LS.get("pk-progress",{cleared:{}}); // cleared["d-m"]=true
 let personal=LS.get("pk-scores",{});            // key -> [{score,...}]
 const mkey=(d,m)=>`d${d}m${m}`;
 const isCleared=(d,m)=>!!progress.cleared[mkey(d,m)];
-const diffUnlocked=d=>d<=1||MAPS.every((_,m)=>isCleared(d-1,m)); // Easy and Normal are open from the start
-const mapUnlocked=(d,m)=>diffUnlocked(d)&&(m===0||isCleared(d,m-1));
+const diffUnlocked=d=>d<=2||isCleared(d-1,MAPSETS[d-1].length-1); // Easy, Normal and Hard are open from the start; the others open when the last map before them is cleared
+const mapUnlocked=(d,m)=>diffUnlocked(d)&&m<MAPSETS[d].length&&(m===0||isCleared(d,m-1));
 
 // ---------- seeded rng ----------
 function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
 
 // ---------- map generation ----------
-// Easy: one spawn gate, one exit. Higher difficulties add gates on the top and bottom edges.
-function exitSides(m,d){const s=["right"];if(d>=2||(d>=1&&m===3))s.push("top");if(d>=3&&m>=2)s.push("bottom");return s}
-function spawnSides(m,d){const s=["left"];if(d>=3||(d>=2&&m>=2))s.push("top");if(d>=4)s.push("bottom");return s}
+// each map sets its gates; Expert adds a spawn on top, Nightmare one more spawn at the bottom and an exit on top
+function gateSides(m,d){const D=mapDef(d,m),sp=[...(D.sp||["left"])],ex=[...(D.ex||["right"])];
+  if(d>=3&&!sp.includes("top"))sp.push("top");if(d>=4&&!sp.includes("bottom"))sp.push("bottom");if(d>=4&&!ex.includes("top"))ex.push("top");return{sp,ex}}
 function spawnPoint(map,g){const x=g.cell%map.cols,y=(g.cell/map.cols)|0;if(g.side==="camp")return{x:x+0.5,y:y+0.5};
   if(g.side==="left")return{x:-0.6,y:y+0.5};if(g.side==="top")return{x:x+0.5,y:-0.6};return{x:x+0.5,y:map.rows+0.6}}
 function buildMap(m,d){
-  const M=MAPS[m],cols=M.cols,rows=M.rows,N=cols*rows;
-  const ter=new Uint8Array(N); // 0 grass 1 tree 2 water 3 rock | 4 gold vein 5 pine grove 6 stone outcrop (walkable, build-only for producers)
-  const R=rng(1000+m*77);
+  const M=mapDef(d,m),cols=M.cols,rows=M.rows,N=cols*rows,{sp,ex}=gateSides(m,d);
+  const ter=new Uint8Array(N);
+  const R=rng(M.seed);
   const mid=Math.floor(rows/2);
-  const gates=spawnSides(m,d).map(s=>s==="left"?{side:s,cell:mid*cols}:s==="top"?{side:s,cell:Math.floor(cols*0.22)}:{side:s,cell:(rows-1)*cols+Math.floor(cols*0.28)});
+  const gates=sp.map(s=>s==="left"?{side:s,cell:mid*cols}:s==="top"?{side:s,cell:Math.floor(cols*0.22)}:{side:s,cell:(rows-1)*cols+Math.floor(cols*0.28)});
   const ent=gates.map(g=>g.cell);
   const exits=[]; // {side, cells:[idx]} — each gate is one tile wide
-  for(const s of exitSides(m,d)){
+  for(const s of ex){
     if(s==="right")exits.push({side:s,cells:[mid*cols+cols-1]});
     if(s==="top")exits.push({side:s,cells:[Math.floor(cols*0.72)]});
     if(s==="bottom")exits.push({side:s,cells:[(rows-1)*cols+Math.floor(cols*0.58)]});
@@ -663,20 +747,126 @@ function buildMap(m,d){
   const protect=new Set();
   const prot=(i,rad)=>{const x=i%cols,y=(i/cols)|0;for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<cols&&Y<rows)protect.add(Y*cols+X)}};
   ent.forEach(i=>prot(i,2));exits.forEach(e=>e.cells.forEach(i=>prot(i,2)));
-  const put=(x,y,t)=>{if(x<0||y<0||x>=cols||y>=rows)return;const i=y*cols+x;if(!protect.has(i))ter[i]=t};
-  if(m>=1){const n=Math.floor(N*(m===1?0.07:0.06));for(let k=0;k<n;k++)put((R()*cols)|0,(R()*rows)|0,1)}
-  if(m===2){const cx=Math.floor(cols*0.5),cy=Math.floor(rows*0.3);for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const dx=(x-cx)/3.4,dy=(y-cy)/2.2;if(dx*dx+dy*dy<1+R()*0.3)put(x,y,2)}}
-  if(m===3){
-    const rx=Math.floor(cols*0.45);let x=rx;
-    for(let y=0;y<rows;y++){x+=R()<0.3?1:R()<0.3?-1:0;if(y!==3&&y!==rows-4&&y!==mid+2){put(x,y,2);put(x+1,y,2)}}
-    for(let k=0;k<14;k++)put((R()*cols)|0,(R()*rows)|0,3);
-  }
-  const map={m,d,cols,rows,N,ter,ent,gates,exits,mid};
+  const inb=(x,y)=>x>=0&&y>=0&&x<cols&&y<rows;
+  const put=(x,y,t)=>{if(!inb(x,y))return;const i=y*cols+x;if(protect.has(i)||ter[i]>=T_MOUNT)return; // mountains, roads and tunnels stay as they are
+    if((t===1||t===3)&&[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>inb(x+dx,y+dy)&&[T_TUN,T_BRIDGE,T_PBRIDGE].includes(ter[(y+dy)*cols+x+dx])))return; // keep caves and bridge ends clear
+    ter[i]=t}; // roads, tunnels and flat spots stay as they are
+  const X=f=>Math.floor(cols*f),Y=f=>Math.floor(rows*f);
+  const pave=(x,y)=>{if(!inb(x,y))return;const i=y*cols+x;ter[i]=ter[i]===T_MOUNT||ter[i]===T_HIGH||ter[i]===T_TUN?T_TUN:ter[i]===T_RIVER||ter[i]===T_BRIDGE||ter[i]===2?T_PBRIDGE:T_ROAD}; // over water a road becomes a paved bridge
+  const roadSet=new Set(),mounts=[];let riverInfo=null;
+  const nb4=i=>{const x=i%cols,y=(i/cols)|0,o=[];if(x>0)o.push(i-1);if(x<cols-1)o.push(i+1);if(y>0)o.push(i-cols);if(y<rows-1)o.push(i+cols);return o};
+  // a road may only touch the tiles just before and after it; crossing another road is fine if it goes straight across
+  function lay(L,force,jn){
+    if(!force){if(L.some(c=>protect.has(c)))return false;const pos=new Map();L.forEach((c,k)=>pos.set(c,k));if(pos.size!==L.length)return false;
+      const cx=i=>i%cols,cy=i=>(i/cols)|0;
+      // crossing another road: both roads run straight for two tiles on each side of the crossing
+      const arms=new Set();
+      for(let k=0;k<L.length;k++){const c=L[k];if(!roadSet.has(c))continue;if(k<2||k>L.length-3)return false;const d=L[k+1]-c;
+        for(const j of [-2,-1,1,2])if(L[k+j]-c!==d*j)return false;const perp=Math.abs(d)===1?cols:1;
+        for(const j of [-2,-1,0,1,2]){const o=c+perp*j;if(!roadSet.has(o))return false;arms.add(o)}}
+      for(let k=0;k<L.length;k++){const c=L[k];if(roadSet.has(c))continue;
+        for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){if(!dx&&!dy)continue;const X=cx(c)+dx,Y=cy(c)+dy;if(X<0||Y<0||X>=cols||Y>=rows)continue;const o=Y*cols+X;
+          if(pos.has(o)&&Math.abs(pos.get(o)-k)>4)return false; // the road must not fold back next to itself
+          if(roadSet.has(o)&&!arms.has(o)&&!(jn!=null&&k<=2&&Math.max(Math.abs(cx(o)-cx(jn)),Math.abs(cy(o)-cy(jn)))<=2&&cy(o)===cy(jn)))return false}}} // nor run along another road
+    L.forEach(c=>{roadSet.add(c);pave(c%cols,(c/cols)|0)});return true}
+  const g={
+    // swamp mud: a few blobs of 2-5 tiles on open ground
+    mud(n){for(let k=0;k<n;k++){let x=2+((R()*(cols-4))|0),y=1+((R()*(rows-2))|0);const len=2+((R()*4)|0);
+      for(let j=0;j<len;j++){const i=y*cols+x;if(inb(x,y)&&ter[i]===0&&!protect.has(i))ter[i]=T_MUD;const d=(R()*4)|0;x+=[1,-1,0,0][d];y+=[0,0,1,-1][d]}}},
+    trees(p){const n=Math.floor(N*p);for(let k=0;k<n;k++){const x=(R()*cols)|0,y=(R()*rows)|0;if(ter[y*cols+x]===0)put(x,y,1)}}, // only on open ground, never in a lake
+    rocks(n){for(let k=0;k<n;k++)put((R()*cols)|0,(R()*rows)|0,3)},
+    lake(fx,fy,rx,ry){const cx=X(fx),cy=Y(fy);for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const dx=(x-cx)/rx,dy=(y-cy)/ry;if(dx*dx+dy*dy<1+R()*0.3)put(x,y,2)}
+      // no single-tile spikes or bites: drop water with few water neighbours, fill grass mostly surrounded by water
+      const wn=(x,y)=>[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>inb(x+a,y+b)&&ter[(y+b)*cols+x+a]===2).length;
+      for(let p=0;p<2;p++)for(let y=Math.max(0,cy-Math.ceil(ry)-2);y<=Math.min(rows-1,cy+Math.ceil(ry)+2);y++)for(let x=Math.max(0,cx-Math.ceil(rx)-2);x<=Math.min(cols-1,cx+Math.ceil(rx)+2);x++){
+        const i=y*cols+x;if(protect.has(i))continue;if(ter[i]===2&&wn(x,y)<=1)ter[i]=0;else if(ter[i]===0&&wn(x,y)>=3)ter[i]=2}},
+    // a river from the top edge to the bottom edge, always 2 tiles wide, meandering a tile at a time.
+    // It runs straight around each bridge row; the bridge tiles can be walked on.
+    river(fx,bridges){const home=X(fx)-1;let best=null;const calm=y=>bridges.some(b=>Math.abs(b-y)<=1);
+      for(let t=0;t<40&&!best;t++){let dir=R()<0.5?1:-1,x=home,ok=true;const xs=[];
+        for(let y=0;y<rows;y++){if(y>0&&!calm(y)&&!calm(y-1)&&R()<0.55){if(R()<0.25)dir=-dir;const nx=x+dir;if(Math.abs(nx-home)<=3)x=nx;else{dir=-dir;x+=dir}}
+          xs.push(x);for(const q of [x,x+1])if(!inb(q,y)||protect.has(y*cols+q))ok=false}
+        if(ok)best=xs}
+      if(!best)return;
+      best.forEach((x,y)=>{for(const q of [x,x+1])ter[y*cols+q]=bridges.includes(y)?T_BRIDGE:T_RIVER});
+      riverInfo={xs:best,bridges:[...bridges]}},
+    // a winding paved road from the left edge to the right edge that crosses the river on the bridge in row yb
+    // a winding road from the bottom edge that ends in a T where it meets a road already on the map
+    branch(fx,f0,f1){for(let t=0;t<300;t++){let x=X(fx),run=1+((R()*3)|0);const lo=Math.max(2,X(f0)),hi=Math.min(cols-3,X(f1)),L=[];
+        for(let y=0;y<rows;y++){L.push(y*cols+x);if(--run>0||y>=rows-2)continue;run=2+((R()*3)|0);
+          let nx=x+(R()<0.5?-1:1)*(2+((R()*3)|0));if(nx<lo||nx>hi)nx=x-(nx-x);nx=Math.max(lo,Math.min(hi,nx));
+          const st=Math.sign(nx-x);while(x!==nx){x+=st;L.push(y*cols+x)}}
+        let k=-1;for(let j=L.length-1;j>=0;j--)if(roadSet.has(L[j])){k=j;break}if(k<0)continue;const jn=L[k],sub=L.slice(k+1);
+        if(sub.length<4||sub[0]!==jn+cols||sub[1]!==jn+2*cols||!roadSet.has(jn-1)||!roadSet.has(jn+1))continue;
+        if(lay(sub,false,jn))return}},
+    // a winding road that comes in from the bottom edge and leaves through the right edge
+    corner(fx,fy){const xs=X(fx),ye=Y(fy);
+      for(let t=0;t<300;t++){const L=[];let x=xs,y=rows-1;L.push(y*cols+x);for(let k=0;k<2+((R()*2)|0);k++){y--;L.push(y*cols+x)}let run=2+((R()*2)|0);
+        while(x<cols-1||y!==ye){const left=cols-1-x,need=Math.abs(ye-y);
+          if(left<=need+2&&y!==ye){y+=Math.sign(ye-y);L.push(y*cols+x);continue}
+          if(--run<=0&&left>need+4&&R()<0.6){const ny=Math.max(ye-2,Math.min(rows-3,y+(R()<0.5?-1:1)*2));while(y!==ny){y+=Math.sign(ny-y);L.push(y*cols+x)}run=3+((R()*2)|0)}
+          if(x<cols-1){x++;L.push(y*cols+x)}else{y+=Math.sign(ye-y);L.push(y*cols+x)}}
+        if(lay(L))return}},
+    riverRoad(yb){if(!riverInfo)return;const xb=riverInfo.xs[yb],mid=(rows/2)|0;
+      const pickY=()=>{for(;;){const y=1+((R()*(rows-2))|0);if(Math.abs(y-mid)>2&&y>2)return y}};
+      const wind=(xa,ya,xe,ye,L)=>{let x=xa,y=ya,run=2+((R()*2)|0);L.push(y*cols+x);
+        while(x<xe||y!==ye){const left=xe-x,need=Math.abs(ye-y);
+          if(left<=need+2&&y!==ye){y+=Math.sign(ye-y);L.push(y*cols+x);continue}
+          if(--run<=0&&left>need+5&&R()<0.6){const ny=Math.max(1,Math.min(rows-2,y+(R()<0.5?-1:1)*(2+((R()*2)|0))));while(y!==ny){y+=Math.sign(ny-y);L.push(y*cols+x)}run=3+((R()*3)|0)}
+          if(x<xe){x++;L.push(y*cols+x)}else if(y!==ye){y+=Math.sign(ye-y);L.push(y*cols+x)}}};
+      for(let t=0;t<300;t++){const L=[];wind(0,pickY(),xb-2,yb,L);L.push(yb*cols+xb-1,yb*cols+xb,yb*cols+xb+1,yb*cols+xb+2);const R2=[];wind(xb+3,yb,cols-1,pickY(),R2);
+        if(lay(L.concat(R2)))return}},
+    // a square mountain, n×n tiles, top-left corner at (x0,y0)
+    sq(x0,y0,n){if(x0<0||y0<0||x0+n>cols||y0+n>rows)return;for(let y=y0;y<y0+n;y++)for(let x=x0;x<x0+n;x++)if(protect.has(y*cols+x))return; // never half a mountain
+     for(let y=y0;y<y0+n;y++)for(let x=x0;x<x0+n;x++)put(x,y,T_MOUNT);mounts.push({x:x0,y:y0,n})},
+    mount(fx,fy,n){g.sq(X(fx)-((n-1)>>1),Y(fy)-((n-1)>>1),n)},
+    // a wall of 2×2 mountains from top to bottom, with a tunnel through it at the given rows
+    // a wall of mountains from row y0 to y1, w tiles thick. It drifts sideways a tile at a time, so it runs at a slant
+    // and changes direction now and then. Around a tunnel it stays straight so the cave fits.
+    // a wall of mountains from row y0 to y1: a slanted chain of big (3×3) and small (2×2) mountains that overlap by a row.
+    // At the rows in `gap` the chain is broken by an open pass, the only way through.
+    ridge(fx,gap,y0,y1){y0=y0||0;y1=y1||rows;const home=X(fx);let best=null;
+      const segs=[];let a=y0;for(const gy of [...gap].sort((p,q)=>p-q)){if(gy>a)segs.push([a,gy]);a=gy+1}if(a<y1)segs.push([a,y1]);
+      for(let t=0;t<40&&!best;t++){let dir=R()<0.5?1:-1,x=home-dir*2,big=R()<0.5,ok=true;const S=[];
+        for(const [s0,s1] of segs){let y=s0;
+          while(true){const k=Math.min(big?3:2,s1-s0),yy=Math.min(y,s1-k),x0=x-(k>>1);S.push({x:x0,y:yy,k});
+            for(let p=yy;p<yy+k;p++)for(let q=x0;q<x0+k;q++)if(!inb(q,p)||protect.has(p*cols+q))ok=false;
+            if(yy+k>=s1)break;y=yy+k-1;big=!big;if(R()<0.75){if(R()<0.3)dir=-dir;if(Math.abs(x+dir-home)<=3)x+=dir;else{dir=-dir;x+=dir}}}
+          big=!big;if(Math.abs(x+dir-home)<=3)x+=dir} // the chain carries on, slightly shifted, after the pass
+        if(ok)best=S}
+      if(!best)return;
+      best.forEach(o=>{for(let p=o.y;p<o.y+o.k;p++)for(let q=o.x;q<o.x+o.k;q++)put(q,p,T_MOUNT);mounts.push({x:o.x,y:o.y,n:o.k})});
+      gap.forEach(gy=>{for(let q=Math.max(0,home-6);q<=Math.min(cols-1,home+6);q++){const i=gy*cols+q;if(ter[i]===1||ter[i]===3)ter[i]=0}})}, // keep the pass clear
+    road(y,f0,f1){const L=[];for(let x=X(f0);x<=Math.min(cols-1,X(f1));x++)L.push(y*cols+x);lay(L,true)},
+    vroad(fx){const x=X(fx),L=[];for(let y=0;y<rows;y++)L.push(y*cols+x);lay(L,true)},
+    // winding roads: run a few tiles, then jog sideways. Always one tile wide: a try that touches itself or another road is thrown away
+    wroad(fx,f0,f1){for(let t=0;t<300;t++){let x=X(fx),run=1+((R()*3)|0);const lo=Math.max(2,f0==null?2:X(f0)),hi=Math.min(cols-3,f1==null?cols-3:X(f1)),L=[];
+        for(let y=0;y<rows;y++){L.push(y*cols+x);if(--run>0||y>=rows-2)continue;run=2+((R()*3)|0);
+          let nx=x+(R()<0.5?-1:1)*(2+((R()*3)|0));if(nx<lo||nx>hi)nx=x-(nx-x);nx=Math.max(lo,Math.min(hi,nx));
+          const st=Math.sign(nx-x);while(x!==nx){x+=st;L.push(y*cols+x)}}
+        if(lay(L))return}
+      const S=[];for(let y=0;y<rows;y++)S.push(y*cols+X(fx));lay(S)},
+    // a winding east-west road that keeps clear of the gates and leaves the map on the same row it came in
+    whroad(fy,f0,f1){const y0=Y(fy),x0=X(f0),x1=Math.min(cols-1,X(f1));
+      for(let t=0;t<300;t++){const L=[];let x=x0,y=y0,run=2+((R()*2)|0);L.push(y*cols+x);
+        while(x<x1||y!==y0){const left=x1-x,need=Math.abs(y0-y);
+          if(left<=need+2&&y!==y0){y+=Math.sign(y0-y);L.push(y*cols+x);continue}
+          if(--run<=0&&left>need+5&&R()<0.65){const ny=Math.max(2,Math.min(rows-3,y+(R()<0.5?-1:1)*(2+((R()*2)|0))));while(y!==ny){y+=Math.sign(ny-y);L.push(y*cols+x)}run=3+((R()*3)|0)}
+          if(x<x1){x++;L.push(y*cols+x)}else{y+=Math.sign(y0-y);L.push(y*cols+x)}}
+        if(lay(L))return}},
+    tunnel(y,f0,f1){let a=-1,b=-1;for(let x=X(f0);x<=Math.min(cols-1,X(f1));x++){const i=y*cols+x;if(ter[i]===T_MOUNT||ter[i]===T_HIGH){ter[i]=T_TUN;if(a<0)a=x;b=x}}
+      if(a>0&&ter[y*cols+a-1]===1)ter[y*cols+a-1]=0;if(b>=0&&b<cols-1&&ter[y*cols+b+1]===1)ter[y*cols+b+1]=0},
+    // narrow land: fingers of water reaching in from the top and bottom edges in turn
+    fingers(n,len,w){const L=Math.round(rows*len);for(let k=0;k<n;k++){const x=X((k+1)/(n+1));for(let y=0;y<L;y++)for(let j=0;j<w;j++)put(x+j,k%2?rows-1-y:y,2)}},
+  };
+  M.gen(g,{cols,rows,mid});
+  if(M.th==="winter")for(let i=0;i<N;i++)if(ter[i]===2)ter[i]=T_ICE; // winter lakes are frozen
+  const map={m,d,cols,rows,N,ter,ent,gates,exits,mid,mounts,river:riverInfo,th:M.th||"meadow",paved:!!M.paved};
   // guarantee connectivity
   for(let guard=0;guard<400;guard++){
     const dist=dijkstra(map,null,-1);
     if(ent.every(i=>dist[i]<1e8))break;
-    const cand=[];for(let i=0;i<N;i++)if(ter[i]&&!protect.has(i))cand.push(i);
+    let cand=[];for(let i=0;i<N;i++)if(isBlk(ter[i])&&!protect.has(i)&&ter[i]!==T_MOUNT&&ter[i]!==T_RIVER)cand.push(i);if(!cand.length)for(let i=0;i<N;i++)if(isBlk(ter[i])&&!protect.has(i))cand.push(i);
     if(!cand.length)break;ter[cand[(R()*cand.length)|0]]=0;
   }
   map.exitCell=new Int8Array(N).fill(-1);
@@ -698,7 +888,7 @@ function exitCenter(map,k){const e=map.exits[k];return gatePoint(map,k,e.cells[0
 const DIRS=[[1,0,2,1],[-1,0,1,2],[0,1,8,4],[0,-1,4,8]]; // dx,dy, bit on this cell, bit on the next cell (L1 R2 U4 D8)
 function dijkstra(map,occ,extraBlock){
   const {cols,rows,N,ter}=map;
-  const blocked=i=>(ter[i]>=1&&ter[i]<=3)||(occ&&occ[i])||i===extraBlock;
+  const blocked=i=>isBlk(ter[i])||(occ&&occ[i])||i===extraBlock;
   const dist=new Float64Array(N).fill(1e9),q=new Int32Array(N);let h=0,t=0;
   for(const e of map.exits)for(const i of e.cells)if(!blocked(i)){dist[i]=0;q[t++]=i}
   while(h<t){const i=q[h++],x=i%cols,y=(i/cols)|0;
@@ -712,7 +902,7 @@ function nextCell(map,dist,i,occ,prev){
   const straight=prev>=0?i+(i-prev):-1;
   let best=-1;
   for(const [dx,dy] of DIRS){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=cols||Y>=rows)continue;const j=Y*cols+X;
-    if((ter[j]>=1&&ter[j]<=3)||(occ&&occ[j]))continue;if(dist[j]>=dist[i])continue;
+    if(isBlk(ter[j])||(occ&&occ[j]))continue;if(dist[j]>=dist[i])continue;
     if(j===straight)return j;if(best<0)best=j}
   return best;
 }
@@ -743,10 +933,13 @@ function newGame(d,m,opt){
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
     cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}},
     free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},unlocked:{},woodMul:1,env:null,cam:{x:0,y:0,z:1}};
-  G.noSave=!!(opt&&opt.guide);G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
+  G.test=TEST.on&&!(opt&&opt.guide);G.inf=G.test&&TEST.inf;G.log=[];
+  if(G.test&&TEST.round>1){const r0=Math.min(50,TEST.round);G.round=r0-1;G.gold+=Math.round(120*r0*(1+r0*0.04))} // starting late: gold for the towers you would have built
+  for(const k in UNLOCK)if(G.round+1>=UNLOCK[k].r)G.unlocked[k]=1; // late test starts get the towers of those rounds
+  G.noSave=!!(opt&&opt.guide)||G.test;G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
   sel=null;buildType=null;ghost=null;bgDirty=true;
   cv.width=(map.cols+2)*T;cv.height=(map.rows+2)*T;
-  renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);
+  renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);if(typeof renderTest==="function")renderTest();
   announceNext();
   if(typeof layout==="function")requestAnimationFrame(layout);
   if(!(opt&&opt.noGuide))showStory();
@@ -756,7 +949,7 @@ function newGame(d,m,opt){
 
 // ---------- beginner guide (Easy · Meadow) ----------
 const GUIDE=[
-  {t:"Welcome to Field of Thorns",b:"Slimes enter at the red IN gate and crawl to the green EXIT. Every slime that gets out costs a life. You have 20 lives. Hold out until the swarm is broken.",hl:"gates"},
+  {t:"Welcome to Field of Thorns",b:"Slimes enter at the green IN gate and crawl to the red OUT gate. Every slime that gets out costs a life. You have 20 lives. Hold out until the swarm is broken.",hl:"gates"},
   {t:"The sand path is their route",b:"Slimes always take the shortest way to the exit. That route is drawn as the sand path. Everything you build blocks its tile, and the path bends around it. A longer path keeps them in front of your towers for longer. This is the heart of the game.",hl:"path"},
   {t:"Grow a thorn wall",b:"Thorns are cheap. Pick Thorns and place them on the marked tiles across the path. Watch the path move around them. You can never close the way completely: the game stops you if a tile would block the last route.",hl:"thorns",glow:'#build .bt[data-t="fence"]',need:()=>{const n=G.towers.filter(t=>t.type==="fence").length;return n>=4?null:`Place 4 Thorns (${n}/4)`}},
   {t:"See the detour?",b:"The path now runs around your wall, so it got longer. Thorns also scratch slimes that walk right past them, and every upgrade multiplies that damage. Weak now, deadly later.",hl:"path"},
@@ -799,7 +992,7 @@ function roundType(r){
   return{fly:r%7===0,big:r===25||r===50,boss:r%10===0&&r!==50,mini:r%3===0&&!(r%10===0)&&r!==25&&r!==50};
 }
 function roundCount(r){return 5*Math.round((25+(r-1)*250/49)/5)} // always ends in 0 or 5
-function baseHp(r){return G.story?20*Math.pow(1+0.08*(r-1),1.75)*DIFFS[G.d].hp:20*Math.pow(1+0.08*(r-1),1.75)*(1+0.0008*(r-1)*(r-1))*DIFFS[G.d].hp} // maps: same start, late rounds get much tougher (about 3x by round 50)
+function baseHp(r){return (G.story?20*Math.pow(1+0.08*(r-1),1.75):20*Math.pow(1+0.08*(r-1),1.75)*(1+0.0008*(r-1)*(r-1)))*DIFFS[G.d].hp*HP_BASE} // maps: same start, late rounds get much tougher (about 3x by round 50)
 function tierColor(r){return r<10?["#7cc957","#4f9a3a"]:r<20?["#5cc7b5","#2f8f80"]:r<30?["#6a9be0","#3f6cb0"]:r<40?["#b27ddc","#7d4fae"]:["#e0707a","#ab3f4a"]}
 // ---------- special slimes ----------
 // armored: arrows/gatlings/hawks do 40% · split: bursts into 3 spawnlings · heal: mends neighbours · eat: chews one thorn bush
@@ -856,17 +1049,32 @@ function startRound(early){
   if(t.big)G.queue.push({kind:"big",hp:hp*(r===50?75:55),spd:0.65,lives:5,bounty:60});
   G.spawnGap=Math.max(0.16,0.62-r*0.009);G.spawnT=0;
   G.towers.forEach(tw=>tw.rd=0);
+  G.rs={lk:G.stats.leaked,e:G.stats.earned,s:G.stats.spent,k:G.stats.kills}; // for the round log
   const [,cls]=tagFor(r);
   toast(`Round ${r} starts — ${describeRound(r)}. Good luck!`,cls,true);SND.play("start");
   renderInfo();
 }
 function earlyBonus(){return Math.floor(G.timer*(1+G.round*0.18))}
+// one line per round for the round log: leaks, gold in and out, kills, the tower that did the most damage
+function logRound(done){
+  if(!G.rs||G.story)return;const s=G.stats;let top=null;for(const tw of G.towers)if(tw.rd>0&&(!top||tw.rd>top.rd))top=tw;
+  G.log.push({r:G.round,leak:s.leaked-G.rs.lk,lives:G.lives,earn:Math.round(s.earned-G.rs.e),spent:Math.round(s.spent-G.rs.s),gold:Math.floor(G.gold),kills:s.kills-G.rs.k,
+    towers:G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length,thorns:G.towers.filter(t=>t.type==="fence").length,top:top?`${TOWERS[top.type].n} Lv${top.L} ${fmt(top.rd)}`:"-",done});G.rs=null}
+function logText(win){
+  const D=mapDef(G.d,G.m),pad=(v,n)=>String(v).padStart(n),padE=(v,n)=>String(v).padEnd(n);
+  let t=`Field of Thorns · ${DIFFS[G.d].name} · ${D.name} (${THEMES[D.th||"meadow"].n}${D.paved?", cobbled":""})\n`;
+  if(G.test)t+=`TEST MODE · started at round ${TEST.round}${G.inf?" · infinite lives":""}\n`;
+  t+=`Result: ${win?"won":"lost in round "+G.round} · score ${calcScore(win).toLocaleString("en-US")} · time ${mmss(G.stats.time)} · cards: ${Object.keys(G.clv).map(id=>CARDS[id].n+" "+G.clv[id]).join(", ")||"none"}\n\n`;
+  t+="Rnd | Leak | Lives | Gold+ | Gold- | Gold now | Kills | Towers | Thorns | Best tower\n";
+  for(const l of G.log)t+=`${pad(l.r,3)} | ${pad(l.leak,4)} | ${pad(l.lives,5)} | ${pad(l.earn,5)} | ${pad(l.spent,5)} | ${pad(l.gold,8)} | ${pad(l.kills,5)} | ${pad(l.towers,6)} | ${pad(l.thorns,6)} | ${l.top}${l.done?"":" (lost here)"}\n`;
+  return t}
 function endRound(){
   const r=G.round;
   const bonus=gc(C({g:15+r*3+Math.floor(Math.min(G.gold*G.mods.interest,G.story?1e9:10*r)),w:8+r*2,s:4+r}));
   gain(bonus);SND.play("clear");
   let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08",4)}
   if(mk)gain(C({g:mk}));
+  logRound(true);
   floatText(G.map.cols/2,1,`Round ${r} cleared  +${txtC(bonus)}${mk?`  · Markets +¤${mk}`:""}`,"#9a6a08",5);
   G.gainLine=`Round bonus ${fmtC(bonus)}${mk?` · Markets ${fmtC(C({g:mk}))}`:""}`;
   if(r>=50){finish(true);return}
@@ -876,13 +1084,13 @@ function afterCard(){if(G.story){G.phase="story";renderInfo();return}G.phase="co
 // ---------- challenge save: taken between rounds, so a loaded game always continues with the next round ----------
 function saveChal(){
   if(!G||G.story||G.over||G.noSave||G.phase!=="countdown")return; // the How-to-play game never replaces a real save
-  LS.set("fot-chal",{v:1,d:G.d,m:G.m,round:G.round,unlocked:G.unlocked,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,
+  LS.set("fot-chal",{v:2,d:G.d,m:G.m,round:G.round,unlocked:G.unlocked,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,
     towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),at:Date.now()});
   renderChalCont();
 }
 function clearChal(){LS.set("fot-chal",null);renderChalCont()}
 function loadChal(){
-  const sv=LS.get("fot-chal",null);if(!sv)return;
+  const sv=LS.get("fot-chal",null);if(!sv||sv.v!==2)return;
   newGame(sv.d,sv.m,{noGuide:true});
   Object.assign(G,{unlocked:sv.unlocked||{},round:sv.round,gold:sv.gold,lives:sv.lives,stats:sv.stats,clv:sv.clv||{},cards:sv.cards||[],free:sv.free||{},seen:sv.seen||{},warned:sv.warned||0});
   for(const t of sv.towers){if(!TOWERS[t.type])continue;const tw={type:t.type,i:t.i,x:t.i%G.map.cols+0.5,y:((t.i/G.map.cols)|0)+0.5,L:t.L,cd:0,spent:C(t.spent),rd:0,total:t.total||0,mt:0,acc:0,flash:0};G.towers.push(tw);G.occ[t.i]=tw}
@@ -893,8 +1101,8 @@ function loadChal(){
   toast(G.round>0?`Welcome back! Round ${G.round+1} is next.`:"Welcome back!","",true);
 }
 function renderChalCont(){
-  const sv=LS.get("fot-chal",null),b=$("bChalCont");if(!b)return;b.hidden=!sv;
-  if(sv)b.textContent=`▶ Continue: ${DIFFS[sv.d].name} · ${MAPS[sv.m].name} · round ${sv.round+1}`;
+  let sv=LS.get("fot-chal",null);if(sv&&sv.v!==2)sv=null;const b=$("bChalCont");if(!b)return;b.hidden=!sv;
+  if(sv)b.textContent=`▶ Continue: ${DIFFS[sv.d].name} · ${mapDef(sv.d,sv.m).name} · round ${sv.round+1}`;
 }
 addEventListener("pagehide",saveChal);
 document.addEventListener("visibilitychange",()=>{if(document.hidden)saveChal()});
@@ -1053,12 +1261,19 @@ function cellBlockedForEnemies(i){
   for(const e of G.enemies){if(e.fly)continue;if(e.cell===i||e.next===i)return true}
   return false;
 }
-function nodeOk(type,i){const t=G.map.ter[i],b=TOWERS[type];if(b&&b.node)return t===b.node?"":`${b.n}s need a ${NODE_N[b.node]}`;return t>=4&&t<=6?`Resource tiles are for mines, camps and quarries`:""}
+function nodeOk(type,i){const t=G.map.ter[i],b=TOWERS[type];if(t===T_HIGH&&b&&(b.eco||b.thorn))return"Only towers fit on the high ground";if(b&&b.node)return t===b.node?"":`${b.n}s need a ${NODE_N[b.node]}`;return t>=4&&t<=6?`Resource tiles are for mines, camps and quarries`:""}
 const MARKET_MAX=3;
 function canPlace(i,type){
   const m=G.map;if((type||buildType)==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX)return{ok:false,why:`Only ${MARKET_MAX} markets per map`};if(i<0||i>=m.N)return{ok:false,why:"Outside the map"};
-  if(m.ter[i]>=1&&m.ter[i]<=3)return{ok:false,why:"Blocked by terrain"};
-  if(m.ter[i]>=7)return{ok:false,why:"You can't build here"};
+  const tr=m.ter[i];
+  if(tr===T_MOUNT||tr===T_HIGH)return{ok:false,why:"Mountains are too steep to build on"};
+  if(tr===T_ROAD)return{ok:false,why:"The road must stay open"};
+  if(tr===T_RIVER)return{ok:false,why:"You can't build in the river"};
+  if(tr===T_ICE)return{ok:false,why:"The ice won't hold a tower"};
+  if(tr===T_BRIDGE||tr===T_PBRIDGE)return{ok:false,why:"You can't build on a bridge"};
+  if(tr===T_TUN)return{ok:false,why:"You can't build on a tunnel"};
+  if(tr>=1&&tr<=3)return{ok:false,why:"Blocked by terrain"};
+  if(tr>=7&&tr<=9)return{ok:false,why:"You can't build here"};
   const nw=nodeOk(type||buildType,i);if(nw)return{ok:false,why:nw};
   const tw=territoryWhy(i,type||buildType);if(tw)return{ok:false,why:tw};
   if(G.occ[i])return{ok:false,why:"Tile taken"};
@@ -1167,7 +1382,7 @@ function pickNext(e){
 }
 function bez(e,t){const a=(1-t)*(1-t),b=2*(1-t)*t,c=t*t;return{x:a*e.p0.x+b*e.p1.x+c*e.p2.x,y:a*e.p0.y+b*e.p1.y+c*e.p2.y}}
 function moveEnemy(e,dt){
-  const sp=e.spd*(e.slowT>0?1-e.slowA:1)*(G.env?G.env.spd:1)*dt;e.ph+=dt*8;
+  const sp=e.spd*(e.slowT>0?1-e.slowA:1)*(G.env?G.env.spd:1)*(e.mode==="walk"&&(G.map.ter[e.cell]===T_ROAD||G.map.ter[e.cell]===T_PBRIDGE)?1.4:1)*(e.mode==="walk"&&G.map.ter[e.cell]===T_MUD?0.6:1)*(e.mode==="walk"&&G.map.ter[e.cell]===T_ICE?1.6:1)*(!e.fly&&G.map.paved?1.25:1)*dt;e.ph+=dt*8;
   if(e.slowT>0)e.slowT-=dt;
   if(e.chew){e.ph+=dt*16;e.chew.t-=dt;if(e.chew.t<=0)eatThorn(e);return}
   if(e.mode==="fly"){const dx=e.gate.x-e.x,dy=e.gate.y-e.y,d=Math.hypot(dx,dy);if(d<=sp){leak(e);return}e.x+=dx/d*sp;e.y+=dy/d*sp;return}
@@ -1195,12 +1410,12 @@ function progressLeft(e){
   return G.dist[e.cell]+1-e.t;
 }
 function leak(e){
-  e.dead=true;G.lives-=e.lives;G.stats.leaked+=e.lives;SND.play("leak");
+  e.dead=true;if(!G.inf)G.lives-=e.lives;G.stats.leaked+=e.lives;SND.play("leak");
   floatText(Math.min(e.x,G.map.cols-0.5),Math.max(0.5,Math.min(e.y,G.map.rows-0.5)),`-${e.lives} ${e.lives>1?"lives":"life"}`,"#cf463d");
   if(G.lives<=0){G.lives=0;finish(false)}
 }
 function damage(e,amt,tw){
-  if(e.dead)return;
+  if(e.dead||hidden(e))return;
   let a=amt*(e.fly?1+G.mods.air:1)*(e.boss?1+G.mods.boss:1)*(e.kind==="armor"&&ARMOR_WEAK.includes(tw.type)?0.4:1);
   const real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
   if(e.hp<=0){
@@ -1222,7 +1437,9 @@ function damage(e,amt,tw){
 
 // ---------- towers ----------
 function inRange(tw,e,R){return Math.hypot(e.x-tw.x,e.y-tw.y)<=R}
-function canHit(tw,e){const tg=TOWERS[tw.type].tg;return !e.dead&&e.x>-0.2&&(e.fly?tg.includes("a"):tg.includes("g"))}
+// a ground slime inside a tunnel can't be seen or hit
+function hidden(e){return !e.fly&&e.mode==="walk"&&G.map.ter[e.cell]===T_TUN}
+function canHit(tw,e){const tg=TOWERS[tw.type].tg;return !e.dead&&!hidden(e)&&e.x>-0.2&&(e.fly?tg.includes("a"):tg.includes("g"))}
 function towerTick(tw,dt){
   const b=TOWERS[tw.type];if(tw.flash>0)tw.flash-=dt;
   if(b.wall)return;
@@ -1244,7 +1461,7 @@ function towerTick(tw,dt){
   if(tw.type==="sniper"){damage(tgt,s.dmg,tw);G.fx.push({k:"line",x1:tw.x,y1:tw.y-0.4,x2:tgt.x,y2:tgt.y,t:0.15,c:"#ffffff",w:2});return}
   if(tw.type==="tesla"){
     const hit=[tgt];let cur=tgt,d=s.dmg;damage(cur,d,tw);
-    for(let k=1;k<s.chain;k++){let nb=null,nd=2.2;for(const e of G.enemies){if(hit.includes(e)||e.dead||e.x<0)continue;const dd=Math.hypot(e.x-cur.x,e.y-cur.y);if(dd<nd){nd=dd;nb=e}}if(!nb)break;d*=0.8;damage(nb,d,tw);G.fx.push({k:"zap",x1:cur.x,y1:cur.y,x2:nb.x,y2:nb.y,t:0.14});hit.push(nb);cur=nb}
+    for(let k=1;k<s.chain;k++){let nb=null,nd=2.2;for(const e of G.enemies){if(hit.includes(e)||e.dead||e.x<0||hidden(e))continue;const dd=Math.hypot(e.x-cur.x,e.y-cur.y);if(dd<nd){nd=dd;nb=e}}if(!nb)break;d*=0.8;damage(nb,d,tw);G.fx.push({k:"zap",x1:cur.x,y1:cur.y,x2:nb.x,y2:nb.y,t:0.14});hit.push(nb);cur=nb}
     G.fx.push({k:"zap",x1:tw.x,y1:tw.y-0.5,x2:tgt.x,y2:tgt.y,t:0.14});return;
   }
   if(tw.type==="mortar"){G.projs.push({k:"shell",x:tw.x,y:tw.y-0.3,sx:tw.x,sy:tw.y-0.3,tx:tgt.x,ty:tgt.y,t:0,T:0.75,dmg:s.dmg,sp:s.splash,tw});return}
@@ -1413,7 +1630,14 @@ function frame(now){
   hudAcc+=rdt;if(hudAcc>0.2&&G){hudAcc=0;updHud();if(sel)renderInfo(true);guideTick()}
   requestAnimationFrame(frame);
 }
-function step(dt){
+// desert dust storms on the challenge maps: during waves, now and then, towers see 20% less far for 12 seconds
+function dustTick(dt){
+  if(G.story||G.map.th!=="desert")return;
+  if(G.env){G.env.left-=dt;if(G.env.left<=0){G.env=null;toast("The dust settles.")}return}
+  if(G.phase!=="wave")return;
+  G.dustT=(G.dustT??25)-dt;if(G.dustT<=0){G.dustT=40+Math.random()*25;G.env={k:"dust",n:"Dust storm",range:0.8,rate:1,spd:1,left:12};toast("Dust storm! Tower range is shorter for a while.","boss",true)}
+}
+function step(dt){dustTick(dt);
   if(G.over)return;
   if(G.story){storyStep(dt);if(G.over)return;for(const c of G.camps)if(c.hit>0)c.hit-=dt}
   if(G.phase==="countdown"&&G.round>0){G.timer-=dt;if(G.timer<=0){G.timer=0;startRound(false)}}
@@ -1447,51 +1671,328 @@ function produce(dt){
 function R(c,ox,oy,x,y,w,h,col){c.fillStyle=col;c.fillRect(Math.round(ox+x*U),Math.round(oy+y*U),Math.ceil(w*U),Math.ceil(h*U))}
 function drawBg(){
   const m=G.map,W=(m.cols+2)*T,H=(m.rows+2)*T;
-  bgCanvas.width=W;bgCanvas.height=H;const c=bgCanvas.getContext("2d");
-  c.fillStyle="#9cc86e";c.fillRect(0,0,W,H);
+  bgCanvas.width=W;bgCanvas.height=H;const c=bgCanvas.getContext("2d");TH=themeOf(m);const P0=TH.p[0],P1=TH.p[1],P2=TH.p[2];
+  // a map is either cobbled (m.paved) or has a sand path, never both
+  c.fillStyle=TH.border;c.fillRect(0,0,W,H);
   const rnd=rng(77+m.m);
   for(let y=0;y<m.rows;y++)for(let x=0;x<m.cols;x++){
     const ox=(x+1)*T,oy=(y+1)*T,i=y*m.cols+x;
-    c.fillStyle=(x+y)%2?"#a9d47c":"#a3cf75";c.fillRect(ox,oy,T,T);
-    for(let k=0;k<3;k++){const gx=(rnd()*14)|0,gy=(rnd()*14)|0;R(c,ox,oy,gx,gy,1,2,"#8fbf63")}
-    if(G.path.has(i)&&m.ter[i]===0){
-      const mk=G.path.mask[i],h=mk&3,v=mk&12,turn=(h===1||h===2)&&(v===4||v===8)&&!(mk&~(h|v));
+    c.fillStyle=(x+y)%2?TH.g1:TH.g2;c.fillRect(ox,oy,T,T);
+    for(let k=0;k<3;k++){const gx=(rnd()*14)|0,gy=(rnd()*14)|0;R(c,ox,oy,gx,gy,1,2,TH.tuft)}
+    if(m.th==="autumn"&&(x*7+y*11)%5===0){R(c,ox,oy,(x*5)%12+1,(y*7)%12+2,2,1,"#d9822b");R(c,ox,oy,(x*3)%10+4,(y*5)%10+4,1,1,"#c2452d")} // fallen leaves
+    if(m.th==="winter"&&(x*5+y*3)%7===0)R(c,ox,oy,(x*3)%12+2,(y*5)%12+2,3,1,"#ffffff"); // sparkles on the snow
+    if(m.paved&&G.path.has(i)&&(m.ter[i]===0||m.ter[i]===T_MUD))drawCobblePath(c,m,i);
+    else if(G.path.has(i)&&(m.ter[i]===0||m.ter[i]===T_MUD)){
+      const mk=G.path.mask[i],h=mk&3,v=mk&12,onRoad=[[1,-1,0],[2,1,0],[4,0,-1],[8,0,1]].some(([b,dx,dy])=>{const X=x+dx,Y=y+dy;return (mk&b)&&X>=0&&Y>=0&&X<m.cols&&Y<m.rows&&isWay(m.ter[Y*m.cols+X])});
+      const turn=!onRoad&&(h===1||h===2)&&(v===4||v===8)&&!(mk&~(h|v)); // a bend that runs onto a road stays square so it meets the cobbles without a gap
       if(turn){
         // a bend: pave a quarter disc around the inner corner so the outer corner is round
         const cx=h===1?0:16,cy=v===4?0:16;
-        for(let uy=0;uy<16;uy++)for(let ux=0;ux<16;ux++){const d=Math.hypot(ux+0.5-cx,uy+0.5-cy);if(d<=16.2)R(c,ox,oy,ux,uy,1,1,d>15.2?"#dcc790":"#ead8a4")}
-        for(let k=0;k<4;k++){const sx=(rnd()*14)|0,sy=(rnd()*14)|0;if(Math.hypot(sx+1-cx,sy-cy)<14)R(c,ox,oy,sx,sy,2,1,"#d8c286")}
+        for(let uy=0;uy<16;uy++)for(let ux=0;ux<16;ux++){const d=Math.hypot(ux+0.5-cx,uy+0.5-cy);if(d<=16.2)R(c,ox,oy,ux,uy,1,1,d>15.2?P1:P0)}
+        for(let k=0;k<4;k++){const sx=(rnd()*14)|0,sy=(rnd()*14)|0;if(Math.hypot(sx+1-cx,sy-cy)<14)R(c,ox,oy,sx,sy,2,1,P2)}
       }else{
-        c.fillStyle="#ead8a4";c.fillRect(ox,oy,T,T);
-        if(!(mk&4))R(c,ox,oy,0,0,16,1,"#dcc790");if(!(mk&8))R(c,ox,oy,0,15,16,1,"#dcc790");
-        if(!(mk&1))R(c,ox,oy,0,0,1,16,"#dcc790");if(!(mk&2))R(c,ox,oy,15,0,1,16,"#dcc790");
-        for(let k=0;k<4;k++)R(c,ox,oy,(rnd()*14)|0,(rnd()*14)|0,2,1,"#d8c286");
+        c.fillStyle=P0;c.fillRect(ox,oy,T,T);
+        if(!(mk&4))R(c,ox,oy,0,0,16,1,P1);if(!(mk&8))R(c,ox,oy,0,15,16,1,P1);
+        if(!(mk&1))R(c,ox,oy,0,0,1,16,P1);if(!(mk&2))R(c,ox,oy,15,0,1,16,P1);
+        for(let k=0;k<4;k++)R(c,ox,oy,(rnd()*14)|0,(rnd()*14)|0,2,1,P2);
       }
     }
-    if(m.entSet.has(i)||m.exitCell[i]>=0){R(c,ox,oy,1,1,14,14,m.entSet.has(i)?"rgba(207,70,61,.13)":"rgba(61,127,68,.16)")}
   }
-  // water
-  for(let i=0;i<m.N;i++)if(m.ter[i]===2){const ox=(i%m.cols+1)*T,oy=(((i/m.cols)|0)+1)*T;c.fillStyle="#7cc6e8";c.fillRect(ox,oy,T,T);R(c,ox,oy,2,4,5,1,"#b6e3f5");R(c,ox,oy,9,10,4,1,"#b6e3f5");
-    const up=i-m.cols;if(up<0||m.ter[up]!==2)R(c,ox,oy,0,0,16,2,"#5fb0d6")}
+  // water, with rounded shores
+  {const wl=waterLayer(m);if(wl){c.imageSmoothingEnabled=false;c.drawImage(wl,T,T,wl.width*U,wl.height*U)}}
+  for(let i=0;i<m.N;i++)if(m.ter[i]===T_ICE&&G.path.has(i))drawIceTrack(c,m,i);
   // frame fence
   for(let fy=0;fy<m.rows+2;fy++)for(let fx=0;fx<m.cols+2;fx++){
     if(fx>0&&fy>0&&fx<m.cols+1&&fy<m.rows+1)continue;if(!fenceAt(fx,fy))continue;
     drawFence(c,fx*T,fy*T,fenceAt(fx-1,fy),fenceAt(fx+1,fy),fenceAt(fx,fy-1),fenceAt(fx,fy+1));
   }
+  // the road continues through each gate in the fence, out of the map
+  if(!m.story){const stub=(fx,fy,horiz,tint)=>{const ox=fx*T,oy=fy*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
+      for(let py=0;py<16;py++)for(let px=0;px<16;px+=2){const col=m.paved?(((fx*16+px)*7+(fy*16+py)*13)%11<2?"#a89f8b":((fx*16+px)*5+(fy*16+py)*3)%13<2?"#d3ccba":"#bdb5a2"):(((px*5+py*3+fx)%17)<2?P2:P0);r(px,py,2,1,col)}
+      const edge=m.paved?"#8f8673":P1;if(horiz){r(0,0,16,1,edge);r(0,15,16,1,edge)}else{r(0,0,1,16,edge);r(15,0,1,16,edge)}r(1,1,14,14,tint)}; // green: way in, red: way out
+    m.gates.forEach(g=>{const p=spawnPoint(m,g);stub(Math.floor(p.x+1),Math.floor(p.y+1),g.side==="left"||g.side==="right","rgba(61,127,68,.28)")});
+    m.exits.forEach((e,k)=>e.cells.forEach(i=>{const p=gatePoint(m,k,i);stub(Math.floor(p.x+1),Math.floor(p.y+1),e.side==="left"||e.side==="right","rgba(207,70,61,.24)")}))}
   // gate markers
   c.font=`700 ${T*0.32}px "Silkscreen",monospace`;c.textAlign="center";c.textBaseline="middle";
   const lbl=(x,y,s,col)=>{c.fillStyle=col;c.fillRect(x-T*0.62,y-T*0.2,T*1.24,T*0.4);c.fillStyle="#fff";c.fillText(s,x,y+1)};
-  if(!m.story)m.gates.forEach(g=>{const p=spawnPoint(m,g);if(g.side==="left")lbl(T*0.62,(p.y+1)*T-T,"IN","#cf463d");else lbl((p.x+1)*T+T*1.25,g.side==="top"?T*0.5:(m.rows+1.5)*T,"IN","#cf463d")});
-  if(!m.story)m.exits.forEach((e,k)=>{const p=exitCenter(m,k);let x=(p.x+1)*T,y=(p.y+1)*T;if(e.side==="right"){y-=T;x=(m.cols+1.38)*T}else{x+=T*1.25;y=e.side==="top"?T*0.5:(m.rows+1.5)*T}lbl(x,y,"EXIT","#3d7f44")});
+  if(!m.story)m.gates.forEach(g=>{const p=spawnPoint(m,g);if(g.side==="left")lbl(T*0.62,(p.y+1)*T-T,"IN","#3d7f44");else lbl((p.x+1)*T+T*1.25,g.side==="top"?T*0.5:(m.rows+1.5)*T,"IN","#3d7f44")});
+  if(!m.story)m.exits.forEach((e,k)=>{const p=exitCenter(m,k);let x=(p.x+1)*T,y=(p.y+1)*T;if(e.side==="right"){y-=T;x=(m.cols+1.38)*T}else{x+=T*1.25;y=e.side==="top"?T*0.5:(m.rows+1.5)*T}lbl(x,y,"OUT","#cf463d")});
   // resource nodes
   for(let i=0;i<m.N;i++){const t=m.ter[i];if(t<4||t>6)continue;drawNode(c,(i%m.cols+1)*T,(((i/m.cols)|0)+1)*T,t)}
   // obstacles
   for(let i=0;i<m.N;i++){const t=m.ter[i];if(t!==1&&t!==3)continue;const ox=(i%m.cols+1)*T,oy=(((i/m.cols)|0)+1)*T;
-    if(t===1){R(c,ox,oy,3,13,10,2,"rgba(0,0,0,.15)");R(c,ox,oy,7,10,2,4,"#8a5a30");R(c,ox,oy,3,2,10,9,"#4f9a3a");R(c,ox,oy,5,0,6,3,"#4f9a3a");R(c,ox,oy,4,3,4,3,"#6bbf59");R(c,ox,oy,2,6,1,3,"#3f7f30")}
-    else{R(c,ox,oy,2,12,12,2,"rgba(0,0,0,.15)");R(c,ox,oy,2,5,12,8,"#8e9796");R(c,ox,oy,4,3,8,3,"#a9b1b0");R(c,ox,oy,4,4,4,2,"#c3c9c8");R(c,ox,oy,2,11,12,2,"#6f7877")}}
+    if(t===1)drawTree(c,ox,oy,m.th,i);else drawBoulder(c,ox,oy,m.th)}
+  for(let i=0;i<m.N;i++)if(m.ter[i]===T_MUD)drawMud(c,m,i);
+  if(m.river)drawRiver(c,m);for(let i=0;i<m.N;i++)if(m.ter[i]===T_ROAD)drawTerrain(c,m,i,T_ROAD);drawBridges(c,m);
+  {const gs=mountainGroups(m);gs.forEach(G=>drawFoot(c,m,G));gs.flatMap(G=>G.peaks).sort((a,b)=>a.by-b.by).forEach(P=>drawPeak(c,P))}
+  for(let i=0;i<m.N;i++)if(m.ter[i]===T_TUN)drawCave(c,m,i);
   if(m.story)drawTerritory(c);
   bgDirty=false;
 }
+// mountains, flat green spots, roads and tunnels
+const isRock=v=>v===T_MOUNT||v===T_HIGH||v===T_TUN;
+// Mountains are drawn on top of the grass, one connected group at a time.
+// Every group gets a rocky foot that joins its tiles together. A long thin group (a ridge) becomes a mountain range:
+// low rounded humps, slightly staggered, no snow. A wider group gets one main peak (snow if it is big enough) and smaller
+// shoulder peaks around it.
+function mountainGroups(m){
+  if(m.mgroups)return m.mgroups;const rock=i=>m.ter[i]===T_MOUNT||m.ter[i]===T_TUN,seen=new Uint8Array(m.N),groups=[];
+  for(let i0=0;i0<m.N;i0++){if(!rock(i0)||seen[i0])continue;const cells=[],q=[i0];seen[i0]=1;
+    while(q.length){const j=q.pop();cells.push(j);const x=j%m.cols,y=(j/m.cols)|0;
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=m.cols||Y>=m.rows)continue;const k=Y*m.cols+X;if(rock(k)&&!seen[k]){seen[k]=1;q.push(k)}}}
+    const xs=cells.map(j=>j%m.cols),ys=cells.map(j=>(j/m.cols)|0),G={cells,x0:Math.min(...xs),x1:Math.max(...xs)+1,y0:Math.min(...ys),y1:Math.max(...ys)+1,peaks:[]};
+    const w=G.x1-G.x0,h=G.y1-G.y0,seed=G.x0*31+G.y0*17;
+    const rowW=y=>{let a=1e9,b=-1;for(const j of cells)if(((j/m.cols)|0)===y){a=Math.min(a,j%m.cols);b=Math.max(b,j%m.cols)}return b-a+1};
+    let thin=h>=4;for(let y=G.y0;y<G.y1&&thin;y++)if(rowW(y)>3)thin=false;
+    G.range="";
+    if(false){}
+    else if(G.range==="h")for(let k=0;k<w;k++){
+        G.peaks.push({cx:G.x0+k+0.5,by:G.y1-0.02-((k+seed)%2)*0.18,hw:0.95,ht:h*0.75+((k*5+seed)%3)*0.15,dome:true})}
+    else{ // the biggest squares that fit become peaks
+      const left=new Set(cells),fits=(x,y,k)=>{for(let yy=y;yy<y+k;yy++)for(let xx=x;xx<x+k;xx++)if(!left.has(yy*m.cols+xx))return false;return true},sq=[],all=new Set(cells);
+      for(const o of (m.mounts||[])){let inG=true;for(let yy=o.y;yy<o.y+o.n&&inG;yy++)for(let xx=o.x;xx<o.x+o.n;xx++)if(!all.has(yy*m.cols+xx)){inG=false;break}
+        if(inG){sq.push({x:o.x,y:o.y,k:o.n});for(let yy=o.y;yy<o.y+o.n;yy++)for(let xx=o.x;xx<o.x+o.n;xx++)left.delete(yy*m.cols+xx)}}
+      for(let k=4;k>=1;k--)for(let y=G.y0;y<G.y1;y++)for(let x=G.x0;x<G.x1;x++)if(fits(x,y,k)){sq.push({x,y,k});for(let yy=y;yy<y+k;yy++)for(let xx=x;xx<x+k;xx++)left.delete(yy*m.cols+xx)}
+      const mx=(G.x0+G.x1)/2,my=(G.y0+G.y1)/2,K=Math.max(...sq.map(o=>o.k));
+      const mains=sq.filter(o=>o.k===K),near=o=>mains.reduce((a,b)=>Math.hypot(b.x-o.x,b.y-o.y)<Math.hypot(a.x-o.x,a.y-o.y)?b:a);
+      sq.forEach((o,k)=>{const isMain=o.k===K,main=isMain?o:near(o),f=isMain?1:0.72,off=isMain?0:(main.x+main.k/2-(o.x+o.k/2))*0.22; // shoulders are lower and lean against the nearest big peak
+        const v=isMain?0.82+(((o.x*7+o.y*13)%5)/5)*0.3:0.95*f;G.peaks.push({cx:o.x+o.k/2+off,by:o.y+o.k-0.05,hw:o.k*(isMain?0.5:0.46),ht:o.k*v,snow:isMain&&o.k>=3,main:isMain,dome:o.k===1})});
+      // in a long chain only the highest peaks keep their snow
+      const ms=G.peaks.filter(p=>p.main&&p.snow);if(ms.length>1){const top=Math.max(...ms.map(p=>p.ht));ms.forEach(p=>{if(p.ht<top-0.05&&p.ht<2.8)p.snow=false})}}
+    G.peaks.sort((a,b)=>a.by-b.by);groups.push(G)}
+  return m.mgroups=groups;
+}
+// the rocky foot under a group: fills the lower part of every tile and joins neighbouring tiles
+function drawFoot(c,m,G){
+  const set=new Set(G.cells),has=(x,y)=>x>=0&&y>=0&&x<m.cols&&y<m.rows&&set.has(y*m.cols+x);
+  for(const j of G.cells){const x=j%m.cols,y=(j/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
+    const dn=has(x,y+1),lf=has(x-1,y),rt=has(x+1,y);if(dn)continue; // only along the bottom edge of the group, joining the peaks
+    for(let p=0;p<16;p++){const gx=x*16+p;let t=Math.round(8+1.5*Math.sin(gx*0.31+G.x0)+Math.sin(gx*0.83));
+      if(!lf&&p<5)t+=5-p;if(!rt&&p>10)t+=p-10;if(t>14)continue;
+      const K=TH.rock;r(p,t,1,16-t,K.foot);r(p,t,1,1,K.out);r(p,t+1,1,1,K.hi);if(!dn){r(p,14,1,1,K.lo);r(p,15,1,1,K.out)}}
+    if(!dn)r(2,16,12,1,"rgba(40,50,30,.22)")}
+}
+// a long ridge: one continuous body that follows its tiles row by row, with a winding crest and rounded ends.
+// Where a tunnel goes through, the sides are straight cliffs so the cave mouths sit flush in the rock.
+function drawRange(c,m,G){
+  const u=U,X0=(G.x0+1)*T,Y0=(G.y0+1)*T,rowsN=G.y1-G.y0,len=rowsN*16,seed=G.x0*0.7+G.y0;
+  const px=(a,b,ww,col)=>{if(ww<=0)return;c.fillStyle=col;c.fillRect(Math.round(X0+a*u),Math.round(Y0+b*u),Math.ceil(ww*u),Math.ceil(u))};
+  const set=new Set(G.cells),C=[],HW=[],TUN=[];
+  for(let r=0;r<rowsN;r++){const y=G.y0+r;let a=1e9,b=-1,t=false;for(const j of G.cells)if(((j/m.cols)|0)===y){const x=j%m.cols;a=Math.min(a,x);b=Math.max(b,x);if(m.ter[j]===T_TUN)t=true}
+    C.push(((a+b+1)/2-G.x0)*16);HW.push((b-a+1)*8);TUN.push(t?{L:(a-G.x0)*16,R:(b+1-G.x0)*16}:null)}
+  const sm=f=>f*f*(3-2*f),at=(A,pos)=>{const i=Math.floor(pos),f=sm(pos-i),a=A[Math.max(0,Math.min(rowsN-1,i))],b=A[Math.max(0,Math.min(rowsN-1,i+1))];return a+(b-a)*f};
+  const edges=[];
+  for(let k=0;k<len;k++){
+    const pos=k/16-0.5,r=Math.floor(k/16),tn=TUN[r];
+    let cx=at(C,pos),hw=at(HW,pos)*(0.9+0.07*Math.sin(k*0.23+seed*2))+0.5*Math.sin(k*0.9);
+    const end=Math.min(k+1,len-k);if(end<12)hw*=Math.sqrt(end/12); // rounded at the top and at the bottom
+    let L=cx-hw,Rr=cx+hw;
+    if(tn&&k%16>=1&&k%16<=15){L=tn.L;Rr=tn.R} // a straight cliff where the cave is
+    edges.push([Math.round(L),Math.round(Rr)]);
+    const crest=Math.round(cx+hw*0.28*Math.sin(k*0.13+seed)),cr=Math.max(Math.round(L)+1,Math.min(Math.round(Rr)-1,crest));
+    px(Math.round(L),k,cr-Math.round(L),"#a99d90");px(cr,k,Math.round(Rr)-cr,"#837869");
+    px(cr-1,k,1,"#c6bcb0");
+    if((k+Math.round(seed))%7===0&&end>=6&&!tn){for(let j=1;j<5;j++){px(cr-1-j*2,k+j,2,"rgba(70,58,46,.35)");px(cr+j*2,k+j,2,"rgba(40,32,24,.35)")}}}
+  // outline: the sides, plus the steps where the edge moves between rows
+  for(let k=0;k<len;k++){const [L,Rr]=edges[k],p=edges[k-1],n=edges[k+1];
+    px(L-1,k,1,"#4e453c");px(Rr,k,1,"#4e453c");
+    if(!p)px(L,k,Rr-L,"#4e453c");else{if(L<p[0])px(L,k,p[0]-L,"#4e453c");if(Rr>p[1])px(p[1],k,Rr-p[1],"#4e453c")}
+    if(!n){px(L,k,Rr-L,"#4e453c");c.fillStyle="rgba(40,50,30,.22)";c.fillRect(Math.round(X0+(L+2)*u),Math.round(Y0+(k+1)*u),Math.ceil((Rr-L-4)*u),Math.ceil(2*u))}
+    else{if(L<n[0])px(L,k,n[0]-L,"#4e453c");if(Rr>n[1])px(n[1],k,Rr-n[1],"#4e453c")}}
+}
+// a peak (triangle-ish) or a hump (rounded), in tile units: centre x, foot y, half width, height
+function drawPeak(c,P){
+  const u=U,H=Math.max(4,Math.round(P.ht*16)),hw=P.hw*16,cx=(P.cx+1)*T,by=(P.by+1)*T;
+  const seed=Math.round(P.cx*7+P.by*13),rnd=k=>(((seed+k*37)%97)+97)%97/97;
+  const tip=Math.round((rnd(1)-0.5)*hw*0.25);let ridge=tip;
+  for(let k=0;k<H;k++){const f=(k+1)/H,y=by-(H-k)*u;
+    const shape=P.dome?Math.sqrt(1-(1-f)*(1-f))*0.9+0.1*f:Math.pow(f,0.85); // humps are round on top
+    const wl=Math.max(1,Math.round(shape*(hw+tip)+((k%4===2&&f>0.3)?(rnd(k)>0.5?1:-1):0)));
+    const wr=Math.max(1,Math.round(shape*(hw-tip)+((k%5===3&&f>0.3)?(rnd(k+7)>0.5?1:-1):0)));
+    if(k%3===0&&f>0.15)ridge+=rnd(k+3)>0.62?1:rnd(k+3)<0.25?-1:0;ridge=Math.max(tip-wl+1,Math.min(tip+wr-1,ridge));
+    const L=tip-wl,Rr=tip+wr,row=(a,w,col)=>{c.fillStyle=col;c.fillRect(Math.round(cx+a*u),Math.round(y),Math.ceil(w*u),Math.ceil(u))};
+    const K=TH.rock;row(L,ridge-L,K.lit);row(ridge,Rr-ridge,K.shade);
+    if((P.snow||K.allSnow&&!P.dome&&P.ht>1.2)&&K.snow&&f<K.snow){const sl=Math.round(wl*(1-(k%3)*0.15)),sr=Math.round(wr*(1-((k+1)%3)*0.15));row(tip-sl,ridge-(tip-sl),"#f5f5f1");row(ridge,Math.max(0,tip+sr-ridge),"#d3d7d8")}
+    row(L-1,1,K.out);row(Rr,1,K.out);if(k===0)row(L,Rr-L,K.out)}
+  // a few rock lines
+  c.fillStyle="rgba(60,50,40,.28)";for(let k=0;k<4;k++){const f=0.45+rnd(k+20)*0.5,w=Math.round(f*hw*0.5);c.fillRect(Math.round(cx+(tip-w+Math.round(rnd(k+30)*w))*u),Math.round(by-H*u*(1-f)),Math.ceil(3*u),Math.ceil(u))}
+}
+// tunnels: only the ways in and out show, as a dark cave mouth facing the open side
+function drawCave(c,m,i){
+  const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
+  const at=(dx,dy)=>{const X=x+dx,Y=y+dy;return X<0||Y<0||X>=m.cols||Y>=m.rows?-1:m.ter[Y*m.cols+X]};
+  const open=v=>v!==-1&&!isRock(v)&&!(v>=1&&v<=3);
+  for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]){if(!open(at(dx,dy)))continue;
+    if(dx){ // an arch cut into the cliff face, open towards the path
+      const x0=dx<0?0:4;
+      r(x0,2,12,14,"#6a5f53");r(x0+1,1,10,1,"#6a5f53");r(x0+3,0,6,1,"#6a5f53");
+      r(x0+2,3,8,13,"#120e0c");r(x0+3,2,6,1,"#120e0c");r(x0+4,1,4,1,"#120e0c");
+      r(x0+1,2,1,3,"#8d8275");r(x0+2,1,2,1,"#8d8275");r(x0,15,12,1,"#3b332c");
+    }else{const y0=dy<0?0:4;r(2,y0,12,12,"#6a5f53");r(3,y0+1,10,10,"#120e0c")}
+  }
+}
+// on maps with paved roads the slimes' path is cobbled too: same stones, rounded bends, a kerb where it is not connected
+function drawCobblePath(c,m,i){
+  const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col),mk=G.path.mask[i];
+  const L_=!!(mk&1),R_=!!(mk&2),U_=!!(mk&4),D_=!!(mk&8);
+  const stone=(px,py)=>((x*16+px)*7+(y*16+py)*13)%11<2?"#a89f8b":((x*16+px)*5+(y*16+py)*3)%13<2?"#d3ccba":"#bdb5a2";
+  const onRoad=[[1,-1,0],[2,1,0],[4,0,-1],[8,0,1]].some(([b,dx,dy])=>{const X=x+dx,Y=y+dy;return (mk&b)&&X>=0&&Y>=0&&X<m.cols&&Y<m.rows&&isWay(m.ter[Y*m.cols+X])});
+  if(!onRoad&&(L_!==R_)&&(U_!==D_)){const cx=L_?0:16,cy=U_?0:16;
+    for(let py=0;py<16;py++)for(let px=0;px<16;px++){const d=Math.hypot(px+0.5-cx,py+0.5-cy);if(d<=16.2)r(px,py,1,1,d>15.2?"#8f8673":stone(px,py))}return}
+  for(let py=0;py<16;py++)for(let px=0;px<16;px+=2)r(px,py,2,1,stone(px,py));
+  if(!U_)r(0,0,16,1,"#8f8673");if(!D_)r(0,15,16,1,"#8f8673");if(!L_)r(0,0,1,16,"#8f8673");if(!R_)r(15,0,1,16,"#8f8673");
+}
+// paved roads: cobbles with a kerb, and bends rounded like the sand path
+function drawTerrain(c,m,i,t){
+  const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
+  const at=(dx,dy)=>{const X=x+dx,Y=y+dy;return X<0||Y<0||X>=m.cols||Y>=m.rows?-1:m.ter[Y*m.cols+X]};
+  const pm=G&&G.path&&G.path.mask?G.path.mask[i]:0,pbit={"-1,0":1,"1,0":2,"0,-1":4,"0,1":8};
+  const sand=(dx,dy)=>{const v=at(dx,dy);return v!==-1&&!isWay(v)&&(pm&pbit[dx+","+dy])&&G.path.has(i+dy*m.cols+dx)}; // the slimes' path joins here
+  const way=(dx,dy)=>{const v=at(dx,dy);return v===-1||isWay(v)||sand(dx,dy)}; // the map edge counts: roads run into the fence
+  const U_=way(0,-1),D_=way(0,1),L_=way(-1,0),R_=way(1,0);
+  const stone=(px,py)=>((x*16+px)*7+(y*16+py)*13)%11<2?"#b5ad9a":((x*16+px)*5+(y*16+py)*3)%13<2?"#e2dccd":"#cfc8b6";
+  if((L_!==R_)&&(U_!==D_)){ // a bend: a quarter disc around the inner corner, like the sand path
+    const cx=L_?0:16,cy=U_?0:16;
+    for(let py=0;py<16;py++)for(let px=0;px<16;px++){const d=Math.hypot(px+0.5-cx,py+0.5-cy);if(d<=16.2)r(px,py,1,1,d>15.2?"#8f8673":stone(px,py))}
+    return}
+  for(let py=0;py<16;py++)for(let px=0;px<16;px+=2)r(px,py,2,1,stone(px,py));
+  if(!U_)r(0,0,16,1,"#8f8673");if(!D_)r(0,15,16,1,"#8f8673");if(!L_)r(0,0,1,16,"#8f8673");if(!R_)r(15,0,1,16,"#8f8673");
+  const along=(U_&&D_&&!L_&&!R_)?"v":(L_&&R_&&!U_&&!D_)?"h":"";if(along==="v")r(7,(y%2)*8+2,2,5,"#f4efe2");if(along==="h")r((x%2)*8+2,7,5,2,"#f4efe2"); // centre line: the fast lane
+  if(m.paved)return;
+  // where the sand path runs onto the road, the cobbles fade into sand over a few pixels
+  const P0=TH.p[0],P2=TH.p[2],blend=(dx,dy)=>{for(let k=0;k<4;k++)for(let j=0;j<16;j++){if((j+k*3)%(k+2)!==0&&k>0)continue;const col=k<1?P0:P2;
+      if(dx<0)r(k,j,1,1,col);if(dx>0)r(15-k,j,1,1,col);if(dy<0)r(j,k,1,1,col);if(dy>0)r(j,15-k,1,1,col)}};
+  if(sand(-1,0))blend(-1,0);if(sand(1,0))blend(1,0);if(sand(0,-1))blend(0,-1);if(sand(0,1))blend(0,1);
+}
+// the river: one smooth band, 2 tiles wide, following its tiles row by row
+function drawRiver(c,m){
+  const xs=m.river.xs,rowsN=xs.length,u=U,px=(a,b,w,col)=>{if(w<=0)return;c.fillStyle=col;c.fillRect(Math.round(T+a*u),Math.round(T+b*u),Math.ceil(w*u),Math.ceil(u))};
+  const sm=f=>f*f*(3-2*f),at=pos=>{const i=Math.floor(pos),f=sm(pos-i),a=xs[Math.max(0,Math.min(rowsN-1,i))],b=xs[Math.max(0,Math.min(rowsN-1,i+1))];return (a+(b-a)*f)*16+16};
+  for(let k=-16;k<rowsN*16+16;k++){const cx=at(k/16-0.5),L=Math.round(cx-15.5),Rr=Math.round(cx+15.5);
+    const V=TH.river;px(L,k,Rr-L,V[0]);px(Math.round(cx-6),k,12,V[1]); // deeper in the middle
+    px(L,k,1,V[2]);px(Rr-1,k,1,V[2]);px(L+1,k,1,V[3]);
+    const kk=k+64;if((kk*7)%23<2){const o=((kk*13)%20)-10;px(Math.round(cx+o),k,m.th==="winter"?6:3,TH.river[4])}} // ripples drifting downstream
+}
+// bridges: wooden planks for the slimes' path, stone for a paved road
+function drawBridges(c,m){
+  for(let i=0;i<m.N;i++){const t=m.ter[i];if(t!==T_BRIDGE&&t!==T_PBRIDGE)continue;const x=i%m.cols,y=(i/m.cols)|0;
+    if(x>0&&m.ter[i-1]===t)continue; // draw each bridge once, from its left tile
+    let n=1;while(x+n<m.cols&&m.ter[i+n]===t)n++;
+    const ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col),W=n*16;
+    r(-3,15,W+6,2,"rgba(20,40,70,.35)"); // shadow on the water
+    if(t===T_BRIDGE&&!m.paved){ // wood on sand-path maps, stone on cobbled maps
+      r(-3,2,W+6,12,"#a8763f");for(let k=-2;k<W+3;k+=4)r(k,2,1,12,"#7d5328");r(-3,7,W+6,1,"rgba(90,58,26,.35)");
+      r(-3,1,W+6,2,"#6b4423");r(-3,13,W+6,2,"#6b4423");
+      for(const p of [-3,Math.floor(W/2)-1,W+1]){r(p,0,2,4,"#4f321a");r(p,12,2,4,"#4f321a")}
+    }else{
+      for(let py=2;py<14;py++)for(let k=-3;k<W+3;k+=4)r(k,py,4,1,((k>>2)+py)%5===0?"#a89f8b":"#c2baa8");
+      for(let py=4;py<14;py+=4)r(-3,py,W+6,1,"#9d9583");
+      r(-4,0,W+8,3,"#8f8673");r(-4,0,W+8,1,"#d6cfbf");r(-4,13,W+8,3,"#8f8673");r(-4,13,W+8,1,"#d6cfbf");
+    }
+  }
+}
+// The water is drawn as one picture at 16 pixels per tile. Convex corners are rounded with a radius of about one tile
+// (so a big lake gets a big curve), and inside corners get a smaller curve. Off the map edge the water simply carries on.
+function waterLayer(m){
+  if(m.wl!==undefined)return m.wl;TH=themeOf(m);
+  const P=16,W=(m.cols+2)*P,H=(m.rows+2)*P,N=W*H;let any=false;
+  const wet=new Uint8Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const tx=Math.min(m.cols-1,Math.max(0,Math.floor(x/P)-1)),ty=Math.min(m.rows-1,Math.max(0,Math.floor(y/P)-1));
+    if(m.ter[ty*m.cols+tx]===2||m.ter[ty*m.cols+tx]===T_ICE){wet[y*W+x]=1;any=true}}
+  if(!any)return m.wl=null;
+  // chamfer distance (3 straight, 4 diagonal) from each pixel with f=1 to the nearest pixel with f=0
+  const dt=f=>{const d=new Float32Array(N);for(let i=0;i<N;i++)d[i]=f[i]?1e6:0;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(!d[i])continue;let v=d[i];
+      if(x>0)v=Math.min(v,d[i-1]+3);if(y>0){v=Math.min(v,d[i-W]+3);if(x>0)v=Math.min(v,d[i-W-1]+4);if(x<W-1)v=Math.min(v,d[i-W+1]+4)}d[i]=v}
+    for(let y=H-1;y>=0;y--)for(let x=W-1;x>=0;x--){const i=y*W+x;if(!d[i])continue;let v=d[i];
+      if(x<W-1)v=Math.min(v,d[i+1]+3);if(y<H-1){v=Math.min(v,d[i+W]+3);if(x<W-1)v=Math.min(v,d[i+W+1]+4);if(x>0)v=Math.min(v,d[i+W-1]+4)}d[i]=v}
+    return d};
+  const thr=(d,r,gt)=>{const o=new Uint8Array(N);for(let i=0;i<N;i++)o[i]=gt?(d[i]>r*3?1:0):(d[i]<=r*3?1:0);return o};
+  const inv=a=>{const o=new Uint8Array(N);for(let i=0;i<N;i++)o[i]=a[i]?0:1;return o};
+  const RO=13,RI=6; // outer and inner corner radius in pixels
+  const core=thr(dt(wet),RO,true);                 // shrink...
+  let w=inv(thr(dt(inv(core)),RO,true));            // ...and grow back: convex corners come out round
+  // narrow water (rivers, thin strips) would lose too much with the big curve: those tiles use a small curve instead
+  const ws=inv(thr(dt(inv(thr(dt(wet),5,true))),5,true));
+  for(let ty=0;ty<m.rows+2;ty++)for(let tx=0;tx<m.cols+2;tx++){let n=0,t=0;for(let y=ty*P;y<ty*P+P;y++)for(let x=tx*P;x<tx*P+P;x++){const i=y*W+x;if(wet[i]){t++;if(w[i])n++}}
+    if(t&&n<t*0.6)for(let y=ty*P;y<ty*P+P;y++)for(let x=tx*P;x<tx*P+P;x++){const i=y*W+x;if(ws[i]||(wet[i]&&n<t*0.2))w[i]=1}}
+  const grown=thr(dt(inv(w)),RI,false);              // grow...
+  w=thr(dt(grown),RI,true);                          // ...and shrink: inside corners get a small curve
+  m.wmask=w;m.wW=W; // kept so the path can follow the shore of a frozen lake
+  // paint: water, a light foam line and a dark bank line along the shore, a few ripples
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;const x2=cv.getContext("2d"),img=x2.createImageData(W,H),D=img.data;
+  const col=(i,r,g,b)=>{D[i*4]=r;D[i*4+1]=g;D[i*4+2]=b;D[i*4+3]=255};
+  const edge=i=>{const x=i%W,y=(i/W)|0;return(x>0&&!w[i-1])||(x<W-1&&!w[i+1])||(y>0&&!w[i-W])||(y<H-1&&!w[i+W])};
+  const e1=new Uint8Array(N);for(let i=0;i<N;i++)if(w[i]&&edge(i))e1[i]=1;
+  for(let i=0;i<N;i++){if(!w[i])continue;const x=i%W,y=(i/W)|0;
+    const Q=TH.water;if(e1[i]){col(i,Q[3],Q[4],Q[5]);continue}
+    const near=(x>0&&e1[i-1])||(x<W-1&&e1[i+1])||(y>0&&e1[i-W])||(y<H-1&&e1[i+W]);
+    if(near){col(i,Q[6],Q[7],Q[8]);continue}
+    const tx=(x/P)|0,ty=(y/P)|0,lx=x%P,ly=y%P,rip=((tx*3+ty*5)%3===0)?(ly===5&&lx>=3&&lx<8):(ly===10&&lx>=8&&lx<12);
+    if(rip)col(i,Q[9],Q[10],Q[11]);else col(i,Q[0],Q[1],Q[2])}
+  x2.putImageData(img,0,0);
+  // only the part inside the map is shown
+  const out=document.createElement("canvas");out.width=W-2*P;out.height=H-2*P;out.getContext("2d").drawImage(cv,-P,-P);
+  return m.wl=out;
+}
+function drawWater(c,m,i){
+  const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
+  const wet=(dx,dy)=>{const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=m.cols||Y>=m.rows)return true;const t=m.ter[Y*m.cols+X];return t===2||t===T_ROAD&&false};
+  const grass=(x+y)%2?"#a9d47c":"#a3cf75",bank="#4f9fc6",foam="#cfeefa";
+  r(0,0,16,16,"#7cc6e8");if((x*3+y*5)%3===0){r(3,5,5,1,"#b6e3f5")}else{r(8,9,4,1,"#b6e3f5")}
+  const U_=wet(0,-1),D_=wet(0,1),L_=wet(-1,0),R_=wet(1,0);
+  if(!U_){r(0,0,16,1,bank);r(0,1,16,1,foam)}if(!D_){r(0,15,16,1,bank);r(0,14,16,1,"#68b6dc")}
+  if(!L_){r(0,0,1,16,bank);r(1,0,1,16,foam)}if(!R_){r(15,0,1,16,bank);r(14,0,1,16,"#68b6dc")}
+  // outer corners: round them off with a quarter circle of grass
+  const outer=(cx,cy,sx,sy)=>{const R0=6;for(let py=0;py<R0;py++)for(let qx=0;qx<R0;qx++){const d=Math.hypot(R0-0.5-qx,R0-0.5-py);const X=sx>0?qx:15-qx,Y=sy>0?py:15-py;
+      if(d>R0)r(X,Y,1,1,grass);else if(d>R0-1)r(X,Y,1,1,bank);else if(d>R0-2)r(X,Y,1,1,sy>0?foam:"#68b6dc")}};
+  if(!U_&&!L_)outer(0,0,1,1);if(!U_&&!R_)outer(15,0,-1,1);if(!D_&&!L_)outer(0,15,1,-1);if(!D_&&!R_)outer(15,15,-1,-1);
+  // inner corners: the grass corner pokes in a little, rounded
+  const inner=(sx,sy)=>{const R0=3;for(let py=0;py<R0;py++)for(let qx=0;qx<R0;qx++){const d=Math.hypot(qx+0.5,py+0.5),X=sx>0?qx:15-qx,Y=sy>0?py:15-py;if(d<R0-0.6)r(X,Y,1,1,grass);else if(d<R0+0.4)r(X,Y,1,1,bank)}};
+  if(U_&&L_&&!wet(-1,-1))inner(1,1);if(U_&&R_&&!wet(1,-1))inner(-1,1);if(D_&&L_&&!wet(-1,1))inner(1,-1);if(D_&&R_&&!wet(1,1))inner(-1,-1);
+}
+// trees: leafy in the meadow, orange and red in autumn, snowy pines in winter, cacti in the desert, dead trees in the swamp
+function drawTree(c,ox,oy,th,i){
+  const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);r(3,13,10,2,"rgba(0,0,0,.15)");
+  if(th==="winter"){r(7,11,2,3,"#6e4626");r(3,8,10,4,"#2f6b47");r(4,5,8,4,"#2f6b47");r(5,2,6,4,"#2f6b47");r(7,0,2,3,"#2f6b47");
+    r(3,8,10,1,"#ffffff");r(4,5,8,1,"#ffffff");r(5,2,6,1,"#ffffff");r(7,0,2,1,"#ffffff");r(9,9,3,2,"#245638");return}
+  if(th==="desert"){r(7,2,3,12,"#5f9a45");r(8,2,1,11,"#7fbd5f");r(3,6,2,5,"#5f9a45");r(3,10,4,2,"#5f9a45");r(12,4,2,5,"#5f9a45");r(10,8,4,2,"#5f9a45");
+    r(7,1,3,1,"#4b7d36");r(9,5,1,1,"#e8f2c8");r(4,7,1,1,"#e8f2c8");r(12,5,1,1,"#e8f2c8");if(i%3===0)r(8,0,2,1,"#e0607e");return}
+  if(th==="swamp"){r(7,5,2,9,"#4a3b2a");r(4,4,3,1,"#4a3b2a");r(3,2,1,2,"#4a3b2a");r(9,3,3,1,"#4a3b2a");r(11,1,1,2,"#4a3b2a");r(6,9,1,1,"#5f7a42");r(8,6,2,2,"#5f7a42");r(5,13,6,1,"#3d5530");return}
+  const red=th==="autumn"&&i%3===0,L=th==="autumn"?(red?"#c2452d":"#d9822b"):"#4f9a3a",H=th==="autumn"?(red?"#e0644a":"#f0b04a"):"#6bbf59",D=th==="autumn"?(red?"#8e2f20":"#b5651f"):"#3f7f30";
+  r(7,10,2,4,"#8a5a30");r(3,2,10,9,L);r(5,0,6,3,L);r(4,3,4,3,H);r(2,6,1,3,D);
+}
+function drawBoulder(c,ox,oy,th){
+  const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);const P=th==="desert"?["#c99a63","#dbb27c","#e8c897","#a8763f"]:th==="swamp"?["#7d8576","#939b8a","#5f7a42","#5d6458"]:["#8e9796","#a9b1b0","#c3c9c8","#6f7877"];
+  r(2,12,12,2,"rgba(0,0,0,.15)");r(2,5,12,8,P[0]);r(4,3,8,3,P[1]);r(4,4,4,2,P[2]);r(2,11,12,2,P[3]);
+  if(th==="winter"){r(4,2,8,2,"#ffffff");r(3,4,3,1,"#ffffff")}
+}
+// swamp mud: a dark, wet puddle; the path still shows through
+// where the slimes' path crosses a frozen lake: the path keeps its normal shape, but every pixel that lies on the ice
+// (following the lake's rounded shore) is drawn as pale ice with slide streaks; the rest is the normal path
+function drawIceTrack(c,m,i){const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col),mk=G.path.mask[i];
+  const L_=mk&1,R_=mk&2,U_=mk&4,D_=mk&8,h=L_||R_,v=U_||D_,turn=h&&v&&!(L_&&R_)&&!(U_&&D_),cx=L_?0:16,cy=U_?0:16;
+  const ice=(px,py)=>{if(!m.wmask)return true;const X=(x+1)*16+px,Y=(y+1)*16+py;return !!m.wmask[Y*m.wW+X]};
+  // 0 = outside the path, 1 = path edge, 2 = path
+  const shape=(px,py)=>{if(turn){const d=Math.hypot(px+0.5-cx,py+0.5-cy);return d>16.2?0:d>15.2?1:2}
+    return (!U_&&py===0)||(!D_&&py===15)||(!L_&&px===0)||(!R_&&px===15)?1:2};
+  const P0=TH.p[0],P1=TH.p[1];
+  for(let py=0;py<16;py++)for(let px=0;px<16;px++){const sh=shape(px,py);if(!sh)continue;
+    if(!ice(px,py)){r(px,py,1,1,sh===1?P1:P0);continue}
+    const shore=!ice(px-1,py)||!ice(px+1,py)||!ice(px,py-1)||!ice(px,py+1); // where path and ice meet
+    r(px,py,1,1,sh===1?P1:shore?"#a9cfe3":"#eaf5fa")}
+  const st=(a,b,w,hh)=>{for(let py=b;py<b+hh;py++)for(let px=a;px<a+w;px++)if(shape(px,py)===2&&ice(px,py))r(px,py,1,1,"#8ebedb")};
+  if(h&&!v){st(2,5,5,1);st(9,10,5,1);st(5,8,4,1)}else if(v&&!h){st(5,2,1,5);st(10,9,1,5);st(8,5,1,4)}else st(L_?3:9,U_?3:9,4,1)}
+function drawMud(c,m,i){const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
+  const at=(dx,dy)=>{const X=x+dx,Y=y+dy;return X>=0&&Y>=0&&X<m.cols&&Y<m.rows&&m.ter[Y*m.cols+X]===T_MUD};
+  const L=at(-1,0),Rt=at(1,0),U_=at(0,-1),D_=at(0,1);
+  // a round puddle in the middle of the tile that flows into neighbouring mud
+  const inside=(px,py)=>{const dx=px+0.5-8,dy=py+0.5-8;if(dx*dx+dy*dy<=42)return true;
+    if(L&&px<8&&Math.abs(dy)<=5)return true;if(Rt&&px>=8&&Math.abs(dy)<=5)return true;if(U_&&py<8&&Math.abs(dx)<=5)return true;if(D_&&py>=8&&Math.abs(dx)<=5)return true;return false};
+  for(let py=0;py<16;py++)for(let px=0;px<16;px++){if(!inside(px,py))continue;
+    const edge=!inside(px-1,py)&&!(px===0&&L)||!inside(px+1,py)&&!(px===15&&Rt)||!inside(px,py-1)&&!(py===0&&U_)||!inside(px,py+1)&&!(py===15&&D_);
+    r(px,py,1,1,edge?"rgba(52,36,18,.7)":"rgba(92,68,38,.62)")}
+  r(5+(x*3)%3,6+(y*5)%3,3,1,"rgba(190,170,120,.55)");r(9,10,2,1,"rgba(190,170,120,.4)");r(7,8,1,1,"rgba(40,28,14,.6)")}
 function drawNode(c,ox,oy,t){
   const r=(x,y,w,h,col)=>R(c,ox,oy,x,y,w,h,col);
   const mark=t===4?"#e0a526":t===5?"#3d7f44":"#7c8586";
@@ -1518,6 +2019,7 @@ function fenceAt(fx,fy){
   const m=G.map;if(fx<0||fy<0||fx>m.cols+1||fy>m.rows+1)return false;
   const border=fx===0||fy===0||fx===m.cols+1||fy===m.rows+1;
   if(border){
+    if(m.river){const xs=m.river.xs,ex=fy===0?xs[0]:fy===m.rows+1?xs[xs.length-1]:-9;if(fx-1===ex||fx-1===ex+1)return false} // the river flows through the fence
     for(const g of m.gates){const p=spawnPoint(m,g);if(Math.floor(p.x+1)===fx&&Math.floor(p.y+1)===fy)return false}
     for(let k=0;k<m.exits.length;k++)for(const i of m.exits[k].cells){const p=gatePoint(m,k,i);if(Math.floor(p.x+1)===fx&&Math.floor(p.y+1)===fy)return false}
     return true;
@@ -1647,7 +2149,7 @@ function draw(t){
     if(tw.flash>0){ctx.fillStyle=`rgba(255,240,150,${tw.flash})`;ctx.fillRect((tw.x+0.5)*T,(tw.y+0.5)*T-T*0.4,T,T*1.4)}
     if(!TOWERS[tw.type].wall&&!(tw.type==="fence"&&tw.L<2)){const bx=(tw.x+1)*T+T*0.14,by=(tw.y+1)*T+T*0.08;ctx.fillStyle="#253225";ctx.fillRect(bx,by,T*0.42,T*0.38);ctx.fillStyle="#fff";ctx.font=`${T*0.42}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(tw.L,bx+T*0.21,by+T*0.2)}
   }});
-  for(const e of G.enemies)if(!e.fly)ents.push({y:e.y,f:()=>drawEnemy(ctx,e,t)});
+  for(const e of G.enemies)if(!e.fly)ents.push({y:e.y,f:()=>{const h=hidden(e);if(h)ctx.globalAlpha=0.28;drawEnemy(ctx,e,t);if(h)ctx.globalAlpha=1}});
   ents.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   for(const e of G.enemies)if(e.fly)drawEnemy(ctx,e,t);
   // projectiles
@@ -1671,7 +2173,7 @@ function draw(t){
   }
   // selected tower round damage label
   if(sel&&!group&&!TOWERS[sel.type].wall&&!TOWERS[sel.type].eco){const s=`${fmt(sel.rd)} dmg this round`;ctx.font=`${T*0.5}px "VT323",monospace`;ctx.textAlign="center";const x=(sel.x+1)*T,y=(sel.y+1)*T-T*0.95;const w=ctx.measureText(s).width+14;ctx.fillStyle="#253225";ctx.fillRect(x-w/2,y-T*0.26,w,T*0.52);ctx.fillStyle="#fff";ctx.textBaseline="middle";ctx.fillText(s,x,y+1)}
-  if(G.story){drawEnv(t);drawMini()}
+  if(G.story){drawEnv(t);drawMini()}else if(G.env)drawEnv(t);
   if(G.paused){ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="rgba(37,50,37,.35)";ctx.fillRect(0,0,cv.width,cv.height);ctx.font=`${T*1.2}px "VT323",monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.fillText("PAUSED",cv.width/2,cv.height/2);ctx.font=`${T*0.5}px "VT323",monospace`;ctx.fillText("Building and buying are locked. Press P or ▶ to resume.",cv.width/2,cv.height/2+T*0.9);return}
   // guide highlights
   const gs=guideStep();
@@ -1713,7 +2215,7 @@ function updHud(){
    const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Gold")lb.textContent="Gold";const mp=marketPay();setTxt("hRate",mp?`Markets +${fmt(mp)}/round`:"Kills pay gold")}
   else{const lb=$("hRes").previousElementSibling;if(lb.textContent!=="Resources")lb.textContent="Resources";const h=["g","w","s"].map(k=>`<span class="rv">${RHTML[k]}${fmt(Math.floor(G[RKEY[k]]))}</span>`).join("");if($("hRes").innerHTML!==h)$("hRes").innerHTML=h;
    const rt=rates();const t=G.round<1?"Mines start with round 1":["g","w","s"].map(k=>`+${fmt1(rt[k])}/s`).join("  ");setTxt("hRate",t)}
-  $("hRound").textContent=G.story?`${G.round}`:`${G.round}/50`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${MAPS[G.m].name}`;
+  $("hRound").textContent=G.story?`${G.round}`:`${G.round}/50`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${mapDef(G.d,G.m).name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
   $("nextInfo").parentElement.hidden=!G.story&&G.round>=50; // no "next" line once the last round is running
   if(G.story){storyHud();document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k)))});return}
@@ -1823,7 +2325,7 @@ function renderInfo(live,hoverType){
     if($("iRes"))$("iRes").onclick=()=>research(k);if($("iClose"))$("iClose").onclick=()=>{lockedView=null;renderBuild();renderInfo()};return}
   el.innerHTML=`<h3>Info</h3><p class="hint" style="margin:0">Select a tower on the map to see its damage, the next upgrade and how much damage it dealt this round. Double-click a tower to select all towers of that type and level.</p>
     <div class="tbl" style="margin-top:10px"><span class="k">Enemy HP this round</span><span class="v">${fmt(baseHp(Math.max(1,G.phase==="wave"?G.round:G.round+1)))}</span><span></span>
-    <span class="k">Difficulty bonus</span><span class="v">+${Math.round((DIFFS[G.d].hp-1)*100)}% HP</span><span></span></div>`;
+    <span class="k">Difficulty</span><span class="v">${hpTxt(G.d).replace(" enemy HP"," HP").replace("Base HP","Base")}</span><span></span></div>`;
 }
 
 // ---------- input ----------
@@ -1912,7 +2414,7 @@ document.addEventListener("keydown",ev=>{
 function togglePause(){G.paused=!G.paused;document.body.classList.toggle("paused",G.paused);$("bPause").setAttribute("aria-pressed",G.paused);$("bPause").textContent=G.paused?"▶":"II"}
 $("bPause").onclick=togglePause;
 $("gNext").onclick=guideNext;$("stGo").onclick=()=>{$("storyOv").hidden=true;if(G&&G.story&&!G.started&&!G.talked){G.talked=true;OBJ_LINES[0].forEach(l=>say(...l))}};$("gSkip").onclick=endGuide;
-$("bSpd").onclick=()=>setSpeed(G.speed%3+1); // compact: one button cycles 1x → 2x → 3x
+$("bSpd").onclick=()=>{const seq=G.test?[1,2,3,5]:[1,2,3];setSpeed(seq[(seq.indexOf(G.speed)+1)%seq.length])}; // compact: one button cycles 1x → 2x → 3x
 function setSpeed(v){G.speed=v;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",+o.dataset.sp===v));$("bSpd").textContent=v+"x"}
 document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
 $("bStart").onclick=()=>startRound(true);
@@ -1946,7 +2448,7 @@ addEventListener("orientationchange",()=>setTimeout(layout,200));
 
 // ---------- finish / score ----------
 function calcScore(win){
-  const s=G.stats,dm=DIFFS[G.d].hp,mm=1+0.25*G.m;
+  const s=G.stats,dm=DIFFS[G.d].hp*HP_BASE,mm=1+0.25*G.m;
   const timeBonus=win?Math.max(0,5400-s.time)*4:0;
   const base=s.kills*10+G.lives*400+s.earned*0.5+Math.max(0,s.earned-s.spent)*0.2+timeBonus+G.round*150;
   return Math.round(base*dm*mm);
@@ -2000,7 +2502,7 @@ function buildStoryMap(){
   for(let guard=0;guard<800;guard++){ // every camp must be able to reach the village
     const dist=dijkstra(map,null,-1),bad=map.ent.find(i=>dist[i]>1e8);if(bad==null)break;
     const bx=bad%cols,by=(bad/cols)|0;let best=-1,bd=1e9;
-    for(let i=0;i<N;i++){if(!(ter[i]>=1&&ter[i]<=3))continue;const x=i%cols,y=(i/cols)|0,L2=(VX-bx)**2+(VY-by)**2;
+    for(let i=0;i<N;i++){if(!isBlk(ter[i]))continue;const x=i%cols,y=(i/cols)|0,L2=(VX-bx)**2+(VY-by)**2;
       const t=Math.max(0,Math.min(1,((x-bx)*(VX-bx)+(y-by)*(VY-by))/L2)),d=Math.hypot(x-(bx+t*(VX-bx)),y-(by+t*(VY-by)))+R()*0.6;if(d<bd){bd=d;best=i}}
     if(best<0)break;ter[best]=0;
   }
@@ -2051,6 +2553,8 @@ function drawBram(t){const b=G.bram;if(!b||b.freed)return;const ox=(b.x+1)*T,oy=
 function drawEnv(t){
   if(!G.env)return;ctx.setTransform(1,0,0,1,0,0);
   if(G.env.k==="night"){ctx.fillStyle="rgba(10,16,48,.40)";ctx.fillRect(0,0,cv.width,cv.height)}
+  else if(G.env.k==="dust"){ctx.fillStyle="rgba(205,165,100,.32)";ctx.fillRect(0,0,cv.width,cv.height);ctx.fillStyle="rgba(240,215,160,.55)";
+    for(let k=0;k<70;k++){const x=((k*211+t*520)%(cv.width+120))-60,y=(k*97)%cv.height;ctx.fillRect(x,y,26+(k%3)*10,3)}}
   else{ctx.fillStyle="rgba(60,70,85,.25)";ctx.fillRect(0,0,cv.width,cv.height);ctx.strokeStyle="rgba(200,220,255,.45)";ctx.lineWidth=2;ctx.beginPath();
     for(let k=0;k<90;k++){const x=((k*137+t*420)%(cv.width+80))-40,y=((k*89+t*900)%(cv.height+60))-30;ctx.moveTo(x,y);ctx.lineTo(x-8,y+22)}ctx.stroke()}
   const c=G.cam;ctx.setTransform(c.z,0,0,c.z,-c.x*c.z,-c.y*c.z);
@@ -2265,8 +2769,15 @@ const STORY={
   win:"The Slime King bursts into a thousand drops. The swarm is broken, and the village sleeps safe behind its thorns.",
   lose:"The swarm pours through the gate. The Thornwarden falls back to regrow the wall. Try again."
 };
+// every special rule of a map, shown in the intro before the first round and on the map card
+function mapRules(D,d){const r=[],tw=THEMES[D.th||"meadow"].twist;if(tw)r.push(tw);
+  if(D.paved)r.push("Cobbled path: slimes march 25% faster on the stones.");
+  if(D.key==="flood"||D.key==="highlands")r.push("A river crosses the map. Slimes can only cross on the bridges, and nothing can be built on a bridge.");
+  const {sp,ex}=gateSides(mapsFor(d).indexOf(D),d);if(sp.length>1)r.push(`Slimes come in through ${sp.length} gates.`);if(ex.length>1)r.push(`There are ${ex.length} ways out.`);
+  return r}
 function showStory(){
-  const ch=STORY.chapters[G.m],first=!LS.get("fot-intro-seen",false);
+  const D=mapDef(G.d,G.m),ch={t:D.name,b:D.st||D.desc},first=!LS.get("fot-intro-seen",false),rules=mapRules(D,G.d);
+  $("stRules").hidden=!rules.length;$("stRules").innerHTML=rules.length?`<span class="label">Map rules</span><ul style="margin:4px 0 0;padding-left:20px;font-size:18px;line-height:1.35">${rules.map(x=>`<li>${x}</li>`).join("")}</ul>`:"";
   $("stChap").textContent=`Chapter ${G.m+1} · ${DIFFS[G.d].name}`;$("stTitle").textContent=ch.t;
   $("stIntro").textContent=first?STORY.intro:"";$("stIntro").hidden=!first;$("stBody").textContent=ch.b;
   $("storyOv").hidden=false;LS.set("fot-intro-seen",true);
@@ -2274,17 +2785,19 @@ function showStory(){
 function finish(win){
   if(G.over)return;G.over=true;SND.play(win?"win":"lose");if(!G.story)clearChal();
   if(G.story){finishStory(win);return}
+  if(!win&&G.phase==="wave")logRound(false);
+  $("logBox").hidden=true;$("logTxt").value=logText(win);$("logHint").textContent="";
   const sc=calcScore(win),s=G.stats,key=mkey(G.d,G.m);
   const entry={score:sc,win,round:G.round,time:Math.round(s.time),kills:s.kills,lives:G.lives,at:Date.now()};
-  const list=(personal[key]||[]).concat(entry).sort((a,b)=>b.score-a.score).slice(0,10);personal[key]=list;LS.set("pk-scores",personal);
+  const list=G.test?[]:(personal[key]||[]).concat(entry).sort((a,b)=>b.score-a.score).slice(0,10);if(!G.test){personal[key]=list;LS.set("pk-scores",personal)}
   const rank=list.indexOf(entry);
   let unlockMsg="";const unlocks=[];
-  if(win){const was=isCleared(G.d,G.m),wasD=diffUnlocked(G.d+1);progress.cleared[key]=true;LS.set("pk-progress",progress);
-    if(!was){unlockMsg=G.m<3?`Reward: trophy for ${MAPS[G.m].name}. ${MAPS[G.m+1].name} is now unlocked.`:"Reward: trophy for the last map.";if(G.m<3)unlocks.push({map:G.m+1,d:G.d})}
+  if(win&&!G.test){const was=isCleared(G.d,G.m),wasD=diffUnlocked(G.d+1);progress.cleared[key]=true;LS.set("pk-progress",progress);
+    if(!was){const L=mapsFor(G.d),last=L.length-1;unlockMsg=G.m<last?`Reward: trophy for ${L[G.m].name}. ${L[G.m+1].name} is now unlocked.`:"Reward: trophy for the last map.";if(G.m<last)unlocks.push({map:G.m+1,d:G.d})}
     if(G.d<4&&!wasD&&diffUnlocked(G.d+1)){unlockMsg+=` ${DIFFS[G.d+1].name} difficulty is now unlocked!`;unlocks.push({diff:G.d+1})}}
-  submitOverall(key,entry);
+  if(!G.test)submitOverall(key,entry);else unlockMsg="Test game: not ranked, nothing unlocked.";
   $("resTitle").textContent=win?"The swarm is broken!":"The gate has fallen";
-  $("resSub").textContent=(win?STORY.win:STORY.lose)+` (${DIFFS[G.d].name} · ${MAPS[G.m].name}`+(win?")":` · reached round ${G.round})`);
+  $("resSub").textContent=(win?STORY.win:STORY.lose)+` (${DIFFS[G.d].name} · ${mapDef(G.d,G.m).name}`+(win?")":` · reached round ${G.round})`);
   const rows=[["Time",mmss(s.time)],["Rounds survived",`${win?50:Math.max(0,G.round-1)}`],["Enemies killed",fmt(s.kills)],["Lives left",`${G.lives}/20`],["Resources earned",fmt(s.earned)],["Resources spent",fmt(s.spent)]];
   $("resTbl").innerHTML=rows.map(([k,v])=>`<span>${k}</span><span class="v">${v}</span>`).join("");
   $("resScore").textContent=sc.toLocaleString("en-US");
@@ -2297,9 +2810,9 @@ function showUnlocks(list,done){
   const u=list.shift();if(!u){$("unlockOv").hidden=true;done();return}
   const st=$("ulStage");st.innerHTML="";
   if(u.map!=null){const c=mapPreview(u.map,u.d);c.className="ul-prev";st.appendChild(c);
-    $("ulKind").textContent="New map unlocked";$("ulName").textContent=MAPS[u.map].name;$("ulSub").textContent=`${MAPS[u.map].desc} · ${DIFFS[u.d].name}`}
-  else{const d=document.createElement("div");d.className="ul-diff";d.innerHTML=`<b>${DIFFS[u.diff].name}</b><small>Enemies have +${Math.round((DIFFS[u.diff].hp-1)*100)}% health</small>`;st.appendChild(d);
-    $("ulKind").textContent="New difficulty unlocked";$("ulName").textContent=`${DIFFS[u.diff].name} is open!`;$("ulSub").textContent="All four maps are waiting on the harder setting"}
+    $("ulKind").textContent="New map unlocked";$("ulName").textContent=mapDef(u.d,u.map).name;$("ulSub").textContent=`${mapDef(u.d,u.map).desc} · ${DIFFS[u.d].name}`}
+  else{const d=document.createElement("div");d.className="ul-diff";d.innerHTML=`<b>${DIFFS[u.diff].name}</b><small>${hpTxt(u.diff)}</small>`;st.appendChild(d);
+    $("ulKind").textContent="New difficulty unlocked";$("ulName").textContent=`${DIFFS[u.diff].name} is open!`;$("ulSub").textContent=`${MAPSETS[u.diff].length} maps are waiting on the harder setting`}
   const lock=document.createElement("div");lock.className="ul-lock";
   lock.innerHTML='<svg viewBox="0 0 16 16"><g class="ul-shackle"><path fill="#253225" d="M4 2h8v1h1v5h-2V4H5v4H3V3h1z"/><path fill="#c3c9c8" d="M5 3h6v1H5zM4 4h1v4H4zM11 4h1v4h-1z"/></g><path fill="#253225" d="M2 7h12v9H2z"/><path fill="#f4c84a" d="M3 8h10v7H3z"/><path fill="#fff2b0" d="M3 8h10v1H3z"/><path fill="#d99a1c" d="M3 14h10v1H3z"/><path fill="#253225" d="M7 10h2v1H7zM7.5 11h1v2h-1z"/></svg>';
   st.appendChild(lock);
@@ -2310,9 +2823,13 @@ function showUnlocks(list,done){
   $("ulGo").textContent=list.length?"Next":"Continue";$("ulGo").onclick=()=>showUnlocks(list,done);
   $("unlockOv").hidden=false;SND.play("unlock");
 }
-function nextMap(){if(G.m<3&&mapUnlocked(G.d,G.m+1))return[G.d,G.m+1];if(G.d<4&&diffUnlocked(G.d+1))return[G.d+1,0];return null}
+function nextMap(){if(G.m<MAPSETS[G.d].length-1&&mapUnlocked(G.d,G.m+1))return[G.d,G.m+1];if(G.d<4&&diffUnlocked(G.d+1))return[G.d+1,0];return null}
 $("resNext").onclick=()=>{const n=nextMap();$("resOv").hidden=true;if(n)newGame(n[0],n[1])};
 $("resRetry").onclick=()=>{$("resOv").hidden=true;if(G.story)newStory(null);else newGame(G.d,G.m)};
+$("resLog").onclick=()=>{$("logBox").hidden=!$("logBox").hidden};
+$("logCopy").onclick=async()=>{const t=$("logTxt").value;let ok=false;try{await navigator.clipboard.writeText(t);ok=true}catch(e){}
+  if(!ok){try{$("logTxt").focus();$("logTxt").select();ok=document.execCommand("copy")}catch(e){}}
+  $("logHint").textContent=ok?"Copied. Paste it into the chat.":"Select the text above and copy it by hand."};
 $("resMenu").onclick=()=>{$("resOv").hidden=true;openMenu(false)};
 
 // ---------- overall leaderboard (shared) ----------
@@ -2351,33 +2868,34 @@ async function submitOverall(key,entry){
 // ---------- menu ----------
 function mapPreview(m,d){
   const map=buildMap(m,d),c=document.createElement("canvas"),s=6;c.width=(map.cols+2)*s;c.height=(map.rows+2)*s;const x=c.getContext("2d");
-  x.fillStyle="#a8743f";x.fillRect(0,0,c.width,c.height);x.fillStyle="#a9d47c";x.fillRect(s,s,map.cols*s,map.rows*s);
+  const P=themeOf(map);x.fillStyle="#a8743f";x.fillRect(0,0,c.width,c.height);x.fillStyle=P.g1;x.fillRect(s,s,map.cols*s,map.rows*s);
   const dist=dijkstra(map,null,-1),path=tracePaths(map,dist,new Array(map.N).fill(null));
-  for(let i=0;i<map.N;i++){const t=map.ter[i];const col=t===1?"#4f9a3a":t===2?"#7cc6e8":t===3?"#8e9796":t===4?"#e0a526":t===5?"#2f6b2a":t===6?"#b9c0bf":path.has(i)?"#ead8a4":null;if(col){x.fillStyle=col;x.fillRect((i%map.cols+1)*s,(((i/map.cols)|0)+1)*s,s,s)}}
-  x.fillStyle="#cf463d";map.gates.forEach(g=>{const p=spawnPoint(map,g);x.fillRect(Math.floor(p.x+1)*s,Math.floor(p.y+1)*s,s,s)});
-  x.fillStyle="#3d7f44";map.exits.forEach((e,k)=>e.cells.forEach(i=>{const g=gatePoint(map,k,i);x.fillRect(Math.floor(g.x+1)*s,Math.floor(g.y+1)*s,s,s)}));
+  for(let i=0;i<map.N;i++){const t=map.ter[i];const tc={meadow:"#4f9a3a",autumn:"#d9822b",winter:"#2f6b47",desert:"#5f9a45",swamp:"#4a3b2a"}[map.th],wc="#"+P.water.slice(0,3).map(v=>v.toString(16).padStart(2,"0")).join("");
+    const col=t===1?tc:t===2||t===T_ICE?wc:t===T_MUD?"#6b5a3a":t===3?"#8e9796":t===4?"#e0a526":t===5?"#2f6b2a":t===6?"#b9c0bf":t===T_MOUNT?P.rock.shade:t===T_HIGH?"#7fb05a":t===T_ROAD||t===T_PBRIDGE?"#bdb5a2":t===T_RIVER?P.river[0]:t===T_BRIDGE?"#a8763f":t===T_TUN?"#2b2420":path.has(i)?P.p[0]:null;if(col){x.fillStyle=col;x.fillRect((i%map.cols+1)*s,(((i/map.cols)|0)+1)*s,s,s)}}
+  x.fillStyle="#3d7f44";map.gates.forEach(g=>{const p=spawnPoint(map,g);x.fillRect(Math.floor(p.x+1)*s,Math.floor(p.y+1)*s,s,s)});
+  x.fillStyle="#cf463d";map.exits.forEach((e,k)=>e.cells.forEach(i=>{const g=gatePoint(map,k,i);x.fillRect(Math.floor(g.x+1)*s,Math.floor(g.y+1)*s,s,s)}));
   return c;
 }
 function renderMenu(){
   $("bStoryCont").hidden=!LS.get("fot-story",null);renderChalCont();
   const dt=$("diffTabs");dt.innerHTML="";
   DIFFS.forEach((D,d)=>{const b=document.createElement("button");b.className="tab";const un=diffUnlocked(d);b.disabled=!un;b.setAttribute("aria-pressed",d===menuD);
-    const done=MAPS.filter((_,m)=>isCleared(d,m)).length;
-    b.innerHTML=`<b>${D.name}</b><small>${un?(d?`+${Math.round((D.hp-1)*100)}% enemy HP`:"Base enemy HP")+` · ${done}/4 maps`:"Locked: clear all maps on "+DIFFS[d-1].name}</small>`;
+    const L=mapsFor(d),done=L.filter((_,m)=>isCleared(d,m)).length;
+    b.innerHTML=`<b>${D.name}</b><small>${un?hpTxt(d)+` · ${done}/${L.length} maps`:`Locked: clear ${mapsFor(d-1).slice(-1)[0].name} on ${DIFFS[d-1].name}`}</small>`;
     b.onclick=()=>{menuD=d;if(!mapUnlocked(d,menuM))menuM=0;renderMenu()};dt.appendChild(b)});
   const ml=$("mapList");ml.innerHTML="";
-  MAPS.forEach((M,m)=>{const b=document.createElement("button");b.className="mapc";const un=mapUnlocked(menuD,m);b.disabled=!un;b.setAttribute("aria-pressed",m===menuM);
+  mapsFor(menuD).forEach((M,m)=>{const b=document.createElement("button");b.className="mapc";const un=mapUnlocked(menuD,m);b.disabled=!un;b.setAttribute("aria-pressed",m===menuM);
     const best=(personal[mkey(menuD,m)]||[])[0];
     b.appendChild(mapPreview(m,menuD));
-    const t=document.createElement("div");t.innerHTML=`<b>${m+1}. ${M.name}</b> ${isCleared(menuD,m)?'<span class="tag" style="background:var(--gold-soft)">Trophy</span>':""}`;b.appendChild(t);
-    const st=document.createElement("div");st.className="st";st.innerHTML=`<span>${un?M.desc+` · ${spawnSides(m,menuD).length} spawn, ${exitSides(m,menuD).length} exit${exitSides(m,menuD).length>1?"s":""}`:"Locked: clear map "+m}</span>`;b.appendChild(st);
+    const t=document.createElement("div");t.innerHTML=`<b>${m+1}. ${M.name}</b> <span class="tag" title="${mapRules(M,menuD).join(" ")||"No special rules"}">${THEMES[M.th||"meadow"].n}${M.paved?" · Cobbled":""}</span> ${isCleared(menuD,m)?'<span class="tag" style="background:var(--gold-soft)">Trophy</span>':""}`;b.appendChild(t);
+    const st=document.createElement("div");st.className="st";st.innerHTML=`<span>${un?(({sp,ex})=>M.desc+` · ${sp.length} spawn, ${ex.length} exit${ex.length>1?"s":""}`)(gateSides(m,menuD)):"Locked: clear map "+m}</span>`;b.appendChild(st);
     const st2=document.createElement("div");st2.className="st";st2.innerHTML=`<span>${M.cols}×${M.rows}</span><span>${best?"Best "+best.score.toLocaleString("en-US"):""}</span>`;b.appendChild(st2);
     b.onclick=()=>{menuM=m;renderMenu()};ml.appendChild(b)});
   $("bPlay").disabled=!mapUnlocked(menuD,menuM);
   renderLb();
 }
 function renderLb(){
-  const key=mkey(menuD,menuM),el=$("lbList");$("lbFor").textContent=`${DIFFS[menuD].name} · ${MAPS[menuM].name}`;
+  const key=mkey(menuD,menuM),el=$("lbList");$("lbFor").textContent=`${DIFFS[menuD].name} · ${mapDef(menuD,menuM).name}`;
   $("lbP").setAttribute("aria-pressed",lbMode==="personal");$("lbO").setAttribute("aria-pressed",lbMode==="overall");
   el.innerHTML="";
   const line=(i,name,sc,sub,me)=>{const d=document.createElement("div");d.className="e"+(me?" me":"");d.innerHTML="<span></span><span></span><span></span>";d.children[0].textContent=`#${i+1}`;d.children[1].textContent=name+(sub?` · ${sub}`:"");d.children[2].textContent=sc.toLocaleString("en-US");el.appendChild(d)};
@@ -2393,7 +2911,7 @@ function renderLb(){
   }
 }
 $("lbP").onclick=()=>{lbMode="personal";$("lbNameRow").hidden=true;renderLb()};
-$("lbName").addEventListener("change",()=>{LS.set("fot-name",$("lbName").value.trim().slice(0,20))});$("lbO").onclick=()=>{lbMode="overall";renderLb()};
+$("lbName").addEventListener("change",()=>{LS.set("fot-name",$("lbName").value.trim().slice(0,NAME_MAX))});$("lbO").onclick=()=>{lbMode="overall";renderLb()};
 // ---------- stylebook: every visual piece of the game on one page ----------
 function openStylebook(){
   const box=$("styleBox");box.innerHTML="";
@@ -2424,8 +2942,8 @@ function openStylebook(){
   [['<button class="btn">Default</button>',"Default"],['<button class="btn go">Upgrade '+COIN+'30 <span class="kb">U</span></button>',"Primary (go)"],
    ['<button class="btn goldb">Start now +'+COIN+'24</button>',"Gold"],['<button class="btn warn">Sell +'+COIN+'35 <span class="kb">S</span></button>',"Warning"],
    ['<button class="btn go" disabled>Upgrade '+COIN+'90</button>',"Disabled"],['<button class="btn" aria-pressed="true" style="background:var(--ink);color:var(--panel)">3x</button>',"Pressed"],
-   ['<button class="tab" aria-pressed="false"><b>Normal</b><small>+30% enemy HP · 0/4 maps</small></button>',"Tab"],['<button class="tab" aria-pressed="true"><b>Easy</b><small>Base enemy HP</small></button>',"Tab selected"],
-   ['<button class="tab" disabled><b>Hard</b><small>Locked</small></button>',"Tab locked"],['<span class="tag">Ground + Air</span><span class="tag">Single</span>',"Tags"],
+   ['<button class="tab" aria-pressed="false"><b>Hard</b><small>+30% enemy HP · 0/10 maps</small></button>',"Tab"],['<button class="tab" aria-pressed="true"><b>Normal</b><small>Base enemy HP</small></button>',"Tab selected"],
+   ['<button class="tab" disabled><b>Expert</b><small>Locked</small></button>',"Tab locked"],['<span class="tag">Ground + Air</span><span class="tag">Single</span>',"Tags"],
    ['<span class="rtag air">Flying</span> <span class="rtag danger">Boss</span>',"Round tags"]].forEach(([h,c])=>r.appendChild(item(el("div","",h),c)));
   s.appendChild(r);
 
@@ -2549,8 +3067,8 @@ let profArm=null,profEdit=null;
 function renderProfs(){
   const el=$("profList");el.innerHTML="";
   PROF.list.forEach(p=>{const row=document.createElement("div");row.className="prow2"+(p.id===PROF.cur?" cur":"");
-    if(profEdit===p.id){row.innerHTML=avHtml(p)+`<input maxlength="16" aria-label="Player name"><button class="btn go">Save</button>`;
-      const inp=row.querySelector("input");inp.value=p.name;const ok=()=>{const v=inp.value.trim().slice(0,16);if(v){p.name=v;if(p.id===PROF.cur)LS.set("fot-name",v)}profEdit=null;saveProf();renderProfs()};
+    if(profEdit===p.id){row.innerHTML=avHtml(p)+`<input maxlength="${NAME_MAX}" aria-label="Player name (up to ${NAME_MAX} characters)"><button class="btn go">Save</button>`;
+      const inp=row.querySelector("input");inp.value=p.name;const ok=()=>{const v=inp.value.trim().slice(0,NAME_MAX);if(v){p.name=v;if(p.id===PROF.cur)LS.set("fot-name",v)}profEdit=null;saveProf();renderProfs()};
       row.querySelector(".btn").onclick=ok;inp.onkeydown=e=>{if(e.key==="Enter")ok();e.stopPropagation()};el.appendChild(row);setTimeout(()=>inp.focus(),0);return}
     row.innerHTML=`<button class="pick">${avHtml(p)}<span style="min-width:0"><b></b><small>${profSummary(p.id)}${p.id===PROF.cur?" · playing now":""}</small></span></button><button class="btn" title="Rename" aria-label="Rename">✎</button>`+
       (PROF.list.length>1&&p.id!==PROF.cur?`<button class="btn warn" title="Delete player" aria-label="Delete player">${profArm===p.id?"Sure?":"✕"}</button>`:"");
@@ -2568,6 +3086,11 @@ $("profNew").onclick=()=>{const used=PROF.list.map(p=>p.col),col=PCOLS.find(c=>!
   PROF.list.push({id,name:`Player ${PROF.list.length+1}`,col});profEdit=id;saveProf();renderProfs()};
 renderProfBtn();
 {let picked=false;try{picked=!!sessionStorage.getItem("fot-picked")}catch(e){}if(PROF.list.length>1&&!picked){try{sessionStorage.setItem("fot-picked","1")}catch(e){}renderProfs();$("profOv").hidden=false}}$("setClose").onclick=()=>{$("setOv").hidden=true};
+function renderTest(){$("tOn").checked=TEST.on;$("tRound").value=TEST.round;$("tInf").checked=TEST.inf;$("tOpts").hidden=!TEST.on;$("bTestGold").hidden=!(G&&G.test&&!G.story)}
+function saveTest(){TEST.round=Math.max(1,Math.min(50,parseInt($("tRound").value)||1));TEST.on=$("tOn").checked;TEST.inf=$("tInf").checked;RAW.set("fot-test",TEST);renderTest()}
+["tOn","tRound","tInf"].forEach(id=>$(id).addEventListener("change",saveTest));
+$("bTestGold").onclick=()=>{if(!G||!G.test)return;G.gold+=1000;floatText(G.map.cols/2,1.5,"+¤1000 (test)","#9a6a08");renderBuild();updHud()};
+renderTest();
 $("taUp").onclick=()=>{if(!sel||sel.L>=10)return;if(group)upgradeGroup();else upgrade(sel)};
 $("taDel").onclick=()=>{if(!sel)return;if(group)sellGroup();else sell(sel)};
 function renderSound(){
