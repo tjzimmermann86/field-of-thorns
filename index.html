@@ -240,6 +240,29 @@ body.compact #mini{width:140px}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
 #soundOv{z-index:31}
 #setOv{z-index:25}
+#achOv{z-index:25;align-items:flex-start;overflow:auto}
+.ach-strip{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 0;padding:8px 12px;background:var(--panel2);font:inherit;color:var(--ink);cursor:pointer;text-align:left;box-shadow:none}
+.ach-strip:hover{background:var(--gold-soft)}
+.ach-strip .tro{font-size:26px;line-height:1}
+.ach-strip .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ach-strip .top{display:flex;justify-content:space-between;gap:8px;font-size:18px}
+.ach-strip .nx{font-size:15px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ach-bar{height:10px;border:2px solid var(--ink);background:var(--panel);position:relative}
+.ach-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--gold)}
+.ach-bar.big{height:14px;margin:10px 0 4px}
+.ach-grp{margin-top:14px}
+.ach-grp h3{margin:0 0 6px;display:flex;justify-content:space-between;font-size:20px}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.ach{display:flex;gap:10px;align-items:flex-start;padding:8px;border:3px solid var(--ink);background:var(--panel2);min-width:0}
+.ach.done{background:var(--gold-soft)}
+.ach .tr{width:34px;height:34px;flex-shrink:0;border:3px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;background:var(--panel)}
+.ach:not(.done) .tr{filter:grayscale(1);opacity:.55}
+.ach .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ach .bd b{font-size:17px;line-height:1.1}
+.ach .bd span{font-size:14px;color:var(--muted);line-height:1.2}
+.ach .st{font-size:14px;margin-top:3px}
+.ach .st.ok{color:#3d7f44}
+.ach .tier{font-size:12px;text-transform:uppercase;letter-spacing:.05em}
 #profOv{z-index:26}
 .av{width:30px;height:30px;flex-shrink:0;border:3px solid var(--ink);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:20px;line-height:1;vertical-align:middle}
 #bProf{display:inline-flex;align-items:center;gap:8px;padding:3px 10px 3px 4px}
@@ -491,6 +514,13 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="row" style="margin-top:16px"><button class="btn" id="sMute" aria-pressed="false">Mute all</button><button class="btn" id="sSkip">Next song</button><button class="btn go" id="sClose">Done</button></div>
   <p class="hint" style="margin:10px 0 0">The music is made up as it plays, so every song is a little different. It gets drums when slimes are on the field.</p>
 </div></div>
+<div class="ov" id="achOv" hidden><div class="modal px-box" style="max-width:860px;background:var(--panel)">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap"><div><h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Achievements</h2><div class="hint" id="achSum"></div></div>
+  <div class="tabs" id="achTabs"><button class="tab" data-f="all" style="min-width:0"><b>All</b></button><button class="tab" data-f="done" style="min-width:0"><b>Done</b></button><button class="tab" data-f="open" style="min-width:0"><b>Open</b></button></div></div>
+  <div class="ach-bar big"><i id="achBarAll"></i></div>
+  <div id="achList"></div>
+  <div class="row" style="margin-top:14px"><button class="btn go" id="achClose">Done</button></div>
+</div></div>
 <div class="ov" id="styleOv" hidden><div class="modal px-box" id="styleBox"></div></div>
 <div id="rotate"><b>Turn your phone sideways</b><span class="hint">Field of Thorns plays in landscape so the map is big enough to tap.</span></div>
 <div class="ov" id="menu">
@@ -499,6 +529,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div style="flex:1 1 300px;min-width:0"><h1>Field of Thorns</h1><div class="hint">Grow a maze of thorns and hold the gate until the swarm is broken. Two ways to play: the story campaign or the challenge maps.</div></div>
       <div class="row" id="menuTop" style="margin:0"><button class="btn" id="bResume" hidden>Back to game</button><button class="btn goldb inst" id="bInstallTop" hidden>📲 Install</button><button class="btn" id="bProf" aria-haspopup="dialog" title="Change player"></button><button class="btn" id="bSet" aria-haspopup="dialog">⚙ Settings</button></div>
     </div>
+    <button class="ach-strip px-box" id="bAch" aria-haspopup="dialog"></button>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
       <div class="row" style="margin:0"><button class="btn goldb" id="bStoryCont" hidden>Continue campaign</button><button class="btn go" id="bStoryNew">New campaign</button></div>
@@ -701,7 +732,7 @@ const RAW={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d
 // ---------- test mode: start at a later round, infinite lives, gold on demand, 5x speed. Test games are never ranked ----------
 const TEST=Object.assign({on:false,round:1,inf:false},RAW.get("fot-test",{}));
 // ---------- player profiles: every profile keeps its own progress, scores, story save and name ----------
-const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-chal","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
+const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-chal","fot-ach","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
 const PCOLS=["#3d7f44","#3a8fc2","#cf463d","#7a4fc7","#d99a1c","#2f8f80"],PROF_MAX=6;
 const newPid=()=>Math.random().toString(36).slice(2,8);
 let PROF=RAW.get("fot-profiles",null);
@@ -935,7 +966,7 @@ function newGame(d,m,opt){
     free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},unlocked:{},woodMul:1,env:null,cam:{x:0,y:0,z:1}};
   G.test=TEST.on&&!(opt&&opt.guide);G.inf=G.test&&TEST.inf;G.log=[];
   if(G.test&&TEST.round>1){const r0=Math.min(50,TEST.round);G.round=r0-1;G.gold+=Math.round(120*r0*(1+r0*0.04))} // starting late: gold for the towers you would have built
-  G.noSave=!!(opt&&opt.guide)||G.test;G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
+  G.noSave=!!(opt&&opt.guide)||G.test;G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);G.base=Math.min(...map.ent.map(i=>G.dist[i]));G.used={};
   sel=null;buildType=null;ghost=null;bgDirty=true;
   cv.width=(map.cols+2)*T;cv.height=(map.rows+2)*T;
   renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);if(typeof renderTest==="function")renderTest();
@@ -974,7 +1005,7 @@ function renderGuide(){
 }
 function guideTick(){const st=guideStep();if(!st)return;const need=st.need?st.need():null;
   if(G.guide.key!==G.guide.i+"|"+need){if(st.need&&!need&&!G.guide.done){G.guide.done=true;setTimeout(()=>{if(G.guide){G.guide.done=false;guideNext()}},700)}renderGuide()}}
-function guideNext(){if(!G.guide)return;if(G.guide.i>=GUIDE.length-1){endGuide();return}G.guide.i++;renderGuide()}
+function guideNext(){if(!G.guide)return;if(G.guide.i>=GUIDE.length-1){ach("first");endGuide();return}G.guide.i++;renderGuide()}
 function endGuide(){LS.set("fot-guide-done",true);G.guide=null;renderGuide()}
 // grass tiles right beside the path near the thorn wall: good first tower spots
 function guideArrowTiles(){
@@ -1038,8 +1069,8 @@ function announceNext(){
 function startRound(early){
   if(G.story){if(early)callRaids();return}
   if(G.phase!=="countdown")return;if(early&&pausedBlock())return;
-  if(early&&G.round>0&&G.timer>1){const b=earlyBonus();G.gold+=b;G.stats.earned+=b;floatText(2,G.map.mid,`+¤${b} early`,"#9a6a08")}
-  G.round++;G.phase="wave";G.timer=0;
+  if(early&&G.round>0&&G.timer>1){G.earlyN=(G.earlyN||0)+1;if(G.earlyN>=20)ach("early");const b=earlyBonus();G.gold+=b;G.stats.earned+=b;floatText(2,G.map.mid,`+¤${b} early`,"#9a6a08")}
+  G.round++;G.phase="wave";G.timer=0;G.rnd={fly:0,nonFlak:false};
   const r=G.round,t=roundType(r),hp=baseHp(r),n=roundCount(r);
   G.queue=[];
   const nf=flyCount(r);pushMix(n-nf,roundMix(r),hp,{},r*97);
@@ -1069,7 +1100,7 @@ function logText(win){
   for(const l of G.log)t+=`${pad(l.r,3)} | ${pad(l.leak,4)} | ${pad(l.lives,5)} | ${pad(l.earn,5)} | ${pad(l.spent,5)} | ${pad(l.gold,8)} | ${pad(l.kills,5)} | ${pad(l.towers,6)} | ${pad(l.thorns,6)} | ${l.top}${l.done?"":" (lost here)"}\n`;
   return t}
 function endRound(){
-  const r=G.round;
+  const r=G.round;if(!G.story&&!G.test)achRoundEnd();
   const bonus=gc(C({g:15+r*3+Math.floor(Math.min(G.gold*G.mods.interest,G.story?1e9:10*r)),w:8+r*2,s:4+r}));
   gain(bonus);SND.play("clear");
   let mk=0;if(!G.story)for(const tw of G.towers)if(TOWERS[tw.type].perRound){const p=Math.round(withCards(tw.type,lvlStats(tw.type,tw.L)).prod);mk+=p;floatText(tw.x,tw.y-0.5,`+¤${p}`,"#9a6a08",4)}
@@ -1202,7 +1233,7 @@ function showOffer(pick,title){
   $("cardsOv").hidden=false;
 }
 function takeCard(c,nx){
-  SND.play("card");G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();
+  SND.play("card");G.clv[c.id]=nx;G.cards.push(c.id);if(c.once)c.give(nx);recomputeMods();if(Object.values(G.clv).filter(L=>L>=CMAX).length>=3)ach("cards3");
   if(isMile(nx))toast(nx===CMAX?`${c.n} is MAX — double bonus unlocked!`:`${c.n} reached level ${nx} — bonus step!`,"",true);
   $("cardsOv").hidden=true;renderCards();renderBuild();afterCard();
 }
@@ -1290,7 +1321,7 @@ function avail(k){const b=TOWERS[k],st=!!(G&&G.story);if(b.mode==="story"&&!st)r
 const UNLOCK={mortar:{g:60},frost:{g:60},flak:{g:80},gatling:{g:100},fire:{g:120},sniper:{g:150},tesla:{g:180},hawk:{g:200}};
 let lockedView=null;
 function isLocked(k){return !!(UNLOCK[k]&&G&&G.unlocked&&!G.unlocked[k])}
-function unlockTowers(list,how){list=list.filter(isLocked);if(!list.length)return;list.forEach(k=>G.unlocked[k]=1);
+function unlockTowers(list,how){list=list.filter(isLocked);if(!list.length)return;list.forEach(k=>G.unlocked[k]=1);if(Object.keys(UNLOCK).every(k=>G.unlocked[k]))ach("arsenal");
   if(lockedView&&!isLocked(lockedView))lockedView=null;
   renderBuild();renderInfo();const msg=`${list.map(k=>TOWERS[k].n).join(" and ")} ${list.length>1?"are":"is"} ready to build!${how?" "+how:""}`;
   const show=()=>{SND.play("clear");toast(msg,"",true)};if(toastT>0.5)setTimeout(show,toastT*1000+150);else show()} // never hide another warning
@@ -1307,7 +1338,7 @@ function place(i){
   pay(p);SND.play(type==="fence"?"thorn":"build");
   const tw={type,i,x:i%G.map.cols+0.5,y:((i/G.map.cols)|0)+0.5,L:1,cd:0,spent:p,rd:0,total:0,mt:0,acc:0,flash:0};
   G.towers.push(tw);G.occ[i]=tw;
-  G.dist=c.dist;G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;ghost=null;
+  G.dist=c.dist;achBuild(type);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;ghost=null;
   renderBuild();renderInfo();
 }
 function replaceInfo(i){const old=G.occ[i],back=floorC(old.spent,0.7),cost=price(buildType),nw=nodeOk(buildType,i);return{old,back,cost,why:nw||lacking(cost,back),ok:!nw&&afford(cost,back)}}
@@ -1318,12 +1349,12 @@ function replaceAt(i){
   if(G.free[type]){G.free[type]--;if(!G.free[type])delete G.free[type]}
   pay(r.cost);
   const tw={type,i,x:old.x,y:old.y,L:1,cd:0,spent:r.cost,rd:0,total:0,mt:0,acc:0,flash:0.4};
-  G.towers.push(tw);G.occ[i]=tw;bgDirty=true;
+  G.towers.push(tw);G.occ[i]=tw;bgDirty=true;achBuild(type);
   floatText(tw.x,tw.y-0.3,`${TOWERS[old.type].n} → ${TOWERS[type].n}`,"#9a6a08");
   ghost=hoverGhost(i);renderBuild();renderInfo();
 }
 function sell(tw){
-  if(pausedBlock())return;
+  if(pausedBlock())return;cnt("sold");
   const back=floorC(tw.spent,0.7);G.gold+=back.g;G.wood+=back.w;G.stone+=back.s;
   G.occ[tw.i]=null;G.towers=G.towers.filter(t=>t!==tw);
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
@@ -1335,7 +1366,7 @@ function upgradeGroup(){
   for(const tw of group){if(tw.L>=10||TOWERS[tw.type].wall)continue;const c=upCost(tw.type,tw.L);if(!afford(c)){lack=lacking(c);break}pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;n++}
   if(!n){toast(lack||"Nothing to upgrade","boss");SND.play("err");return}SND.play("up");
   if(n<group.length)toast(`Upgraded ${n} of ${group.length}. ${lack} for the rest`,"boss");
-  const done=group.slice(0,n),L=done[0].L;if(!done.includes(sel))sel=done[0];
+  achLevels();const done=group.slice(0,n),L=done[0].L;if(!done.includes(sel))sel=done[0];
   group=G.towers.filter(t=>t.type===sel.type&&t.L===L);if(group.length<2)group=null;renderInfo();renderBuild();
 }
 function sellGroup(){
@@ -1343,13 +1374,13 @@ function sellGroup(){
   let back=C();for(const tw of group){back=addC(back,floorC(tw.spent,0.7));G.occ[tw.i]=null}
   G.towers=G.towers.filter(t=>!group.includes(t));G.gold+=back.g;G.wood+=back.w;G.stone+=back.s;
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
-  toast(`Sold ${group.length} buildings`);SND.play("sell");group=null;sel=null;renderInfo();renderBuild();
+  cnt("sold",group.length);toast(`Sold ${group.length} buildings`);SND.play("sell");group=null;sel=null;renderInfo();renderBuild();
 }
 function upgrade(tw){
   if(pausedBlock())return;
   if(tw.L>=10||TOWERS[tw.type].wall)return;const c=upCost(tw.type,tw.L);
   if(!afford(c)){toast(lacking(c),"boss");SND.play("err");return}
-  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;SND.play("up");renderInfo();renderBuild();
+  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;SND.play("up");achLevels();renderInfo();renderBuild();
 }
 
 // ---------- enemies ----------
@@ -1410,7 +1441,7 @@ function leak(e){
 function damage(e,amt,tw){
   if(e.dead||hidden(e))return;
   let a=amt*(e.fly?1+G.mods.air:1)*(e.boss?1+G.mods.boss:1)*(e.kind==="armor"&&ARMOR_WEAK.includes(tw.type)?0.4:1);
-  const real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
+  const hp0=e.hp,real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
   if(e.hp<=0){
     e.dead=true;G.stats.kills++;SND.play(e.kind==="boss"||e.kind==="big"?"boss":"kill");
     G.fx.push({k:"pop",x:e.x,y:e.y,t:0.3,c:e.boss?"#f4c84a":"#ffffff",s:e.boss?2:1});
@@ -1425,6 +1456,7 @@ function damage(e,amt,tw){
       const f=e.kind==="big"?8:e.kind==="boss"?3:1,loot=gc(C({g:Math.round((20+r*2)*f*luck),w:Math.round((12+r)*f*luck),s:Math.round((8+r*0.6)*f*luck)}));
       gain(loot);floatText(e.x,e.y,"Chest! +"+txtC(loot),"#9a6a08",3.5);
     }else if(G.story&&Math.random()<0.05*luck){const loot=C({g:1+Math.floor(r/8)});gain(loot);floatText(e.x,e.y,"+"+txtC(loot),"#9a6a08")}
+    if(!G.test)achKill(e,a,hp0,tw);
   }
 }
 
@@ -1450,12 +1482,12 @@ function towerTick(tw,dt){
   if(tw.type==="ballista"){ // bolt flies through the target and hits up to 3 slimes on that line
     const dx=tgt.x-tw.x,dy=tgt.y-tw.y,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
     const line=G.enemies.filter(e=>!e.dead&&canHit(tw,e)).map(e=>{const px=e.x-tw.x,py=e.y-tw.y,along=px*ux+py*uy;return{e,along,off:Math.abs(px*uy-py*ux)}}).filter(o=>o.along>0&&o.along<=s.range+0.5&&o.off<0.45).sort((a,b)=>a.along-b.along).slice(0,3);
-    line.forEach(o=>damage(o.e,s.dmg,tw));G.fx.push({k:"line",x1:tw.x,y1:tw.y-0.3,x2:tw.x+ux*(s.range+0.5),y2:tw.y+uy*(s.range+0.5),t:0.18,c:"#e8dcb0",w:3});return}
+    line.forEach(o=>damage(o.e,s.dmg,tw));if(line.length>=3)ach("skewer");G.fx.push({k:"line",x1:tw.x,y1:tw.y-0.3,x2:tw.x+ux*(s.range+0.5),y2:tw.y+uy*(s.range+0.5),t:0.18,c:"#e8dcb0",w:3});return}
   if(tw.type==="sniper"){damage(tgt,s.dmg,tw);G.fx.push({k:"line",x1:tw.x,y1:tw.y-0.4,x2:tgt.x,y2:tgt.y,t:0.15,c:"#ffffff",w:2});return}
   if(tw.type==="tesla"){
-    const hit=[tgt];let cur=tgt,d=s.dmg;damage(cur,d,tw);
+    const k0=G.stats.kills,hit=[tgt];let cur=tgt,d=s.dmg;damage(cur,d,tw);
     for(let k=1;k<s.chain;k++){let nb=null,nd=2.2;for(const e of G.enemies){if(hit.includes(e)||e.dead||e.x<0||hidden(e))continue;const dd=Math.hypot(e.x-cur.x,e.y-cur.y);if(dd<nd){nd=dd;nb=e}}if(!nb)break;d*=0.8;damage(nb,d,tw);G.fx.push({k:"zap",x1:cur.x,y1:cur.y,x2:nb.x,y2:nb.y,t:0.14});hit.push(nb);cur=nb}
-    G.fx.push({k:"zap",x1:tw.x,y1:tw.y-0.5,x2:tgt.x,y2:tgt.y,t:0.14});return;
+    if(G.stats.kills-k0>=5)ach("chain");G.fx.push({k:"zap",x1:tw.x,y1:tw.y-0.5,x2:tgt.x,y2:tgt.y,t:0.14});return;
   }
   if(tw.type==="mortar"){G.projs.push({k:"shell",x:tw.x,y:tw.y-0.3,sx:tw.x,sy:tw.y-0.3,tx:tgt.x,ty:tgt.y,t:0,T:0.75,dmg:s.dmg,sp:s.splash,tw});return}
   const spd={arrow:9,gatling:12,frost:8,flak:10,hawk:6}[tw.type];
@@ -1589,6 +1621,122 @@ const SND=(()=>{
   return{st,save,play,init,skip(){if(song){song=newSong(song);stepI=0}},setInten(v){inten=v}};
 })();
 
+// ---------- achievements: kept per player, counted over all games; test games never count ----------
+const ACH_GROUPS=["Slayer","Skill shots","Builder","Challenge","Story","Fun"];
+const ACHS=[
+  {id:"kill1k",g:0,t:"b",n:"Slime Squasher",d:"Defeat 1,000 slimes",cnt:"kills",goal:1000},
+  {id:"kill10k",g:0,t:"s",n:"Slime Smasher",d:"Defeat 10,000 slimes",cnt:"kills",goal:10000},
+  {id:"kill1m",g:0,t:"l",n:"Slime Apocalypse",d:"Defeat 1,000,000 slimes",cnt:"kills",goal:1000000},
+  {id:"boss10",g:0,t:"b",n:"Boss Hunter",d:"Defeat 10 bosses or giant bosses",cnt:"bosses",goal:10},
+  {id:"boss50",g:0,t:"s",n:"Boss Slayer",d:"Defeat 50 bosses or giant bosses",cnt:"bosses",goal:50},
+  {id:"boss250",g:0,t:"g",n:"Kingbreaker",d:"Defeat 250 bosses or giant bosses",cnt:"bosses",goal:250},
+  {id:"spawn",g:0,t:"b",n:"Splitter Splatter",d:"Defeat 500 spawnlings",cnt:"spawn",goal:500},
+  {id:"healer",g:0,t:"s",n:"Healer's Bane",d:"Defeat 100 healers before they heal anyone",cnt:"healers",goal:100},
+  {id:"eater",g:0,t:"s",n:"Pest Control",d:"Defeat 100 thorn-eaters before they eat a bush",cnt:"eaters",goal:100},
+  {id:"oneshot",g:1,t:"g",n:"One Shot",d:"Defeat a boss with a single hit from full health"},
+  {id:"photo",g:1,t:"b",n:"Photo Finish",d:"Defeat a slime on the last tile before the exit"},
+  {id:"buzzer",g:1,t:"s",n:"Buzzer Beater",d:"Defeat the last slime of a round on the last tile before the exit"},
+  {id:"skewer",g:1,t:"s",n:"Skewer",d:"Hit 3 slimes with one Ballista bolt"},
+  {id:"chain",g:1,t:"s",n:"Chain Reaction",d:"Defeat 5 slimes with one Tesla shot"},
+  {id:"overkill",g:1,t:"b",n:"Overkill",d:"Deal 10 times a slime's remaining health in one hit"},
+  {id:"air",g:1,t:"g",n:"Air Superiority",d:"Clear a flying round without a leak, every flyer downed by Flak"},
+  {id:"hedge",g:2,t:"s",n:"Hedge Maze",d:"Have 100 thorn bushes on the map at once"},
+  {id:"longway",g:2,t:"s",n:"Long Way Round",d:"Make the slimes' path 3 times longer than the straight route"},
+  {id:"maxlvl",g:2,t:"b",n:"Max Level",d:"Upgrade any tower to level 10"},
+  {id:"stacked",g:2,t:"g",n:"Fully Stacked",d:"Have 10 towers at level 10 at once"},
+  {id:"thorny",g:2,t:"g",n:"Thorny Situation",d:"One thorn bush defeats 1,000 slimes in one game"},
+  {id:"tycoon",g:2,t:"s",n:"Tycoon",d:"Have 3 Markets (or 5 Gold Mines in the story) at level 10"},
+  {id:"cards3",g:2,t:"g",n:"Card Collector",d:"Max out 3 cards in one game"},
+  {id:"arsenal",g:2,t:"s",n:"Full Arsenal",d:"Research every tower in one game"},
+  {id:"sellout",g:2,t:"b",n:"Sell-out",d:"Sell 100 buildings",cnt:"sold",goal:100},
+  {id:"first",g:3,t:"b",n:"First Steps",d:"Finish the How to play guide"},
+  {id:"flawless",g:3,t:"g",n:"Flawless",d:"Win a map without losing a single life"},
+  {id:"minimal",g:3,t:"g",n:"Minimalist",d:"Win a map with only Arrows, Thorns and Markets"},
+  {id:"nomarket",g:3,t:"s",n:"No Markets, No Problem",d:"Win a map without building a Market"},
+  {id:"speed",g:3,t:"s",n:"Speedrunner",d:"Win a map in under 25 minutes"},
+  {id:"early",g:3,t:"b",n:"Early Bird",d:"Start 20 rounds early in one game"},
+  {id:"clean",g:3,t:"g",n:"Clean Sheet",d:"No leaks for 20 rounds in a row"},
+  {id:"nightmare",g:3,t:"l",n:"Nightmare Master",d:"Clear every map on Nightmare",prog:()=>[MAPSETS[4].filter((_,m)=>isCleared(4,m)).length,MAPSETS[4].length]},
+  {id:"queen",g:4,t:"g",n:"Queen's Champion",d:"Finish the story campaign"},
+  {id:"complete",g:4,t:"g",n:"Completionist",d:"Destroy all three side camps in one campaign"},
+  {id:"bram",g:4,t:"s",n:"Lumberjack's Friend",d:"Free Old Bram before the Grove camps fall"},
+  {id:"night",g:4,t:"s",n:"Night Watch",d:"Get through a night without a leak"},
+  {id:"storm",g:4,t:"s",n:"Storm Chaser",d:"Destroy a camp during a storm"},
+  {id:"bandit",g:4,t:"s",n:"Bandit Buster",d:"Destroy the Bandit hideout before the Bog camp"},
+  {id:"royal",g:4,t:"g",n:"Royal Pardon",d:"Beat the Slime King with 15 or more lives left"},
+  {id:"iron",g:4,t:"l",n:"Iron Thornwarden",d:"Finish the campaign without losing a life"},
+  {id:"thrifty",g:5,t:"s",n:"Thrifty",d:"End a game with more than 10,000 gold unspent"},
+  {id:"hoard",g:5,t:"s",n:"Hoarder",d:"Own 5,000 wood and 5,000 stone at the same time"},
+  {id:"pacifist",g:5,t:"b",n:"Pacifist Start",d:"Clear round 1 with only Thorns (and Markets), no towers"},
+  {id:"close",g:5,t:"s",n:"Close Call",d:"Win with exactly 1 life left"},
+];
+const ACH_BY={};ACHS.forEach(a=>ACH_BY[a.id]=a);
+const TIER={b:["Bronze","#b8793a"],s:["Silver","#9aa6a8"],g:["Gold","#d99a1c"],l:["Legendary","#7a4fc7"]};
+let ACH=LS.get("fot-ach",null);if(!ACH||!ACH.u)ACH={u:{},c:{}};let achDirty=false;const achQ=[];
+const ACH_PID=PROF.cur;function saveAch(){RAW.set(profKey(ACH_PID,"fot-ach"),ACH);achDirty=false}
+function ach(id){if(!ACH_BY[id]||ACH.u[id]||(G&&G.test))return;ACH.u[id]=Date.now();saveAch();achQ.push(ACH_BY[id]);if(achQ.length===1)achNextToast()}
+function achNextToast(){const a=achQ[0];if(!a)return;const show=()=>{SND.play("card");toast(`🏆 Achievement: ${a.n}`,"",true);setTimeout(()=>{achQ.shift();achNextToast()},2600)};
+  if(toastT>0.5)setTimeout(show,toastT*1000+150);else show()}
+function cnt(key,n){if(G&&G.test)return;ACH.c[key]=(ACH.c[key]||0)+(n||1);achDirty=true;for(const a of ACHS)if(a.cnt===key&&ACH.c[key]>=a.goal)ach(a.id)}
+function achProg(a){if(a.cnt)return[Math.min(ACH.c[a.cnt]||0,a.goal),a.goal];if(a.prog)return a.prog();return null}
+// called for every slime that falls
+function achKill(e,a,hp0,tw){
+  cnt("kills");if(e.kind==="boss"||e.kind==="big")cnt("bosses");if(e.kind==="spawn")cnt("spawn");
+  if(e.kind==="heal"&&!e.healed)cnt("healers");if(e.kind==="eat"&&!e.ate)cnt("eaters");
+  if((e.kind==="boss"||e.kind==="big")&&hp0>=e.maxHp-0.01)ach("oneshot");
+  if(a>=10*hp0)ach("overkill");
+  if(!e.fly&&e.mode==="walk"&&G.dist[e.cell]===0){ach("photo");if(!G.story&&G.phase==="wave"&&!G.queue.length&&G.enemies.every(o=>o===e||o.dead))ach("buzzer")}
+  tw.kills=(tw.kills||0)+1;if(tw.type==="fence"&&tw.kills>=1000)ach("thorny");
+  if(e.fly&&G.rnd){G.rnd.fly++;if(tw.type!=="flak")G.rnd.nonFlak=true}
+}
+function achBuild(type){
+  (G.used=G.used||{})[type]=1;
+  if(G.towers.filter(t=>t.type==="fence").length>=100)ach("hedge");
+  if(!G.story&&G.base>0){const d=Math.min(...G.map.ent.map(i=>G.dist[i]));if(d<1e8&&d>=3*G.base)ach("longway")}
+}
+function achLevels(){
+  if(G.towers.some(t=>t.L>=10))ach("maxlvl");
+  if(G.towers.filter(t=>t.L>=10&&!TOWERS[t.type].eco&&t.type!=="fence").length>=10)ach("stacked");
+  if(G.towers.filter(t=>t.type==="market"&&t.L>=10).length>=3||G.towers.filter(t=>t.type==="mine"&&t.L>=10).length>=5)ach("tycoon");
+}
+function achRoundEnd(){
+  const lk=G.rs?G.stats.leaked-G.rs.lk:0;G.clean=lk?0:(G.clean||0)+1;if(G.clean>=20)ach("clean");
+  if(roundType(G.round).fly&&!lk&&G.rnd&&G.rnd.fly&&!G.rnd.nonFlak)ach("air");
+  if(G.round===1&&!G.towers.some(t=>!["fence","market"].includes(t.type)))ach("pacifist");
+}
+function achFinish(win){
+  if(G.test)return;
+  if(G.gold>10000)ach("thrifty");
+  if(!win)return;if(G.lives===1)ach("close");
+  if(G.story){ach("queen");if(G.lives>=15)ach("royal");if(!G.stats.leaked)ach("iron");return}
+  const used=Object.keys(G.used||{});
+  if(!G.stats.leaked)ach("flawless");
+  if(used.every(k=>["arrow","fence","market"].includes(k)))ach("minimal");
+  if(!used.includes("market"))ach("nomarket");
+  if(G.stats.time<25*60)ach("speed");
+  if(MAPSETS[4].every((_,m)=>isCleared(4,m)))ach("nightmare");
+}
+addEventListener("pagehide",()=>{if(achDirty)saveAch()});
+
+// achievements UI: strip on the start page, full list in an overlay
+let achF="all";
+const fmtN=n=>Math.floor(n).toLocaleString("en-US");
+function achNext(){let best=null,bf=-1;for(const a of ACHS){if(ACH.u[a.id])continue;const p=achProg(a);if(!p||!p[0])continue;const f=p[0]/p[1];if(f>bf){bf=f;best=[a,p]}}return best}
+function renderAchStrip(){const n=Object.keys(ACH.u).filter(k=>ACH_BY[k]).length,N=ACHS.length,nx=achNext();
+  $("bAch").innerHTML=`<span class="tro">🏆</span><span class="mid"><span class="top"><b>Achievements</b><span>${n} / ${N}</span></span><span class="ach-bar"><i style="width:${(100*n/N).toFixed(1)}%"></i></span><span class="nx">${nx?`Next: ${nx[0].n} · ${fmtN(nx[1][0])} / ${fmtN(nx[1][1])}`:n?"Tap to see all achievements":"Tap to see what you can achieve"}</span></span>`}
+function renderAch(){const n=Object.keys(ACH.u).filter(k=>ACH_BY[k]).length,N=ACHS.length;
+  $("achSum").textContent=`${n} of ${N} unlocked · ${fmtN(ACH.c.kills||0)} slimes defeated in total`;$("achBarAll").style.width=(100*n/N).toFixed(1)+"%";
+  $("achTabs").querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-pressed",b.dataset.f===achF));
+  let h="";ACH_GROUPS.forEach((gn,gi)=>{const L=ACHS.filter(a=>a.g===gi),gd=L.filter(a=>ACH.u[a.id]).length,show=L.filter(a=>achF==="all"||(achF==="done")===!!ACH.u[a.id]);if(!show.length)return;
+    h+=`<div class="ach-grp"><h3><span>${gn}</span><span class="label">${gd} / ${L.length}</span></h3><div class="ach-grid">`;
+    for(const a of show){const done=ACH.u[a.id],[tn,tc]=TIER[a.t],p=achProg(a);let st;
+      if(done)st=`<div class="st ok">✔ Unlocked ${new Date(done).toLocaleDateString()}</div>`;
+      else if(p)st=`<div class="st">${fmtN(p[0])} / ${fmtN(p[1])}</div><div class="ach-bar"><i style="width:${(100*p[0]/p[1]).toFixed(1)}%"></i></div>`;
+      else st=`<div class="st" style="color:var(--muted)">Open</div>`;
+      h+=`<div class="ach${done?" done":""}"><span class="tr" style="border-color:${tc}">🏆</span><span class="bd"><span class="tier" style="color:${tc}">${tn}</span><b>${a.n}</b><span>${a.d}</span>${st}</span></div>`}
+    h+="</div></div>"});
+  $("achList").innerHTML=h||`<p class="hint" style="margin-top:14px">${achF==="done"?"Nothing unlocked yet. Go defeat some slimes!":"Everything unlocked. Well done, Thornwarden!"}</p>`}
+function openAch(){if(achDirty)saveAch();renderAch();$("achOv").hidden=false;$("achOv").scrollTop=0}
 // green upgrade / red sell buttons floating above the selected tower
 function placeAct(){
   const el=$("twAct"),tw=sel;
@@ -1620,6 +1768,7 @@ function frame(now){
   {let v=0;if(G&&!G.over){const act=G.story?G.enemies.length>0:G.phase==="wave";if(act)v=G.enemies.some(e=>e.boss&&!e.dead)?2:1}SND.setInten(v)}
   if(G)draw(now/1000);
   placeAct();
+  if(achDirty&&Math.random()<0.02)saveAch();
   hudAcc+=rdt;if(hudAcc>0.2&&G){hudAcc=0;updHud();if(sel)renderInfo(true);guideTick()}
   requestAnimationFrame(frame);
 }
@@ -1647,7 +1796,7 @@ function step(dt){dustTick(dt);
   for(const tw of G.towers)if(tw.fire>0)tw.fire-=dt;
   for(const e of G.enemies){if(e.hitT>0)e.hitT-=dt;
     if(e.kind==="heal"&&!e.dead){e.ht=(e.ht||2)-dt;if(e.ht<=0){e.ht=2;let any=false;for(const o of G.enemies)if(o!==e&&!o.dead&&o.hp<o.maxHp&&Math.hypot(o.x-e.x,o.y-e.y)<1.6){o.hp=Math.min(o.maxHp,o.hp+o.maxHp*0.08);any=true}
-      if(any)G.fx.push({k:"ring",x:e.x,y:e.y,r:1.6,t:0.25,c:"#e86a9a"})}}}
+      if(any){e.healed=true;G.fx.push({k:"ring",x:e.x,y:e.y,r:1.6,t:0.25,c:"#e86a9a"})}}}}
   if(G.phase==="wave"&&!G.queue.length&&!G.enemies.length)endRound();
 }
 
@@ -2211,6 +2360,7 @@ function updHud(){
   $("hRound").textContent=G.story?`${G.round}`:`${G.round}/50`;if(!G.story)$("hDiff").textContent=`${DIFFS[G.d].name} · ${mapDef(G.d,G.m).name}`;
   $("hLives").textContent=`${G.lives}/20`;{const st=G.lives>=15?"":G.lives>=7?"warn":"bad";$("sLives").className="stat px-box lives "+st;setTxt("hLivesTxt",st===""?"Holding strong":st==="warn"?"Under pressure":"Falling apart!")}$("hTime").textContent=mmss(G.stats.time);$("hKills").textContent=`${G.stats.kills} kills`;
   $("nextInfo").parentElement.hidden=!G.story&&G.round>=50; // no "next" line once the last round is running
+  if(G.story&&G.wood>=5000&&G.stone>=5000)ach("hoard");
   if(G.story){storyHud();document.querySelectorAll("#build .bt").forEach(b=>{const k=b.dataset.t;b.classList.toggle("poor",!afford(price(k)))});return}
   $("lblRound").textContent="Round";
   // Now: the current round and its total enemies. Next: preview of the coming round.
@@ -2378,6 +2528,7 @@ cv.addEventListener("dblclick",ev=>{
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
+  if(!$("achOv").hidden){$("achOv").hidden=true;return true}
   if(!$("profOv").hidden){if(profEdit){profEdit=null;renderProfs()}else $("profOv").hidden=true;return true}
   if(!$("setOv").hidden){$("setOv").hidden=true;return true}
   if(!$("unlockOv").hidden){$("ulGo").click();return true}
@@ -2532,12 +2683,12 @@ const EVENTS={
   storm:{n:"Storm",t:40,spd:0.7,range:1,rate:0.8,line:["wren","A storm! Everything's slowing down, them and us."]},
 };
 function startEvent(k){const E=EVENTS[k];G.env={k,...E,left:E.t};say(...E.line);toast(`${E.n}! ${k==="night"?"Faster slimes, shorter tower range.":"Slimes and towers both slow down."}`,k==="night"?"boss":"air",true);
-  if(k==="night")G.camps.forEach(c=>{if(c.alive&&c.active)c.t=Math.min(c.t,4)})}
+  if(k==="night"){G.nightLk=G.stats.leaked;G.camps.forEach(c=>{if(c.alive&&c.active)c.t=Math.min(c.t,4)})}}
 function tickEvents(dt){
-  if(G.env){G.env.left-=dt;if(G.env.left<=0){toast(G.env.k==="night"?"Dawn breaks.":"The storm passes.");G.env=null}}
+  if(G.env){G.env.left-=dt;if(G.env.left<=0){if(G.env.k==="night"&&G.stats.leaked===G.nightLk)ach("night");toast(G.env.k==="night"?"Dawn breaks.":"The storm passes.");G.env=null}}
   else if(G.obj>=2){G.evT=(G.evT??170)-dt;if(G.evT<=0){G.evT=150+Math.random()*90;startEvent(Math.random()<0.5?"night":"storm")}}
   const b=G.bram;if(b&&!b.freed&&G.towers.some(t=>Math.hypot(t.x-(b.x+0.5),t.y-(b.y+0.5))<=3.2)){b.freed=true;G.woodMul=0.75;renderBuild();
-    floatText(b.x+0.5,b.y,"Freed!","#3d7f44");say("bram","Free at last! Thank you, Thornwarden. From now on my axe works for you: wood costs a quarter less.");saveStory()}
+    floatText(b.x+0.5,b.y,"Freed!","#3d7f44");if(G.camps[1].alive&&G.camps[2].alive)ach("bram");say("bram","Free at last! Thank you, Thornwarden. From now on my axe works for you: wood costs a quarter less.");saveStory()}
 }
 function drawBram(t){const b=G.bram;if(!b||b.freed)return;const ox=(b.x+1)*T,oy=(b.y+1)*T,r=(x,y,w,h,col)=>R(ctx,ox,oy,x,y,w,h,col);
   r(2,13,12,2,"rgba(0,0,0,.18)");r(5,6,6,7,"#c48a52");r(6,3,4,3,"#f2c9a0");r(6,2,4,1,"#7a4f28");r(7,4,1,1,"#253225");r(9,4,1,1,"#253225");r(5,9,6,1,"#cf463d");
@@ -2571,6 +2722,7 @@ function hitCamp(c,dmg,tw){
   if(c.hp<=0)captureCamp(c);
 }
 function captureCamp(c){
+  if(G.env&&G.env.k==="storm")ach("storm");if(c.k===8&&G.camps[0].alive)ach("bandit");if(c.side&&G.camps.filter(x=>x.side&&(!x.alive||x===c)).length===3)ach("complete");
   const m=G.map;c.alive=false;c.hp=0;G.owned.add(c.zone);G.queue=G.queue.filter(q=>q.camp!==c.k||q.king); // its waiting slimes scatter
   for(let dy=-c.size;dy<=c.size;dy++)for(let dx=-c.size;dx<=c.size;dx++)m.ter[(c.y+dy)*m.cols+c.x+dx]=0; // the camp's ground becomes normal land
   computeTerritory();refreshGates();G.dist=dijkstra(m,G.occ,-1);G.path=tracePaths(m,G.dist,G.occ);bgDirty=true;
@@ -2734,7 +2886,7 @@ function newStory(save){
   $("stChap").textContent=save?"Story · welcome back":"Story campaign";$("stTitle").textContent="The Captive Queen";
   $("stIntro").textContent=save?`Current objective: ${OBJ[G.obj].t}. ${OBJ[G.obj].d}`:CAMPAIGN.intro;$("stIntro").hidden=false;$("stBody").textContent=CAMPAIGN.how;$("storyOv").hidden=false;
 }
-function finishStory(win){
+function finishStory(win){achFinish(win);
   LS.set("fot-story",null);
   const s=G.stats,camps=G.camps.filter(c=>!c.alive).length;
   const sc=Math.round(s.kills*10+G.lives*400+camps*1500+(win?20000+Math.max(0,7200-s.time)*3:0));
@@ -2787,7 +2939,7 @@ function finish(win){
   if(win&&!G.test){const was=isCleared(G.d,G.m),wasD=diffUnlocked(G.d+1);progress.cleared[key]=true;LS.set("pk-progress",progress);
     if(!was){const L=mapsFor(G.d),last=L.length-1;unlockMsg=G.m<last?`Reward: trophy for ${L[G.m].name}. ${L[G.m+1].name} is now unlocked.`:"Reward: trophy for the last map.";if(G.m<last)unlocks.push({map:G.m+1,d:G.d})}
     if(G.d<4&&!wasD&&diffUnlocked(G.d+1)){unlockMsg+=` ${DIFFS[G.d+1].name} difficulty is now unlocked!`;unlocks.push({diff:G.d+1})}}
-  if(!G.test)submitOverall(key,entry);else unlockMsg="Test game: not ranked, nothing unlocked.";
+  achFinish(win);if(!G.test)submitOverall(key,entry);else unlockMsg="Test game: not ranked, nothing unlocked.";
   $("resTitle").textContent=win?"The swarm is broken!":"The gate has fallen";
   $("resSub").textContent=(win?STORY.win:STORY.lose)+` (${DIFFS[G.d].name} · ${mapDef(G.d,G.m).name}`+(win?")":` · reached round ${G.round})`);
   const rows=[["Time",mmss(s.time)],["Rounds survived",`${win?50:Math.max(0,G.round-1)}`],["Enemies killed",fmt(s.kills)],["Lives left",`${G.lives}/20`],["Resources earned",fmt(s.earned)],["Resources spent",fmt(s.spent)]];
@@ -2869,6 +3021,7 @@ function mapPreview(m,d){
   return c;
 }
 function renderMenu(){
+  renderAchStrip();
   $("bStoryCont").hidden=!LS.get("fot-story",null);renderChalCont();
   const dt=$("diffTabs");dt.innerHTML="";
   DIFFS.forEach((D,d)=>{const b=document.createElement("button");b.className="tab";const un=diffUnlocked(d);b.disabled=!un;b.setAttribute("aria-pressed",d===menuD);
@@ -3025,6 +3178,9 @@ function openMenu(resumable){
   renderMenu();$("menu").hidden=false;
 }
 $("bResume").onclick=()=>{$("menu").hidden=true};
+$("bAch").onclick=openAch;$("achClose").onclick=()=>{$("achOv").hidden=true};
+$("achTabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{achF=b.dataset.f;renderAch()});
+$("achOv").addEventListener("click",ev=>{if(ev.target.id==="achOv")$("achOv").hidden=true});
 let storyArm=false;
 $("bStoryCont").onclick=()=>{const sv=LS.get("fot-story",null);if(!sv)return;$("menu").hidden=true;newStory(sv)};
 $("bStoryNew").onclick=()=>{if(LS.get("fot-story",null)&&!storyArm){storyArm=true;$("bStoryNew").textContent="Start over? Click again";setTimeout(()=>{storyArm=false;$("bStoryNew").textContent="New campaign"},3000);return}
@@ -3107,7 +3263,7 @@ $("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;
 $("bChalCont").onclick=()=>{$("menu").hidden=true;loadChal()};
 let resetArm=false;
 $("bReset").onclick=()=>{if(!resetArm){resetArm=true;$("bReset").textContent="Click again to erase";setTimeout(()=>{resetArm=false;$("bReset").textContent="Reset progress"},3000);return}
-  progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
+  progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);ACH={u:{},c:{}};saveAch();menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
 
 newGame(0,0,{noGuide:true});
 if(location.hash==="#stylebook")setTimeout(()=>openStylebook(),0);
