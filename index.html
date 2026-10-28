@@ -99,6 +99,8 @@ body.paused #build,body.paused #info .row{opacity:.45;pointer-events:none}
 .bt .free{position:absolute;top:-6px;right:-6px;background:var(--rare);color:#fff;font-size:14px;padding:1px 4px;border:2px solid var(--ink)}
 .bt[aria-pressed="true"]{background:var(--gold-soft);outline:3px solid var(--gold);outline-offset:-1px}
 .bt.poor .pr{color:var(--danger)}
+.bt.locked{background:#e3e6df;border-color:#8a968a}.bt.locked canvas{filter:grayscale(1) brightness(.75);opacity:.45}.bt.locked .nm{opacity:.6}.bt.locked .pr{color:var(--muted)!important}
+.lockbox{margin:0 0 8px;padding:8px;border:2px dashed var(--gold);background:#fffdf4}
 .bt.poor canvas{filter:grayscale(1);opacity:.4}.bt.poor .nm{opacity:.5}.bt.poor{background:#e3e6df;border-color:#8a968a}
 .tag.tg-g{background:#ecd9a8}.tag.tg-a{background:#e3d8f6}.tag.tg-ga{background:linear-gradient(90deg,#ecd9a8 50%,#e3d8f6 50%)}.tag.weak{background:#f7d2cf;border-color:var(--danger);color:#8a2a24}
 #twAct{position:absolute;z-index:4;display:flex;gap:6px;transform:translateX(-50%);pointer-events:none}
@@ -760,7 +762,7 @@ const GUIDE=[
   {t:"See the detour?",b:"The path now runs around your wall, so it got longer. Thorns also scratch slimes that walk right past them, and every upgrade multiplies that damage. Weak now, deadly later.",hl:"path"},
   {t:"Open a market",b:"Every slime you defeat drops a little gold. A Market pays extra gold each time you clear a round, and every upgrade pays more. Build one on any free grass tile. Like all buildings it also blocks the path.",glow:'#build .bt[data-t="market"]',need:()=>G.towers.some(t=>t.type==="market")?null:"Build a Market"},
   {t:"Build an Arrow tower",b:"Pick Arrow and place it on one of the marked tiles right next to the path. While you aim, the circle shows how far it shoots.",hl:"arrow",glow:'#build .bt[data-t="arrow"]',need:()=>G.towers.some(t=>t.type==="arrow")?null:"Place an Arrow tower"},
-  {t:"Add two more towers",b:"One tower is not enough for 25 slimes. Fill the other marked tiles with Arrows, or use a Frost tower to slow them down.",hl:"arrow",need:()=>{const n=G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length;return n>=3?null:`Place 3 towers next to the path (${n}/3)`}},
+  {t:"Add two more towers",b:"One tower is not enough for 25 slimes. Fill the other marked tiles with Arrows or a Mortar. More towers unlock as the game goes on.",hl:"arrow",need:()=>{const n=G.towers.filter(t=>!TOWERS[t.type].eco&&t.type!=="fence").length;return n>=3?null:`Place 3 towers next to the path (${n}/3)`}},
   {t:"Check your tower",b:"Select a tower to see its damage now and after the next upgrade. Upgrades add damage and range. Purple numbers come from your bonus cards.",need:()=>sel&&sel.type!=="fence"?null:"Select one of your towers"},
   {t:"Start round 1",b:"Ready? Press Start. Round 1 waits for you; later rounds start on their own after 30 seconds, and starting early pays bonus gold.",glow:"#bStart",need:()=>G.round>=1?null:"Press Start"},
   {t:"Hold the line",b:"Slimes pay gold as they fall, and your market pays out when the round is cleared. You can keep building during the wave. Bosses drop treasure chests. If slimes slip through, add towers near the end of the path.",need:()=>G.round>=1&&G.phase!=="wave"?null:"Survive round 1"},
@@ -870,11 +872,11 @@ function endRound(){
   if(r>=50){finish(true);return}
   G.phase="cards";offerCards(r===25);
 }
-function afterCard(){if(G.story){G.phase="story";renderInfo();return}G.phase="countdown";G.timer=30;announceNext();renderInfo();saveChal()}
+function afterCard(){if(G.story){G.phase="story";renderInfo();return}G.phase="countdown";G.timer=30;checkUnlocks();announceNext();renderInfo();saveChal()}
 // ---------- challenge save: taken between rounds, so a loaded game always continues with the next round ----------
 function saveChal(){
   if(!G||G.story||G.over||G.noSave||G.phase!=="countdown")return; // the How-to-play game never replaces a real save
-  LS.set("fot-chal",{v:1,d:G.d,m:G.m,round:G.round,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,
+  LS.set("fot-chal",{v:1,d:G.d,m:G.m,round:G.round,unlocked:G.unlocked,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,
     towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),at:Date.now()});
   renderChalCont();
 }
@@ -882,10 +884,11 @@ function clearChal(){LS.set("fot-chal",null);renderChalCont()}
 function loadChal(){
   const sv=LS.get("fot-chal",null);if(!sv)return;
   newGame(sv.d,sv.m,{noGuide:true});
-  Object.assign(G,{round:sv.round,gold:sv.gold,lives:sv.lives,stats:sv.stats,clv:sv.clv||{},cards:sv.cards||[],free:sv.free||{},seen:sv.seen||{},warned:sv.warned||0});
+  Object.assign(G,{unlocked:sv.unlocked||{},round:sv.round,gold:sv.gold,lives:sv.lives,stats:sv.stats,clv:sv.clv||{},cards:sv.cards||[],free:sv.free||{},seen:sv.seen||{},warned:sv.warned||0});
   for(const t of sv.towers){if(!TOWERS[t.type])continue;const tw={type:t.type,i:t.i,x:t.i%G.map.cols+0.5,y:((t.i/G.map.cols)|0)+0.5,L:t.L,cd:0,spent:C(t.spent),rd:0,total:t.total||0,mt:0,acc:0,flash:0};G.towers.push(tw);G.occ[t.i]=tw}
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
   recomputeMods();G.phase="countdown";G.timer=G.round>0?30:20;
+  checkUnlocks(true) // a loaded game unlocks quietly
   renderCards();renderBuild();renderInfo();updHud(true);announceNext();
   toast(G.round>0?`Welcome back! Round ${G.round+1} is next.`:"Welcome back!","",true);
 }
@@ -934,7 +937,7 @@ const CARDS={};
   add({id:"hawkeye",n:"Hawkeye",ic:"◎",rare:1,mod:{range:.06},txt:v=>`+${pct(v.range)} range for all towers`});
   add({id:"rush",n:"Boom Town",ic:"$",rare:1,mod:{mine:.20,wood:.20,stone:.20},txt:v=>G&&!G.story?`+${pct(v.mine/2)} gold from Markets`:`+${pct(v.mine)} from all mines, camps and quarries`});
   add({id:"fortress",n:"Fortress",ic:"♥",rare:1,once:true,give:L=>{G.lives+=livesAt(4,L)-livesAt(4,L-1)},txt:L=>`+${livesAt(4,L)-livesAt(4,L-1)} lives now (total +${livesAt(4,L)})`});
-  add({id:"armory",n:"Armory",ic:"▲",rare:1,once:true,give:L=>{const n=L===CMAX?3:isMile(L)?2:1;addFree("sniper",n);addFree("tesla",n)},txt:L=>{const n=L===CMAX?3:isMile(L)?2:1;return n>1?`${n} free Snipers and ${n} free Teslas`:"A free Sniper and a free Tesla"}});
+  add({id:"armory",n:"Armory",ic:"▲",rare:1,once:true,give:L=>{unlockTowers(["sniper","tesla"]);const n=L===CMAX?3:isMile(L)?2:1;addFree("sniper",n);addFree("tesla",n)},txt:L=>{const n=L===CMAX?3:isMile(L)?2:1;return n>1?`${n} free Snipers and ${n} free Teslas`:"A free Sniper and a free Tesla"}});
 })();
 function cardVals(c,L){const v={};for(const k in c.mod)v[k]=c.mod[k]*CURVE[L];return v}
 function cardText(c,L){return c.once?c.txt(L):c.txt(cardVals(c,L))}
@@ -1067,13 +1070,29 @@ function canPlace(i,type){
   for(const e of G.enemies){if(e.fly||e.next<0)continue;if(dist[e.next]>1e8)return{ok:false,why:"That would trap enemies"}}
   return{ok:true,dist};
 }
-function avail(k){const b=TOWERS[k],st=!!(G&&G.story);if(b.mode==="story"&&!st)return false;if(b.mode==="maps"&&st)return false;return !b.unique||!!(G&&G.unlocked&&G.unlocked[k])}
+function avail(k){const b=TOWERS[k],st=!!(G&&G.story);if(b.mode==="story"&&!st)return false;if(b.mode==="maps"&&st)return false;if(isLocked(k))return false;return !b.unique||!!(G&&G.unlocked&&G.unlocked[k])}
+// ---------- towers unlock during a game: Arrow, Mortar, Thorns and the economy are open from the start ----------
+// maps: free from round r (or research for g gold earlier) · story: free after c captured camps (or research)
+const UNLOCK={frost:{r:3,g:60,c:1},flak:{r:6,g:80,c:2},gatling:{r:8,g:100,c:1},fire:{r:10,g:120,c:2},sniper:{r:12,g:150,c:3},tesla:{r:15,g:180,c:4},hawk:{r:18,g:200,c:5}};
+let lockedView=null;
+function isLocked(k){return !!(UNLOCK[k]&&G&&G.unlocked&&!G.unlocked[k])}
+function lockText(k){const u=UNLOCK[k];return G.story?`after ${u.c} captured camp${u.c>1?"s":""}`:`from round ${u.r}`}
+function unlockTowers(list,how,quiet){list=list.filter(isLocked);if(!list.length)return;list.forEach(k=>G.unlocked[k]=1);
+  if(lockedView&&!isLocked(lockedView))lockedView=null;
+  renderBuild();renderInfo();if(quiet)return;const msg=`${list.map(k=>TOWERS[k].n).join(" and ")} ${list.length>1?"are":"is"} ready to build!${how?" "+how:""}`;
+  const show=()=>{SND.play("clear");toast(msg,"",true)};if(toastT>0.5)setTimeout(show,toastT*1000+150);else show()} // never hide another warning
+function checkUnlocks(quiet){
+  if(!G||!G.unlocked)return;
+  if(G.story){const n=G.camps.filter((c,i)=>!c.alive&&!CAMP_DEFS[i].side).length;unlockTowers(Object.keys(UNLOCK).filter(k=>n>=UNLOCK[k].c),"",quiet)}
+  else unlockTowers(Object.keys(UNLOCK).filter(k=>G.round+1>=UNLOCK[k].r),"",quiet);
+}
+function research(k){if(!isLocked(k)||pausedBlock())return;const c=C({g:UNLOCK[k].g});if(!afford(c)){toast(lacking(c),"boss");SND.play("err");return}pay(c);unlockTowers([k],"Researched early.");lockedView=null;renderInfo();if(!G.story)saveChal()}
 function adjW(c){if(G&&G.woodMul&&G.woodMul!==1)c.w=Math.round(c.w*G.woodMul);return c} // Old Bram cuts wood cheaper
 function listPrice(type){let c=gc(adjW(C(TOWERS[type].cost)));if(type==="market")c=scaleC(c,1+0.4*G.towers.filter(t=>t.type==="market").length);return c}
 function price(type){return G.free[type]?C():listPrice(type)}
 function pausedBlock(){if(G.paused){toast("Paused — resume to build, upgrade or sell","boss");return true}return false}
 function place(i){
-  const type=buildType;if(!type||pausedBlock())return;
+  const type=buildType;if(!type||pausedBlock())return;if(isLocked(type)){toast(`${TOWERS[type].n} unlocks ${lockText(type)}`,"boss");return}
   const p=price(type);if(!afford(p)){toast(lacking(p),"boss");SND.play("err");return}
   const c=canPlace(i,type);if(!c.ok){toast(c.why,"boss");SND.play("err");return}
   if(G.free[type]){G.free[type]--;if(!G.free[type])delete G.free[type]}
@@ -1719,12 +1738,12 @@ function renderBuild(){
       b.innerHTML=`<span class="key">${TOWERS[k].key}</span><canvas width="64" height="64"></canvas><span class="nm">${TOWERS[k].n}</span><span class="pr"></span>`;
       const c=b.querySelector("canvas").getContext("2d");c.imageSmoothingEnabled=false;
       const s=64/T;c.save();c.scale(s*0.9,s*0.9);drawTower(c,k,T*0.06,T*0.3,1,0,null);c.restore();
-      b.onclick=()=>{buildType=buildType===k?null:k;sel=null;ghost=null;renderBuild();renderInfo()};
+      b.onclick=()=>{if(isLocked(k)){buildType=null;sel=null;group=null;lockedView=k;renderBuild();renderInfo();return}lockedView=null;buildType=buildType===k?null:k;sel=null;ghost=null;renderBuild();renderInfo()};
       b.onmouseenter=()=>{if(!sel&&!buildType)renderInfo(false,k)};b.onmouseleave=()=>{if(!sel&&!buildType)renderInfo()};
       el.appendChild(b)});
   }
-  el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k);b.hidden=!avail(k);
-    b.querySelector(".pr").innerHTML=G.free[k]?"FREE":k==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX?`${MARKET_MAX}/${MARKET_MAX}`:fmtC(listPrice(k));
+  el.querySelectorAll(".bt").forEach(b=>{const k=b.dataset.t;b.setAttribute("aria-pressed",buildType===k||lockedView===k);const lk=isLocked(k);b.hidden=!(avail(k)||lk);b.classList.toggle("locked",lk);
+    b.querySelector(".pr").innerHTML=lk?(G.story?`🔒 ${UNLOCK[k].c} camp${UNLOCK[k].c>1?"s":""}`:`🔒 R${UNLOCK[k].r}`):G.free[k]?"FREE":k==="market"&&G.towers.filter(t=>t.type==="market").length>=MARKET_MAX?`${MARKET_MAX}/${MARKET_MAX}`:fmtC(listPrice(k));
     let f=b.querySelector(".free");if(G.free[k]){if(!f){f=document.createElement("span");f.className="free";b.appendChild(f)}f.textContent=`×${G.free[k]}`}else if(f)f.remove()});
 }
 function statRows(type,L,showNext){
@@ -1757,7 +1776,8 @@ function renderInfo(live,hoverType){
   const el=$("info");
   if(sel&&!G.towers.includes(sel))sel=null;
   if(group){group=group.filter(t=>G.towers.includes(t));if(group.length<2||!sel)group=null}
-  el.classList.toggle("empty",!sel);updBuildTip();
+  if(lockedView&&(sel||buildType||!isLocked(lockedView)))lockedView=null;
+  el.classList.toggle("empty",!sel&&!lockedView);updBuildTip();
   if(group){
     const b=TOWERS[sel.type],L=sel.L,n=group.length;
     const cost=L<10&&!b.wall?group.reduce((a,t)=>addC(a,upCost(t.type,t.L)),C()):C();
@@ -1793,12 +1813,14 @@ function renderInfo(live,hoverType){
     return;
   }
   el.dataset.key="";
-  const k=buildType||hoverType;
-  if(k){const b=TOWERS[k];
-    el.innerHTML=`<h3>${b.n} <span class="label">${G.free[k]?"Free":fmtC(C(b.cost))}</span></h3>
+  const k=buildType||hoverType||lockedView;
+  if(k){const b=TOWERS[k],lk=isLocked(k);
+    el.innerHTML=`<h3>${lk&&lockedView===k?'<button class="btn xbtn" id="iClose" aria-label="Close">✕</button>':""}${b.n} <span class="label">${lk?"🔒 locked":G.free[k]?"Free":fmtC(listPrice(k))}</span></h3>
+    ${lk?`<div class="lockbox"><p class="hint" style="margin:0 0 6px;color:var(--ink)">Unlocks for free ${lockText(k)}. Or research it now:</p><button class="btn goldb" id="iRes" ${afford(C({g:UNLOCK[k].g}))?"":"disabled"}>🔓 Research ${fmtC(C({g:UNLOCK[k].g}))}</button></div>`:""}
     <div style="margin-bottom:6px">${b.tg?`${tgTags(k)}`:""}</div>
     <p class="hint" style="margin:0 0 8px">${b.desc}</p>${b.wall?"":`<div class="tbl"><span class="label">Level 1</span><span class="label" style="text-align:right">Value</span><span class="label" style="text-align:right">Lvl 2</span>${statRows(k,1,true)}</div>`}
-    ${buildType?`<p class="hint" style="margin:8px 0 0">Click grass tiles to build as many as you like. Click an existing building to replace it (you get 70% of its cost back). Esc or right-click stops building.</p>`:""}`;return}
+    ${buildType?`<p class="hint" style="margin:8px 0 0">Click grass tiles to build as many as you like. Click an existing building to replace it (you get 70% of its cost back). Esc or right-click stops building.</p>`:""}`;
+    if($("iRes"))$("iRes").onclick=()=>research(k);if($("iClose"))$("iClose").onclick=()=>{lockedView=null;renderBuild();renderInfo()};return}
   el.innerHTML=`<h3>Info</h3><p class="hint" style="margin:0">Select a tower on the map to see its damage, the next upgrade and how much damage it dealt this round. Double-click a tower to select all towers of that type and level.</p>
     <div class="tbl" style="margin-top:10px"><span class="k">Enemy HP this round</span><span class="v">${fmt(baseHp(Math.max(1,G.phase==="wave"?G.round:G.round+1)))}</span><span></span>
     <span class="k">Difficulty bonus</span><span class="v">+${Math.round((DIFFS[G.d].hp-1)*100)}% HP</span><span></span></div>`;
@@ -1877,6 +1899,7 @@ document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&escClose())ev.sto
 document.addEventListener("keydown",ev=>{
   if(!G||!$("menu").hidden||!$("cardsOv").hidden||!$("resOv").hidden||!$("storyOv").hidden||!$("styleOv").hidden||!$("soundOv").hidden||!$("unlockOv").hidden)return;
   const k=ev.key.toUpperCase();
+  const lt=ORDER.find(o=>TOWERS[o].key===k&&isLocked(o));if(lt){buildType=null;sel=null;lockedView=lt;renderBuild();renderInfo();return}
   const t=ORDER.find(o=>TOWERS[o].key===k&&avail(o));
   if(t){buildType=buildType===t?null:t;sel=null;renderBuild();renderInfo();return}
   if(k==="ESCAPE"){buildType=null;sel=null;group=null;renderBuild();renderInfo()}
@@ -2059,6 +2082,7 @@ function captureCamp(c){
   SND.play("clear");toast(c.town?"Slimehold falls! The Slime King himself marches out…":`${c.name} destroyed. The land is yours!`,"",true);
   if(c.town)G.queue.unshift({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
   checkObjective();
+  checkUnlocks();
   if(c.side){
     if(c.reward==="ballista"){G.unlocked.ballista=1;renderBuild();say("wren","The smugglers had a Ballista! It's ours now. Its bolts go straight through a whole line of slimes. Press B to build one.")}
     if(c.reward==="lives"){G.lives+=5;say("mayor","The witch is gone and her potions are ours. Five more villagers can fight! (+5 lives)")}
@@ -2204,8 +2228,9 @@ function newStory(save){
     if(G.obj===6&&!G.kingDead)G.queue.push({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
   }
   recomputeMods();refreshGates();computeTerritory();
+  for(const t of G.towers)if(UNLOCK[t.type])G.unlocked[t.type]=1;checkUnlocks(true)
   G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);
-  sel=null;buildType=null;ghost=null;group=null;hover=-1;bgDirty=true;
+  sel=null;buildType=null;ghost=null;group=null;hover=-1;bgDirty=true;lockedView=null;
   $("mini").hidden=false;$("zoomBox").hidden=false;$("objBox").hidden=false;$("objBox").dataset.key="";
   renderBuild();renderInfo();renderCards();setSpeed(1);startGuide(false);
   layout();if(save&&save.cam){G.cam.x=save.cam.x;G.cam.y=save.cam.y;clampCam()}
