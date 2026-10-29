@@ -290,6 +290,7 @@ body.compact #mini{width:140px}
 #unlockOv .modal{max-width:460px;background:#fffdf4;text-align:center}
 .ul-stage{position:relative;margin:14px auto 8px;width:320px;max-width:100%;min-height:170px;display:flex;align-items:center;justify-content:center}
 .ul-prev{width:100%;image-rendering:pixelated;border:3px solid var(--ink);filter:grayscale(1) brightness(.55);animation:ulReveal .5s 1.3s forwards}
+.ul-char{background:var(--panel2)!important}
 .ul-diff{width:100%;padding:22px 10px;border:3px solid var(--ink);background:var(--ink);color:var(--panel);filter:grayscale(1) brightness(.6);animation:ulReveal .5s 1.3s forwards}
 .ul-diff b{display:block;font-family:var(--f-title);font-size:34px;font-weight:400}
 .ul-diff small{font-size:18px;color:#cfe0c2}
@@ -533,7 +534,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="row" style="margin-top:14px"><button class="btn go" id="achClose">Done</button></div>
 </div></div>
 <div class="ov" id="bestOv" hidden><div class="modal px-box" style="max-width:900px;background:var(--panel)">
-  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Enemy guide</h2><div class="hint" id="bestSum"></div>
+  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Enemy guide</h2><div class="hint" id="bestSum"></div><h3 style="margin:12px 0 0">Enemies</h3>
   <div id="bestList"></div>
   <div class="row" style="margin-top:14px"><button class="btn go" id="bestClose">Done</button></div>
 </div></div>
@@ -549,7 +550,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     <button class="ach-strip px-box" id="bAch" aria-haspopup="dialog"></button>
     <button class="ach-strip px-box" id="bBest" aria-haspopup="dialog"></button>
     <div class="story-card px-box">
-      <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
+      <div style="min-width:0"><span class="label">Story</span><b>The Captive Crown</b><span class="hint">One big land. Conquer the Slime King's camps one by one, free the Queen from his tower and rescue the Princess.</span></div>
       <div class="row" style="margin:0"><button class="btn goldb" id="bStoryCont" hidden>Continue campaign</button><button class="btn go" id="bStoryNew">New campaign</button></div>
     </div>
     <div class="chal-card px-box">
@@ -1822,12 +1823,28 @@ const BEST=[
 ];
 const LOOK_NAMES={bee:"Bee (Meadow)",crow:"Crow (Autumn)",owl:"Owl (Winter)",vulture:"Vulture (Desert)",mosquito:"Mosquito (Swamp)",squirrel:"Squirrel (Autumn)",scorpion:"Scorpion (Desert)",snow:"Snow slime (Winter)",toad:"Toad (Swamp)",penguin:"Penguin (Winter)",worm:"Sand worm (Desert)",leech:"Leech (Swamp)"};
 const LOOK_KIND={bee:"fly",crow:"fly",owl:"fly",vulture:"fly",mosquito:"fly",squirrel:"armor",scorpion:"armor",snow:"grunt",toad:"grunt",penguin:"rabbit",worm:"burrow",leech:"eat"};
-let BESTD=LS.get("fot-best",null);if(!BESTD||!BESTD.k)BESTD={k:{},l:{}};
+let BESTD=LS.get("fot-best",null);if(!BESTD||!BESTD.k)BESTD={k:{},l:{}};if(!BESTD.c)BESTD.c={};
+// story characters, in the order you meet them; the princess is always the last one
+const CHARS=[
+  ["mayor","Friend","Runs the last village, worries a lot and sends you pies."],
+  ["grub","Foe","Chief of the Bog camp. Always hungry, never full."],
+  ["wren","Friend","The village scout. Knows every camp, every ford and every rumour."],
+  ["rudd","Foe","Bandit chief of the western hideout, sitting on a loot chest."],
+  ["queen","Captive","Queen Elinor, locked at the top of the Slime King's tower. She talks to you from the window."],
+  ["bram","Friend","Old Bram the lumberjack. Free him from his cage and wood gets cheaper."],
+  ["admiral","Foe","Commands the Lake fort and its flyers. Blub."],
+  ["greta","Friend","The village smith. Keeps your towers sharp and knows what cracks armor."],
+  ["morwen","Foe","The witch north of the Bog. Her potions give you five more lives."],
+  ["sludge","Foe","Smuggler captain of the south-east cove. Sells weapons to the King."],
+  ["king","Foe","The Slime King. Wants your village squashed and the crown for himself."],
+  ["princess","Rescued","Princess Mira, the Queen's daughter. The King carried her in a cage on his back. She is free only when he falls."],
+];
+function meetChar(id){if(!CAST[id]||BESTD.c[id])return;BESTD.c[id]=Date.now();LS.set("fot-best",BESTD)}
 function meetEnemy(e){const L=lookOf(e),id=e.kind==="big"?L:e.kind;let ch=false;
   if(!BESTD.k[id]){BESTD.k[id]=Date.now();ch=true}if(L!==id&&LOOK_NAMES[L]&&!BESTD.l[L]){BESTD.l[L]=1;ch=true}if(ch)LS.set("fot-best",BESTD)}
 const spdWord=v=>v>=2?"very fast":v>=1.6?"fast":v>=1.3?"normal speed":v>=1?"slow":"very slow";
-function renderBestStrip(){const n=BEST.filter(b=>BESTD.k[b.id]).length;
-  $("bBest").innerHTML=`<span class="tro">📖</span><span class="mid"><span class="top"><b>Enemy guide</b><span>${n} / ${BEST.length}</span></span><span class="ach-bar"><i style="width:${(100*n/BEST.length).toFixed(1)}%"></i></span><span class="nx">${n<BEST.length?"New enemies are added the first time you meet them":"You have met every enemy"}</span></span>`}
+function renderBestStrip(){const n=BEST.filter(b=>BESTD.k[b.id]).length,nc=CHARS.filter(c=>BESTD.c[c[0]]).length,all=BEST.length+CHARS.length;
+  $("bBest").innerHTML=`<span class="tro">📖</span><span class="mid"><span class="top"><b>Enemy guide</b><span>${n+nc} / ${all}</span></span><span class="ach-bar"><i style="width:${(100*(n+nc)/all).toFixed(1)}%"></i></span><span class="nx">Enemies ${n}/${BEST.length} · Story characters ${nc}/${CHARS.length}</span></span>`}
 function bestPic(id,look,on){const c=document.createElement("canvas");c.width=96;c.height=96;const x=c.getContext("2d");x.imageSmoothingEnabled=false;
   const big=["tyrant","king","boss"].includes(id),kind=["tyrant","king"].includes(id)?"big":id,fl=id==="fly"||id==="balloon";
   const e={kind,look:look||(["tyrant","king"].includes(id)?id:id==="fly"?"fly":undefined),fly:fl,boss:["mini","boss","big"].includes(kind),lvl:1,x:48/T-1,y:(big?74:id==="balloon"?78:62)/T-1,off:0,ph:1,hitT:0,hp:1,maxHp:1,slowT:0,age:9,noBar:true};
@@ -1841,7 +1858,14 @@ function renderBest(){const n=BEST.filter(b=>BESTD.k[b.id]).length;$("bestSum").
     const also=Object.keys(BESTD.l).filter(l=>LOOK_KIND[l]===b.id).map(l=>LOOK_NAMES[l]);
     bd.innerHTML=`<b></b><div class="st"><span>${b.hp===1?"Base health":`Health ×${b.hp}`}</span><span>${spdWord(b.spd)}</span><span>${b.fly?"Flying":"Ground"}</span><span>${b.lives||1} ${b.lives===1||!b.lives?"life":"lives"} if it leaks</span></div><p></p><p class="tip"></p>${also.length?`<p class="also"></p>`:""}`;
     bd.querySelector("b").textContent=b.n;bd.querySelectorAll("p")[0].textContent=b.d;bd.querySelector(".tip").textContent="Counter: "+b.tip;if(also.length)bd.querySelector(".also").textContent="Also seen as: "+also.join(", ");
-    g.appendChild(el)}}
+    g.appendChild(el)}
+  const nc=CHARS.filter(c=>BESTD.c[c[0]]).length,h=document.createElement("h3");h.style.margin="18px 0 0";h.textContent=`Story characters · ${nc} / ${CHARS.length}`;box.appendChild(h);
+  const g2=document.createElement("div");g2.className="best-grid";box.appendChild(g2);
+  for(const [id,role,txt] of CHARS){const on=!!BESTD.c[id],p=CAST[id],el=document.createElement("div");el.className="best"+(on?"":" locked");
+    el.innerHTML=`<span class="av" style="width:56px;height:56px;font-size:36px;background:${on?p.c:"#9aa6a8"}">${on?p.i:"?"}</span><div class="bd"><b></b><div class="st"><span></span></div><p></p></div>`;
+    el.querySelector("b").textContent=on?p.n:"???";el.querySelector(".st span").textContent=on?role:"Not met yet";
+    el.querySelector("p").textContent=on?txt:id==="princess"?"The last one to find. You will meet her at the very end of the story.":"Meet this character in the story campaign.";if(!on)el.querySelector("p").className="also";
+    g2.appendChild(el)}}
 function openBest(){renderBest();$("bestOv").hidden=false;$("bestOv").scrollTop=0}
 // achievements UI: strip on the start page, full list in an overlay
 let achF="all";
@@ -2383,7 +2407,8 @@ function paintEnemy(L,r,h,e,b,t){
     r(-7,-3,14,6,h("#4a7a2a"));r(-6,-5-b,12,2,h("#4a7a2a"));r(-5,0,10,3,h("#c8d890"));r(-6,-8-b,4,3,h("#4a7a2a"));r(2,-8-b,4,3,h("#4a7a2a"));
     r(-5,-7-b,2,2,"#f4e27a");r(3,-7-b,2,2,"#f4e27a");r(-4,-6-b,1,1,"#253225");r(4,-6-b,1,1,"#253225");for(const [x,y] of[[-4,-3],[0,-4],[3,-2],[-2,-1]])r(x,y-b,1,1,h("#2f5a1a"));
     r(-5,-2,10,1,h("#2a3a1a"));if(Math.sin(t*3)>0.85){r(4,-2,5,1,"#e86a9a");r(8,-3,2,2,"#e86a9a")}r(-4,-10-b,8,2,h("#f4c84a"));r(-4,-11-b,1,1,h("#f4c84a"));r(3,-11-b,1,1,h("#f4c84a"));break}
-  case"king":{ // the Slime King: crown, cape and sceptre
+  case"king":{ // the Slime King: crown, cape and sceptre; in the story he carries Princess Mira in a cage
+    if(e.king){r(-10,-9-b,5,7,"#4a5453");r(-9,-8-b,3,5,"#f2c9a0");r(-9,-9-b,3,2,"#f4c84a");r(-9,-6-b,3,3,"#e86a9a");for(const x of[-10,-8.5,-7,-5.5])r(x,-10-b,0.6,8,"#8e9796");r(-10.5,-10-b,6,1,"#6f7877")}
     r(-7,-4,14,7,h("#a8322a"));blob("#8b5ccf","#5c3399");eyes(-3,-3-b);r(-4,-8-b,8,2,h("#f4c84a"));r(-4,-10-b,2,2,h("#f4c84a"));r(-1,-10-b,2,2,h("#f4c84a"));r(2,-10-b,2,2,h("#f4c84a"));r(-1,-9-b,2,1,h("#cf463d"));
     r(7,-9-b,1,11,h("#c8a24a"));r(6,-11-b,3,2,h("#f4c84a"));r(7,-12-b,1,1,h("#9fd8f0"));break}
   case"rabbit":{const hop=Math.abs(Math.sin(ph*1.5))*2;r(-4,-2-hop,8,5,h("#e8dcc8"));r(-5,1-hop,2,2,h("#e8dcc8"));r(1,-6-hop,5,5,h("#e8dcc8"));r(1,-11-hop,2,5,h("#e8dcc8"));r(4,-11-hop,2,5,h("#e8dcc8"));
@@ -2779,12 +2804,12 @@ const OBJ=[
   {t:"Take the Lake fort",d:"The fort on the lake shore sends flyers over your thorns. Bring Flak or Hawk towers.",camps:[3],done:()=>!G.camps[3].alive},
   {t:"Break the Highland camps",d:"Three camps guard the road to Slimehold. Expect mini-bosses.",camps:[4,5,6],done:()=>[4,5,6].every(k=>!G.camps[k].alive)},
   {t:"Storm Slimehold",d:"The Slime King's town. The Queen is tied up at the top of its tower.",camps:[7],done:()=>!G.camps[7].alive},
-  {t:"Defeat the Slime King",d:"He has left his town to crush the village himself. Stop him before he reaches it.",camps:[],done:()=>G.kingDead},
+  {t:"Defeat the Slime King",d:"He has left his town with Princess Mira in a cage on his back. Stop him before he reaches the village.",camps:[],done:()=>G.kingDead},
 ];
 const CAMPAIGN={
-  intro:"The Slime King has stormed out of the Bog and carried the Queen off to Slimehold, his town in the far north-east. His camps now ring the last village. You are the Thornwarden: grow your thorns, claim the land camp by camp, and bring her home.",
+  intro:"The Slime King has stormed out of the Bog and carried Queen Elinor and her daughter, Princess Mira, off to Slimehold, his town in the far north-east. His camps now ring the last village. You are the Thornwarden: grow your thorns, claim the land camp by camp, and bring them both home.",
   how:"Drag the map to look around, pinch or use + and − to zoom, and tap the minimap to jump. You can build inside your border and a few tiles beyond it; mines, camps and quarries need land you own.",
-  win:"Slimehold has fallen, the Slime King is a puddle, and the Queen walks free. The village will sing about its Thornwarden for a long time.",
+  win:"Slimehold has fallen, the Slime King is a puddle, and Queen Elinor and Princess Mira walk free. Mira: \"I knew someone would come. Can I learn to grow thorns too?\" The village will sing about its Thornwarden for a long time.",
   lose:"The slimes overran the village. The Thornwarden escapes into the woods to regrow the wall. Try again."
 };
 function buildStoryMap(){
@@ -2818,20 +2843,22 @@ function buildStoryMap(){
   return map;
 }
 // ---------- dialogue ----------
-const CAST={queen:{n:"Queen Elinor",c:"#7a4fc7",i:"Q"},mayor:{n:"Mayor Hob",c:"#3d7f44",i:"H"},wren:{n:"Scout Wren",c:"#3a8fc2",i:"W"},bram:{n:"Old Bram",c:"#8a5a30",i:"B"},king:{n:"The Slime King",c:"#7a1f2a",i:"K"}};
+const CAST={queen:{n:"Queen Elinor",c:"#7a4fc7",i:"Q"},mayor:{n:"Mayor Hob",c:"#3d7f44",i:"H"},wren:{n:"Scout Wren",c:"#3a8fc2",i:"W"},bram:{n:"Old Bram",c:"#8a5a30",i:"B"},king:{n:"The Slime King",c:"#7a1f2a",i:"K"},
+  grub:{n:"Chief Grub",c:"#4a7a2a",i:"G"},greta:{n:"Greta the Smith",c:"#6f7877",i:"S"},admiral:{n:"Admiral Blub",c:"#3f6cb0",i:"A"},rudd:{n:"Rat-Eye Rudd",c:"#8a6a3a",i:"R"},
+  morwen:{n:"Morwen the Witch",c:"#5a3a90",i:"M"},sludge:{n:"Captain Sludge",c:"#2f8f80",i:"C"},princess:{n:"Princess Mira",c:"#e86a9a",i:"P"}};
 const OBJ_LINES=[
-  [["mayor","Thornwarden, thank the stars you're here! The Bog camp up north is sending its slimes. Hold them off!"]],
+  [["mayor","Thornwarden, thank the stars you're here! The Bog camp up north is sending its slimes. Hold them off!"],["grub","GRUB HUNGRY! Grub's slimes eat your little village for breakfast!"]],
   [["wren","The raids are thinning. If we push our border north, our towers can reach their camp."],["wren","Oh, and there are bandits hiding in the far west. Optional, but they sit on a loot chest."]],
-  [["queen","...can anyone hear me? The King's camps are in the Old Grove. Their timber could build your walls."],["bram","Help! The slimes stuffed me in a cage in the grove! Build anything close to me and I'll pay you back in cheap wood!"]],
-  [["wren","Flyers over the lake! Our thorns won't stop those. Build Flak or Hawks."],["mayor","They say a witch lives north of the Bog. Her hut is full of potions, if you dare."]],
-  [["queen","I can see your fires from the tower. Hurry, Thornwarden. He grows restless."],["wren","Smugglers in the south-east cove have been selling the King weapons. Worth a visit."]],
-  [["king","You'll never take my town, little gardener. She stays with ME!"]],
-  [["king","ENOUGH! I'll squash your village myself!"],["queen","Now's your chance! Stop him before he reaches the village!"]],
+  [["queen","...can anyone hear me? I am Queen Elinor. The King locked me in his tower, and he keeps my daughter Mira close to him. His camps are in the Old Grove; their timber could build your walls."],["bram","Help! The slimes stuffed me in a cage in the grove! Build anything close to me and I'll pay you back in cheap wood!"]],
+  [["admiral","Ahoy, little gardener! My flyers rule this lake. Blub blub!"],["wren","Flyers over the lake! Our thorns won't stop those. Build Flak or Hawks."],["greta","Greta, the village smith, at your service. Win us that lake and I'll keep your towers sharp."],["mayor","They say a witch lives north of the Bog. Her hut is full of potions, if you dare."]],
+  [["queen","I can see your fires from the tower. Hurry, Thornwarden. He grows restless, and he won't let Mira out of his sight."],["greta","Those Highland brutes wear armor. Mortars and Tesla will crack them open."],["wren","Smugglers in the south-east cove have been selling the King weapons. Worth a visit."]],
+  [["king","You'll never take my town, little gardener. The Queen stays in my tower, and the little princess stays with ME!"]],
+  [["queen","I'm free! Thank you, Thornwarden. But he fled with Mira in a cage on his back!"],["king","ENOUGH! I'll squash your village myself, and the princess comes along to watch!"],["queen","Now's your chance! Stop him before he reaches the village, and bring my daughter home!"]],
 ];
 const CAPTURE_LINES=[["mayor","That's one camp less. The whole village is cheering!"],["wren","Their camp is ours. More land, more resources!"],["mayor","Well done! I'll have the baker send you a pie."]];
 const pick=a=>a[(Math.random()*a.length)|0];
 const talkQ=[];let talkT=0;
-function say(who,text){talkQ.push([who,text]);if(talkQ.length===1)showTalk()}
+function say(who,text){meetChar(who);talkQ.push([who,text]);if(talkQ.length===1)showTalk()}
 function showTalk(){const box=$("talk");if(!talkQ.length){box.hidden=true;return}const [who,text]=talkQ[0],p=CAST[who];
   $("talkPic").textContent=p.i;$("talkPic").style.background=p.c;$("talkName").textContent=p.n;$("talkName").style.color=p.c;$("talkText").textContent=text;box.hidden=false;talkT=Math.max(5,text.length/16)}
 function nextTalk(){talkQ.shift();showTalk()}
@@ -2891,9 +2918,9 @@ function captureCamp(c){
   if(c.town)G.queue.unshift({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
   checkObjective();
   if(c.side){
-    if(c.reward==="ballista"){G.unlocked.ballista=1;renderBuild();say("wren","The smugglers had a Ballista! It's ours now. Its bolts go straight through a whole line of slimes. Press B to build one.")}
-    if(c.reward==="lives"){G.lives+=5;say("mayor","The witch is gone and her potions are ours. Five more villagers can fight! (+5 lives)")}
-    if(c.reward==="rare")say("wren","The bandits' loot chest! There's something rare in here.");
+    if(c.reward==="ballista"){G.unlocked.ballista=1;renderBuild();say("sludge","Blast and barnacles! Fine, keep the Ballista. I've got more where that came from.");say("wren","The smugglers had a Ballista! It's ours now. Its bolts go straight through a whole line of slimes. Press B to build one.")}
+    if(c.reward==="lives"){G.lives+=5;say("morwen","Fine, fine, take my potions! Maybe I was brewing for the wrong side anyway.");say("mayor","The witch is gone and her potions are ours. Five more villagers can fight! (+5 lives)")}
+    if(c.reward==="rare")say("rudd","My loot! You'll... oh, keep it. Just let old Rudd run.");if(c.reward==="rare")say("wren","The bandits' loot chest! There's something rare in here.");
   }else if(!c.town)say(...pick(CAPTURE_LINES));
   if(!G.over&&!c.town){G.phase="cards";offerCards(c.stage>=3||c.side,`${c.name} destroyed — pick a ${c.stage>=3||c.side?"rare ":""}card`)}
   saveStory();
@@ -3042,7 +3069,7 @@ function newStory(save){
   renderBuild();renderInfo();renderCards();setSpeed(1);startGuide(false);
   layout();if(save&&save.cam){G.cam.x=save.cam.x;G.cam.y=save.cam.y;clampCam()}
   updHud();
-  $("stChap").textContent=save?"Story · welcome back":"Story campaign";$("stTitle").textContent="The Captive Queen";
+  $("stChap").textContent=save?"Story · welcome back":"Story campaign";$("stTitle").textContent="The Captive Crown";
   $("stIntro").textContent=save?`Current objective: ${OBJ[G.obj].t}. ${OBJ[G.obj].d}`:CAMPAIGN.intro;$("stIntro").hidden=false;$("stBody").textContent=CAMPAIGN.how;$("storyOv").hidden=false;
 }
 function finishStory(win){achFinish(win);
@@ -3052,12 +3079,13 @@ function finishStory(win){achFinish(win);
   const entry={score:sc,win,round:G.obj,time:Math.round(s.time),kills:s.kills,lives:G.lives,at:Date.now()};
   const list=(personal.story||[]).concat(entry).sort((a,b)=>b.score-a.score).slice(0,10);personal.story=list;LS.set("pk-scores",personal);
   submitOverall("story",entry);
-  $("resTitle").textContent=win?"The Queen is free!":"The village has fallen";
+  $("resTitle").textContent=win?"The Queen and the Princess are free!":"The village has fallen";
   $("resSub").textContent=win?CAMPAIGN.win:CAMPAIGN.lose;
   const rows=[["Time",mmss(s.time)],["Camps destroyed",`${camps}/${G.camps.length}`],["Enemies killed",fmt(s.kills)],["Lives left",`${G.lives}/20`],["Resources earned",fmt(s.earned)],["Resources spent",fmt(s.spent)]];
   $("resTbl").innerHTML=rows.map(([k,v])=>`<span>${k}</span><span class="v">${v}</span>`).join("");
   $("resScore").textContent=sc.toLocaleString("en-US");$("resRank").textContent=`Personal story rank #${list.indexOf(entry)+1}.`;
   $("resNext").hidden=true;$("resOv").hidden=false;
+  if(win&&!BESTD.c.princess){meetChar("princess");showUnlocks([{char:"princess",sub:"Rescued from the Slime King. Find her in the Enemy guide under Story characters."}],()=>{})}
 }
 
 // ---------- story ----------
@@ -3112,7 +3140,9 @@ function finish(win){
 function showUnlocks(list,done){
   const u=list.shift();if(!u){$("unlockOv").hidden=true;done();return}
   const st=$("ulStage");st.innerHTML="";
-  if(u.map!=null){const c=mapPreview(u.map,u.d);c.className="ul-prev";st.appendChild(c);
+  if(u.char){const p=CAST[u.char],d=document.createElement("div");d.className="ul-diff ul-char";d.innerHTML=`<span class="av" style="width:72px;height:72px;font-size:48px;background:${p.c};margin:0 auto">${p.i}</span>`;st.appendChild(d);
+    $("ulKind").textContent="New character";$("ulName").textContent=p.n;$("ulSub").textContent=u.sub||""}
+  else if(u.map!=null){const c=mapPreview(u.map,u.d);c.className="ul-prev";st.appendChild(c);
     $("ulKind").textContent="New map unlocked";$("ulName").textContent=mapDef(u.d,u.map).name;$("ulSub").textContent=`${mapDef(u.d,u.map).desc} · ${DIFFS[u.d].name}`}
   else{const d=document.createElement("div");d.className="ul-diff";d.innerHTML=`<b>${DIFFS[u.diff].name}</b><small>${hpTxt(u.diff)}</small>`;st.appendChild(d);
     $("ulKind").textContent="New difficulty unlocked";$("ulName").textContent=`${DIFFS[u.diff].name} is open!`;$("ulSub").textContent=`${MAPSETS[u.diff].length} maps are waiting on the harder setting`}
@@ -3433,7 +3463,7 @@ $("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;
 $("bChalCont").onclick=()=>{$("menu").hidden=true;loadChal()};
 let resetArm=false;
 $("bReset").onclick=()=>{if(!resetArm){resetArm=true;$("bReset").textContent="Click again to erase";setTimeout(()=>{resetArm=false;$("bReset").textContent="Reset progress"},3000);return}
-  progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);ACH={u:{},c:{}};saveAch();BESTD={k:{},l:{}};LS.set("fot-best",BESTD);menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
+  progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);ACH={u:{},c:{}};saveAch();BESTD={k:{},l:{},c:{}};LS.set("fot-best",BESTD);menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
 
 newGame(0,0,{noGuide:true});
 if(location.hash==="#stylebook")setTimeout(()=>openStylebook(),0);
