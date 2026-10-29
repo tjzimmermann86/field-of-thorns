@@ -1233,8 +1233,8 @@ function offerCards(rare,title){
     const CB=COMBAT.filter(avail),FR=ORDER.filter(k=>k!=="fence"&&avail(k)),t=CB[(Math.random()*CB.length)|0],f=FR[(Math.random()*FR.length)|0];
     const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-"))&&avail(id.slice(5)));
     let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open).filter(id=>G.story||(id!=="sawmill"&&id!=="stonecut"));
-    pick=[];while(pick.length<3&&ids.length){ // uncommon cards show up about half as often
-      const w=ids.map(id=>CARDS[id].unc?0.45:1),tot=w.reduce((a,b)=>a+b,0);let x=Math.random()*tot,k=0;while(x>w[k]){x-=w[k];k++}
+    pick=[];while(pick.length<3&&ids.length){ // uncommon cards show up a fifth as often as common ones
+      const w=ids.map(id=>CARDS[id].unc?0.2:1),tot=w.reduce((a,b)=>a+b,0);let x=Math.random()*tot,k=0;while(x>w[k]){x-=w[k];k++}
       pick.push(CARDS[ids[k]]);ids.splice(k,1)}
     if(Math.random()<0.08){const r=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id)))[0];if(r)pick[2]=r}
   }
