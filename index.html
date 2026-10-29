@@ -241,6 +241,17 @@ body.compact #mini{width:140px}
 #soundOv{z-index:31}
 #setOv{z-index:25}
 #achOv{z-index:25;align-items:flex-start;overflow:auto}
+#bestOv{z-index:25;align-items:flex-start;overflow:auto}
+#bBest{margin-top:8px}
+.best-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:8px;margin-top:8px}
+.best{display:flex;gap:10px;padding:8px;border:3px solid var(--ink);background:var(--panel2);min-width:0}
+.best canvas{width:80px;height:80px;flex-shrink:0;border:2px solid var(--ink);background:#a8d47a;image-rendering:pixelated}
+.best .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.best .bd b{font-size:18px;line-height:1.1}
+.best .bd p{margin:0;font-size:14px;line-height:1.25}
+.best .st{display:flex;flex-wrap:wrap;gap:4px}
+.best .st span{font-size:12px;border:2px solid var(--ink);padding:0 4px;background:var(--panel)}
+.best .tip{color:#3d7f44}.best .weak{color:#a8322a}.best .also{color:var(--muted)}
 .ach-strip{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 0;padding:8px 12px;background:var(--panel2);font:inherit;color:var(--ink);cursor:pointer;text-align:left;box-shadow:none}
 .ach-strip:hover{background:var(--gold-soft)}
 .ach-strip .tro{font-size:26px;line-height:1}
@@ -521,6 +532,11 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div id="achList"></div>
   <div class="row" style="margin-top:14px"><button class="btn go" id="achClose">Done</button></div>
 </div></div>
+<div class="ov" id="bestOv" hidden><div class="modal px-box" style="max-width:900px;background:var(--panel)">
+  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Enemy guide</h2><div class="hint" id="bestSum"></div>
+  <div id="bestList"></div>
+  <div class="row" style="margin-top:14px"><button class="btn go" id="bestClose">Done</button></div>
+</div></div>
 <div class="ov" id="styleOv" hidden><div class="modal px-box" id="styleBox"></div></div>
 <div id="rotate"><b>Turn your phone sideways</b><span class="hint">Field of Thorns plays in landscape so the map is big enough to tap.</span></div>
 <div class="ov" id="menu">
@@ -531,6 +547,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
     </div>
     <div class="row" id="inGameRow" hidden style="margin:12px 0 0"><button class="btn go" id="bResume">▶ Back to game</button><button class="btn warn" id="bRestart">↺ Restart map</button></div>
     <button class="ach-strip px-box" id="bAch" aria-haspopup="dialog"></button>
+    <button class="ach-strip px-box" id="bBest" aria-haspopup="dialog"></button>
     <div class="story-card px-box">
       <div style="min-width:0"><span class="label">Story</span><b>The Captive Queen</b><span class="hint">One big land. Conquer the Slime King's camps one by one and free the Queen from his tower.</span></div>
       <div class="row" style="margin:0"><button class="btn goldb" id="bStoryCont" hidden>Continue campaign</button><button class="btn go" id="bStoryNew">New campaign</button></div>
@@ -732,7 +749,7 @@ const RAW={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d
 // ---------- test mode: start at a later round, infinite lives, gold on demand, 5x speed. Test games are never ranked ----------
 const TEST=Object.assign({on:false,round:1,inf:false},RAW.get("fot-test",{}));
 // ---------- player profiles: every profile keeps its own progress, scores, story save and name ----------
-const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-chal","fot-ach","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
+const PROF_KEYS=["pk-progress","pk-scores","fot-story","fot-chal","fot-ach","fot-best","fot-guide-done","fot-intro-seen","fot-pid","fot-name"];
 const PCOLS=["#3d7f44","#3a8fc2","#cf463d","#7a4fc7","#d99a1c","#2f8f80"],PROF_MAX=6;
 const newPid=()=>Math.random().toString(36).slice(2,8);
 let PROF=RAW.get("fot-profiles",null);
@@ -1429,7 +1446,7 @@ function spawn(spec){
     boss:["mini","boss","big"].includes(spec.kind),ph:Math.random()*6,off:(Math.random()-0.5)*0.24};
   if(e.fly){let best=0,bd=1e9;m.exits.forEach((_,k)=>{const g=exitCenter(m,k),d=Math.hypot(g.x-e.x,g.y-e.y);if(d<bd){bd=d;best=k}});e.gate=exitCenter(m,best);e.mode="fly"}
   else{e.mode="walk";e.cell=g.cell;const c=ctr(m,g.cell);e.prev=g.cell-Math.sign(Math.round((c.x-sp.x)))-Math.sign(Math.round(c.y-sp.y))*m.cols;e.p2={x:sp.x,y:sp.y};pickNext(e)}
-  G.enemies.push(e);
+  G.enemies.push(e);meetEnemy(e);
   if(KINDS[e.kind]&&KINDS[e.kind].info&&!G.seen[e.kind]){G.seen[e.kind]=1;toast(KINDS[e.kind].info,"boss")}
 }
 // choose where to go from e.cell and build the curve: from the edge we entered to the edge we leave, bending through the cell centre
@@ -1492,7 +1509,7 @@ function damage(e,amt,tw){
     const r=e.lvl||(G.story?G.round:eqR(G.round)),luck=1+G.mods.luck;
     if(e.kind==="split")for(let k=0;k<3;k++){const K=KINDS.spawn;
       G.enemies.push({kind:"spawn",hp:e.maxHp*K.hp,maxHp:e.maxHp*K.hp,spd:K.spd,lives:1,bounty:0,lvl:e.lvl,camp:e.camp,x:e.x,y:e.y,mode:"walk",cell:e.cell,next:e.next,prev:e.prev,
-        p0:e.p0,p1:e.p1,p2:e.p2,t:Math.max(0,e.t-k*0.15),len:e.len,slowT:0,slowA:0,fly:false,boss:false,ph:Math.random()*6,off:(Math.random()-0.5)*0.5})}
+        p0:e.p0,p1:e.p1,p2:e.p2,t:Math.max(0,e.t-k*0.15),len:e.len,slowT:0,slowA:0,fly:false,boss:false,ph:Math.random()*6,off:(Math.random()-0.5)*0.5});if(k===0)meetEnemy(G.enemies[G.enemies.length-1])}
     if(e.king){G.kingDead=true;toast("The Slime King is defeated!","",true)}
     if(e.kind==="imp"){G.fx.push({k:"boom",x:e.x,y:e.y,r:1.4,t:0.3,c:"#f08a3a"});for(const o of G.towers)if(!TOWERS[o.type].eco&&!TOWERS[o.type].wall&&o.type!=="fence"&&Math.hypot(o.x-e.x,o.y-e.y)<=1.5)o.stun=1}
     if(e.kind==="balloon")dropPassenger(e);
@@ -1778,6 +1795,54 @@ function achFinish(win){
 }
 addEventListener("pagehide",()=>{if(achDirty)saveAch()});
 
+
+// ---------- enemy guide: every enemy you have met once, with what makes it special ----------
+const BEST=[
+  {id:"grunt",n:"Slime",hp:1,spd:1.45,d:"The basic slime. It gets spikes, then horns, then fangs as the rounds go on, and more health every round.",tip:"Any tower works. Thorns slow the whole crowd down."},
+  {id:"armor",n:"Armored slime",hp:1.6,spd:1.2,d:"A beetle in a pot helmet. Arrows, Gatlings and Hawks only do 40% damage.",tip:"Mortar, Fire, Tesla, Frost and Sniper hit it fully."},
+  {id:"split",n:"Splitter",hp:1.1,spd:1.4,d:"A wobbling bag of frog spawn. It bursts into 3 spawnlings when it dies.",tip:"Splash damage cleans up the spawnlings."},
+  {id:"spawn",n:"Spawnling",hp:0.22,spd:1.9,d:"Tiny and fast, born from a splitter. Pays no gold.",tip:"Gatling, Fire and Mortar."},
+  {id:"heal",n:"Healer",hp:1.2,spd:1.35,d:"A mushroom that puffs spores and mends the slimes around it.",tip:"Kill it first: Sniper, or focus fire."},
+  {id:"eat",n:"Thorn-eater",hp:1.3,spd:1.5,d:"A caterpillar that stops to chew through one thorn bush next to its path, which can open a shortcut.",tip:"Kill it before it reaches your thorn walls."},
+  {id:"fly",n:"Flyer",hp:0.8,spd:1.75,fly:1,d:"Flies straight over your maze to the exit. Comes every 6th round, mixed with ground slimes.",tip:"Flak and Hawk; Arrows can hit flyers too."},
+  {id:"rabbit",n:"Rabbit",hp:0.35,spd:2.3,d:"Comes in packs of 10, very fast but weak. Pays little gold.",tip:"Gatlings and Arrows mow them down."},
+  {id:"thief",n:"Raccoon thief",hp:0.9,spd:1.9,d:"If it gets through it steals 10% of your gold (at least 20) instead of a life.",tip:"Never let it leak. Spend gold before it arrives."},
+  {id:"ghost",n:"Ghost",hp:1,spd:1.35,d:"Can't be hit for its first 2 seconds after it appears.",tip:"Place towers further along the path, not at the entrance."},
+  {id:"burrow",n:"Mole",hp:1.3,spd:1.2,d:"Every few tiles it digs underground for 3 tiles, where nothing can hit it and it moves almost twice as fast.",tip:"Frost: a slowed mole can't start digging."},
+  {id:"shield",n:"Shield bearer",hp:2.2,spd:1.1,d:"Its shield catches Arrow, Gatling, Sniper, Hawk and Frost shots aimed at the slimes right behind it.",tip:"Mortar, Fire, Tesla, Flak and Ballista get around it."},
+  {id:"golem",n:"Rock golem",hp:2.6,spd:0.95,d:"Made of stone. Frost can't slow it.",tip:"Mortar shells do double damage."},
+  {id:"shaman",n:"Shaman",hp:1.3,spd:1.25,d:"Every 4 seconds it gives the slimes around it a short burst of speed.",tip:"Kill it first, like the healer."},
+  {id:"snail",n:"Snail",hp:3,spd:0.75,d:"Very slow and very tough. Slimes walking next to its trail move faster.",tip:"Kill it early so it can't speed up the crowd."},
+  {id:"imp",n:"Fire imp",hp:1.1,spd:1.5,d:"Fire towers can't hurt it. When it dies it explodes and stuns towers next to it for 1 second.",tip:"Keep your strongest towers a tile away from the path."},
+  {id:"balloon",n:"Balloon goblin",hp:1.1,spd:1.15,fly:1,lives:2,d:"Floats over your maze with a slime in its basket and drops it where it is popped.",tip:"Pop it early on its way, so the dropped slime still has the whole maze ahead."},
+  {id:"mini",n:"Mini-boss",hp:9,spd:1.05,lives:2,d:"A slime knight with a shield and banner. Comes every 3rd round.",tip:"Single-target damage: Sniper and upgraded Arrows."},
+  {id:"boss",n:"Boss",hp:28,spd:0.85,lives:"3–4",d:"A mud troll in rounds 10 and 20. Drops a treasure chest.",tip:"Giant Slayer card and Snipers."},
+  {id:"tyrant",n:"Bog Tyrant",hp:55,spd:0.65,lives:5,d:"A giant toad in round 15. Beating it gives a rare card.",tip:"Slow it with Frost and keep it in range of many towers."},
+  {id:"king",n:"The Slime King",hp:75,spd:0.65,lives:5,d:"The final boss in round 30, and the end of the story campaign.",tip:"Everything you have."},
+];
+const LOOK_NAMES={bee:"Bee (Meadow)",crow:"Crow (Autumn)",owl:"Owl (Winter)",vulture:"Vulture (Desert)",mosquito:"Mosquito (Swamp)",squirrel:"Squirrel (Autumn)",scorpion:"Scorpion (Desert)",snow:"Snow slime (Winter)",toad:"Toad (Swamp)",penguin:"Penguin (Winter)",worm:"Sand worm (Desert)",leech:"Leech (Swamp)"};
+const LOOK_KIND={bee:"fly",crow:"fly",owl:"fly",vulture:"fly",mosquito:"fly",squirrel:"armor",scorpion:"armor",snow:"grunt",toad:"grunt",penguin:"rabbit",worm:"burrow",leech:"eat"};
+let BESTD=LS.get("fot-best",null);if(!BESTD||!BESTD.k)BESTD={k:{},l:{}};
+function meetEnemy(e){const L=lookOf(e),id=e.kind==="big"?L:e.kind;let ch=false;
+  if(!BESTD.k[id]){BESTD.k[id]=Date.now();ch=true}if(L!==id&&LOOK_NAMES[L]&&!BESTD.l[L]){BESTD.l[L]=1;ch=true}if(ch)LS.set("fot-best",BESTD)}
+const spdWord=v=>v>=2?"very fast":v>=1.6?"fast":v>=1.3?"normal speed":v>=1?"slow":"very slow";
+function renderBestStrip(){const n=BEST.filter(b=>BESTD.k[b.id]).length;
+  $("bBest").innerHTML=`<span class="tro">📖</span><span class="mid"><span class="top"><b>Enemy guide</b><span>${n} / ${BEST.length}</span></span><span class="ach-bar"><i style="width:${(100*n/BEST.length).toFixed(1)}%"></i></span><span class="nx">${n<BEST.length?"New enemies are added the first time you meet them":"You have met every enemy"}</span></span>`}
+function bestPic(id,look,on){const c=document.createElement("canvas");c.width=96;c.height=96;const x=c.getContext("2d");x.imageSmoothingEnabled=false;
+  const big=["tyrant","king","boss"].includes(id),kind=["tyrant","king"].includes(id)?"big":id,fl=id==="fly"||id==="balloon";
+  const e={kind,look:look||(["tyrant","king"].includes(id)?id:id==="fly"?"fly":undefined),fly:fl,boss:["mini","boss","big"].includes(kind),lvl:1,x:48/T-1,y:(big?74:id==="balloon"?78:62)/T-1,off:0,ph:1,hitT:0,hp:1,maxHp:1,slowT:0,age:9,noBar:true};
+  if(!e.look)e.look=id;const us=U;U=(big?0.75:id==="mini"?1:1.25)*3;try{drawEnemy(x,e,0)}finally{U=us}
+  if(!on){x.globalCompositeOperation="source-in";x.fillStyle="rgba(37,50,37,.5)";x.fillRect(0,0,96,96);c.title="Not met yet"}return c}
+function renderBest(){const n=BEST.filter(b=>BESTD.k[b.id]).length;$("bestSum").textContent=`${n} of ${BEST.length} enemies met. Locked ones appear here the first time they show up in a game.`;
+  const box=$("bestList");box.innerHTML="";const g=document.createElement("div");g.className="best-grid";box.appendChild(g);
+  for(const b of BEST){const on=!!BESTD.k[b.id],el=document.createElement("div");el.className="best"+(on?"":" locked");el.appendChild(bestPic(b.id,null,on));
+    const bd=document.createElement("div");bd.className="bd";el.appendChild(bd);
+    if(!on){bd.innerHTML=`<b>???</b><p class="also">Not met yet.</p>`;g.appendChild(el);continue}
+    const also=Object.keys(BESTD.l).filter(l=>LOOK_KIND[l]===b.id).map(l=>LOOK_NAMES[l]);
+    bd.innerHTML=`<b></b><div class="st"><span>${b.hp===1?"Base health":`Health ×${b.hp}`}</span><span>${spdWord(b.spd)}</span><span>${b.fly?"Flying":"Ground"}</span><span>${b.lives||1} ${b.lives===1||!b.lives?"life":"lives"} if it leaks</span></div><p></p><p class="tip"></p>${also.length?`<p class="also"></p>`:""}`;
+    bd.querySelector("b").textContent=b.n;bd.querySelectorAll("p")[0].textContent=b.d;bd.querySelector(".tip").textContent="Counter: "+b.tip;if(also.length)bd.querySelector(".also").textContent="Also seen as: "+also.join(", ");
+    g.appendChild(el)}}
+function openBest(){renderBest();$("bestOv").hidden=false;$("bestOv").scrollTop=0}
 // achievements UI: strip on the start page, full list in an overlay
 let achF="all";
 const fmtN=n=>Math.floor(n).toLocaleString("en-US");
@@ -2354,7 +2419,7 @@ function drawEnemy(c,e,t){
   paintEnemy(L,r,h,e,e.fly?0:Math.abs(Math.sin(e.ph))*1,t);
   if(e.slowT>0&&!e.fly)r(-6,0,12,1,"#9fd8f0");
   if(e.hasteT>0)r(-7,-1,2,1,"#7cc957");
-  if(e.dig>0||(e.kind==="ghost"&&e.age<2))return; // no health bar while it can't be hit
+  if(e.noBar||e.dig>0||(e.kind==="ghost"&&e.age<2))return; // no health bar while it can't be hit
   // health bar
   const w=Math.max(22,T*0.6*sc*0.8),hy=py-(LOOK_TOP[L]||(e.fly?10:9))*u-6-(e.boss?2*u:0);
   c.fillStyle="#253225";c.fillRect(px-w/2-1,hy-1,w+2,6);
@@ -2622,6 +2687,7 @@ cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
   if(!$("achOv").hidden){$("achOv").hidden=true;return true}
+  if(!$("bestOv").hidden){$("bestOv").hidden=true;return true}
   if(!$("profOv").hidden){if(profEdit){profEdit=null;renderProfs()}else $("profOv").hidden=true;return true}
   if(!$("setOv").hidden){$("setOv").hidden=true;return true}
   if(!$("unlockOv").hidden){$("ulGo").click();return true}
@@ -3114,7 +3180,7 @@ function mapPreview(m,d){
   return c;
 }
 function renderMenu(){
-  renderAchStrip();
+  renderAchStrip();renderBestStrip();
   $("bStoryCont").hidden=!LS.get("fot-story",null);renderChalCont();
   const dt=$("diffTabs");dt.innerHTML="";
   DIFFS.forEach((D,d)=>{const b=document.createElement("button");b.className="tab";const un=diffUnlocked(d);b.disabled=!un;b.setAttribute("aria-pressed",d===menuD);
@@ -3282,7 +3348,7 @@ function openMenu(resumable){
 $("bResume").onclick=()=>{$("menu").hidden=true;$("inGameRow").hidden=true};
 $("bRestart").onclick=()=>{if(!restartArm){restartArm=true;$("bRestart").textContent="Tap again: start this map over";setTimeout(()=>{if(restartArm){restartArm=false;$("bRestart").textContent="↺ Restart map"}},3500);return}
   restartArm=false;const d=G.d,m=G.m;clearChal();$("menu").hidden=true;newGame(d,m)};
-$("cardsSkip").onclick=skipCard;$("bAch").onclick=openAch;$("achClose").onclick=()=>{$("achOv").hidden=true};
+$("cardsSkip").onclick=skipCard;$("bAch").onclick=openAch;$("bBest").onclick=openBest;$("bestClose").onclick=()=>{$("bestOv").hidden=true};$("bestOv").addEventListener("click",ev=>{if(ev.target.id==="bestOv")$("bestOv").hidden=true});$("achClose").onclick=()=>{$("achOv").hidden=true};
 $("achTabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{achF=b.dataset.f;renderAch()});
 $("achOv").addEventListener("click",ev=>{if(ev.target.id==="achOv")$("achOv").hidden=true});
 let storyArm=false;
@@ -3367,7 +3433,7 @@ $("bPlay").onclick=()=>{if(!mapUnlocked(menuD,menuM))return;
 $("bChalCont").onclick=()=>{$("menu").hidden=true;loadChal()};
 let resetArm=false;
 $("bReset").onclick=()=>{if(!resetArm){resetArm=true;$("bReset").textContent="Click again to erase";setTimeout(()=>{resetArm=false;$("bReset").textContent="Reset progress"},3000);return}
-  progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);ACH={u:{},c:{}};saveAch();menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
+  progress={cleared:{}};personal={};LS.set("pk-progress",progress);LS.set("pk-scores",personal);ACH={u:{},c:{}};saveAch();BESTD={k:{},l:{}};LS.set("fot-best",BESTD);menuD=0;menuM=0;resetArm=false;$("bReset").textContent="Reset progress";renderMenu()};
 
 newGame(0,0,{noGuide:true});
 if(location.hash==="#stylebook")setTimeout(()=>openStylebook(),0);
