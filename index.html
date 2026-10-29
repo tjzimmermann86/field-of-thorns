@@ -243,6 +243,11 @@ body.compact #mini{width:140px}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
 #soundOv{z-index:31}
 #setOv{z-index:25}
+#legalOv{z-index:27;align-items:flex-start;overflow:auto}
+.legal h3{margin:16px 0 4px;font-size:21px}.legal p,.legal li{font-size:16px;line-height:1.35;margin:4px 0}.legal ul{margin:4px 0;padding-left:20px}
+.legal .ph{background:#fff2b0;outline:2px dashed var(--gold);padding:0 3px}
+.legal-foot{text-align:center;margin-top:12px}
+.linkbtn{background:none;border:0;padding:2px 4px;font:inherit;font-size:16px;color:var(--muted);text-decoration:underline;cursor:pointer}
 #mgOv{z-index:28;align-items:flex-start;overflow:auto}
 @media (max-height:540px){#mgOv{align-items:center}#mgBox{max-width:96vw!important;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:12px;align-items:center;padding:10px 12px}
   #mgBox h2{font-size:22px!important}#mgLine{font-size:15px!important}#mgCv{max-height:58vh;width:auto!important;max-width:100%!important}}
@@ -521,6 +526,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
         <p class="hint" style="margin:0">Test games are not ranked and unlock nothing. In the game, the <b>+¤1000</b> button adds gold and the speed button goes up to 5x. Starting later gives you gold to build with.</p>
       </div>
     </div>
+    <button class="btn" id="bLegal">§ Legal &amp; privacy</button>
     <button class="btn warn" id="bReset">Reset progress</button>
   </div>
   <div class="row" style="margin-top:16px"><button class="btn go" id="setClose">Done</button></div>
@@ -552,6 +558,11 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div id="mgMsg" style="text-align:center;font-size:20px;min-height:24px"></div>
   <div class="row" style="justify-content:center;margin-top:6px"><button class="btn go" id="mgGo">Start</button></div>
 </div></div></div>
+<div class="ov" id="legalOv" hidden><div class="modal px-box legal" style="max-width:720px;background:var(--panel)">
+  <h2 style="font-family:var(--f-ui);font-weight:400;font-size:30px">Impressum &amp; Datenschutz</h2>
+  <div id="legalBody"></div>
+  <div class="row" style="margin-top:14px"><button class="btn go" id="legalClose">Done</button></div>
+</div></div>
 <div class="ov" id="styleOv" hidden><div class="modal px-box" id="styleBox"></div></div>
 <div id="rotate"><b>Turn your phone sideways</b><span class="hint">Field of Thorns plays in landscape so the map is big enough to tap.</span></div>
 <div class="ov" id="menu">
@@ -579,11 +590,12 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div class="sec px-box" style="background:var(--panel2);min-width:0">
         <h3>Ranking <span class="label" id="lbFor"></span></h3>
         <div class="tabs" id="lbTabs" style="margin-bottom:8px"><button class="tab" id="lbP" aria-pressed="true" style="min-width:0"><b>Personal</b></button><button class="tab" id="lbO" aria-pressed="false" style="min-width:0"><b>Overall</b></button></div>
-        <label id="lbNameRow" class="hint" hidden style="display:flex;gap:6px;align-items:center;margin-bottom:8px">Your name <input id="lbName" maxlength="12" placeholder="Thornwarden" style="font:inherit;font-size:17px;flex:1;min-width:0;padding:2px 6px;border:2px solid var(--ink);background:var(--panel)"></label>
+        <label id="lbNameRow" class="hint" hidden style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap" title="Shown publicly in the online ranking">Your name <input id="lbName" maxlength="12" placeholder="Thornwarden" style="font:inherit;font-size:17px;flex:1;min-width:0;padding:2px 6px;border:2px solid var(--ink);background:var(--panel)"><small style="flex-basis:100%;font-size:14px">Shown publicly in the online ranking.</small></label>
         <div class="lb" id="lbList"></div>
       </div>
     </div>
     </div>
+    <div class="legal-foot"><button class="linkbtn" id="bLegalFoot">Impressum · Datenschutz</button></div>
   </div>
 </div>
 
@@ -1966,6 +1978,29 @@ function mgCheck(){if(!G||!G.story||G.over||MG)return;if(!$("cardsOv").hidden||!
   if(!G.camps[3].alive&&!dn.bow){startMG("bow",()=>{gain(C({g:200}));say("greta","Ha! Not one of them got away. Keep the crossbow money: +200 gold.");checkObjective()});return}
   if(G.obj>=4&&!dn.lantern){startMG("lantern",()=>{say("wren","The road is lit! Now we can see them coming.")});return}
   if(G.obj>=5&&!dn.potion){startMG("potion",()=>{const c=G.camps[7];if(c.alive){c.hp=Math.round(c.hp*0.75)}say("greta","The potion is eating through the gate! Slimehold's walls lost a quarter of their strength.")});return}}
+
+// ---------- Impressum and privacy notice (German law: § 5 DDG, GDPR). Fill in the placeholders before publishing. ----------
+const LEGAL={name:"Thomas Zimmermann",street:"[Straße und Hausnummer]",city:"[PLZ und Ort]",country:"Deutschland",email:"[E-Mail-Adresse]",dbRegion:"[Region der Upstash-Datenbank, z. B. EU (Frankfurt)]",date:"Oktober 2026"};
+function legalHtml(){const L=LEGAL,ph=v=>/^\[/.test(v)?`<span class="ph">${v}</span>`:v,adr=`${L.name}<br>${ph(L.street)}<br>${ph(L.city)}<br>${L.country}`;
+  return `<h3>Impressum</h3><p>Angaben gemäß § 5 DDG</p><p>${adr}</p><p>E-Mail: ${ph(L.email)}</p>
+  <p>Field of Thorns ist ein privates, nicht-kommerzielles Hobbyprojekt. Es gibt keine Werbung, keine Käufe und kein Konto.</p>
+  <h3>Datenschutzerklärung</h3>
+  <p><b>Verantwortlich</b> für die Datenverarbeitung im Sinne der DSGVO: ${L.name}, Anschrift wie oben, E-Mail: ${ph(L.email)}.</p>
+  <p><b>Kurz gesagt:</b> Das Spiel setzt keine Cookies, nutzt kein Tracking, keine Analyse-Dienste und keine Werbung. Die Schriftarten sind im Spiel enthalten; es werden keine Inhalte von Google oder anderen Dritten nachgeladen.</p>
+  <h3>1. Hosting</h3>
+  <p>Die Web-Version wird bei Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA gehostet. Beim Aufruf verarbeitet Vercel technisch notwendige Daten wie IP-Adresse, Zeitpunkt, aufgerufene Datei und Browser-Angaben in Server-Logs, um die Seite auszuliefern und vor Missbrauch zu schützen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse am sicheren Betrieb). Vercel ist unter dem EU-US Data Privacy Framework zertifiziert; die Übermittlung in die USA stützt sich darauf (Art. 45 DSGVO).</p>
+  <h3>2. Speicher im Browser (Local Storage)</h3>
+  <p>Spielstände, Spielerprofile, Einstellungen, Achievements und der Gegnerguide werden nur im Speicher deines Browsers auf deinem Gerät abgelegt. Sie werden nicht an uns übertragen. Diese Speicherung ist für das Spiel unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und braucht daher keine Einwilligung. Löschen kannst du sie jederzeit über „Settings → Reset progress“, durch Löschen eines Profils oder über die Browser-Einstellungen.</p>
+  <h3>3. Online-Rangliste</h3>
+  <p>Wenn du eine Map oder die Story beendest, werden für die öffentliche Rangliste gespeichert: der von dir eingegebene Spielername, eine zufällige Spieler-ID (ohne Bezug zu deiner Person), Punktzahl, erreichte Runde, Spielzeit und ob du gewonnen hast. Der Name und die Ergebnisse sind für alle Spieler sichtbar. Wähle daher bitte keinen echten Namen, wenn du das nicht möchtest.</p>
+  <p>Die Daten liegen in einer Datenbank bei Upstash, Inc. (Redis), angebunden über Vercel, Region: ${ph(L.dbRegion)}. Grundlage der Verarbeitung durch Upstash ist deren Auftragsverarbeitungsvertrag mit Standardvertragsklauseln. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer gemeinsamen Rangliste). Die Einträge bleiben gespeichert, bis du ihre Löschung verlangst oder die Rangliste zurückgesetzt wird. Für eine Löschung genügt eine E-Mail mit deinem Spielernamen.</p>
+  <h3>4. Deine Rechte</h3>
+  <ul><li>Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20)</li>
+  <li>Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21 DSGVO)</li>
+  <li>Beschwerde bei einer Datenschutz-Aufsichtsbehörde (Art. 77 DSGVO)</li></ul>
+  <p>Schreib dafür einfach an ${ph(L.email)}.</p>
+  <p class="hint">Stand: ${L.date}</p>`}
+function openLegal(){$("legalBody").innerHTML=legalHtml();$("setOv").hidden=true;$("legalOv").hidden=false;$("legalOv").scrollTop=0}
 // achievements UI: strip on the start page, full list in an overlay
 let achF="all";
 const fmtN=n=>Math.floor(n).toLocaleString("en-US");
@@ -2810,6 +2845,7 @@ cv.addEventListener("dblclick",ev=>{
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
+  if(!$("legalOv").hidden){$("legalOv").hidden=true;return true}
   if(!$("mgOv").hidden)return true; // story challenges have to be played
   if(!$("achOv").hidden){$("achOv").hidden=true;return true}
   if(!$("bestOv").hidden){$("bestOv").hidden=true;return true}
@@ -3479,7 +3515,7 @@ function openMenu(resumable){
 $("bResume").onclick=()=>{$("menu").hidden=true;$("inGameRow").hidden=true};
 $("bRestart").onclick=()=>{if(!restartArm){restartArm=true;$("bRestart").textContent="Tap again: start this map over";setTimeout(()=>{if(restartArm){restartArm=false;$("bRestart").textContent="↺ Restart map"}},3500);return}
   restartArm=false;const d=G.d,m=G.m;clearChal();$("menu").hidden=true;newGame(d,m)};
-$("cardsSkip").onclick=skipCard;$("mgGo").onclick=mgGo;$("mgCv").addEventListener("pointerdown",mgTap);$("bAch").onclick=openAch;$("bBest").onclick=openBest;$("bestClose").onclick=()=>{$("bestOv").hidden=true};$("bestOv").addEventListener("click",ev=>{if(ev.target.id==="bestOv")$("bestOv").hidden=true});$("achClose").onclick=()=>{$("achOv").hidden=true};
+$("cardsSkip").onclick=skipCard;$("bLegal").onclick=openLegal;$("bLegalFoot").onclick=openLegal;$("legalClose").onclick=()=>{$("legalOv").hidden=true};$("legalOv").addEventListener("click",ev=>{if(ev.target.id==="legalOv")$("legalOv").hidden=true});$("mgGo").onclick=mgGo;$("mgCv").addEventListener("pointerdown",mgTap);$("bAch").onclick=openAch;$("bBest").onclick=openBest;$("bestClose").onclick=()=>{$("bestOv").hidden=true};$("bestOv").addEventListener("click",ev=>{if(ev.target.id==="bestOv")$("bestOv").hidden=true});$("achClose").onclick=()=>{$("achOv").hidden=true};
 $("achTabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{achF=b.dataset.f;renderAch()});
 $("achOv").addEventListener("click",ev=>{if(ev.target.id==="achOv")$("achOv").hidden=true});
 let storyArm=false;
