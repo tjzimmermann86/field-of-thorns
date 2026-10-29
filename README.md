@@ -14,3 +14,7 @@ The whole game is a single static `index.html` — no build step. Deployed on Ve
 
 - Static game: `index.html`, plus `manifest.webmanifest`, `sw.js` and `icons/` so it can be installed to a phone home screen and played offline.
 - Shared ranking: `api/scores.js` (a Vercel serverless function). Connect an **Upstash Redis** store from the Vercel Marketplace to this project (Storage tab); it adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Redeploy afterwards. Without it the game still runs and keeps personal rankings in the browser.
+
+## Fonts
+
+VT323 (Peter Hull) and Silkscreen (Jason Kottke) are embedded in `index.html` as a Latin subset, so the game makes no requests to Google Fonts. Both are under the SIL Open Font License 1.1; the license texts are in `fonts/`.
