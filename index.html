@@ -716,7 +716,7 @@ const TOWERS={
   sniper:{n:"Sniper",key:"3",cost:{g:70,s:40},dmg:62,rate:0.4,range:4.0,rg:0.45,tg:"ga",kind:"Single",desc:"Huge range, slow heavy shots."},
   frost:{n:"Frost",key:"4",cost:{g:40,s:30},dmg:4,rate:1.0,range:2.0,rg:0.15,tg:"ga",kind:"Single",slow:0.35,desc:"Slows its target for 2 s."},
   tesla:{n:"Tesla",key:"5",cost:{g:70,s:40},dmg:18,rate:0.9,range:2.0,rg:0.15,tg:"ga",kind:"Chain",chain:3,desc:"Lightning jumps between enemies."},
-  mortar:{n:"Mortar",key:"6",cost:{g:60,s:40},dmg:22,rate:0.55,range:1.8,rg:0.13,tg:"g",kind:"AOE",splash:1.1,desc:"Shells splash a group on the ground."},
+  mortar:{n:"Mortar",key:"6",cost:{g:60,s:40},dmg:18,rate:0.55,range:1.8,rg:0.13,tg:"g",kind:"AOE",splash:0.95,desc:"Shells splash a group on the ground."},
   fire:{n:"Fire",key:"7",cost:{g:50,s:30},dmg:9,rate:2,range:1.3,rg:0.08,tg:"g",kind:"AOE",desc:"Burns every ground enemy around it."},
   flak:{n:"Flak",key:"8",cost:{g:40,w:30},dmg:15,rate:1.6,range:2.4,rg:0.17,tg:"a",kind:"Air",splash:0.8,desc:"Air only. Bursts hit nearby flyers."},
   hawk:{n:"Hawk",key:"9",cost:{g:60,w:40},dmg:46,rate:0.7,range:2.8,rg:0.22,tg:"a",kind:"Air",desc:"Air only. Homing missiles."},
@@ -1073,7 +1073,7 @@ function roundType(r){
 }
 function roundCount(r){return 5*Math.round((10+(r-1)*50/29)/5)} // 10 → 60, always ends in 0 or 5
 function unitHp(R){return 20*Math.pow(1+0.08*(R-1),1.75)*(1+0.0008*(R-1)*(R-1))} // health of one slime on the old 50-round curve
-const ramp=r=>1.1+0.7*(r-1)/(LAST-1); // 1.1 → 1.8: the 30-round maps were too easy, most of all late
+const ramp=r=>1.25+1.05*(r-1)/(LAST-1); // 1.25 → 2.3: the 30-round maps were too easy, most of all late
 function bossHp(r){return unitHp(eqR(r))*0.8*ramp(r)*DIFFS[G.d].hp*HP_BASE} // bosses keep their old size
 const gapOf=r=>0.65-0.25*(r-1)/(LAST-1),oldGap=R=>Math.max(0.16,0.62-R*0.009);
 // a slime is as much tougher as it comes later than on the old curve, so the towers need the same damage per second
