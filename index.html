@@ -49,6 +49,8 @@ button:focus-visible{outline:3px solid var(--ice);outline-offset:2px}
 .btn.goldb{background:var(--gold-soft)}
 .btn.warn{background:#f7d2cf}
 .btn.fixw{min-width:172px;text-align:left}
+.btn.ib{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;white-space:nowrap}.btn.ib svg{flex-shrink:0}
+.row.ibrow{flex-wrap:nowrap;gap:6px}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:3px 3px 0 var(--ink)}
 .label{font-family:var(--f-label);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 #app{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:10px;min-height:100%}
@@ -2723,6 +2725,7 @@ function statRows(type,L,showNext){
   if(base.splash)h+=`<span class="k">Splash radius</span><span class="v">${fmt1(base.splash)}</span><span class="n">${showNext&&nb?"→ "+fmt1(nb.splash):""}</span>`;
   return h;
 }
+const IC_UP='<svg viewBox="0 0 8 8" width="14" height="14" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M3 0h2v1h1v1h1v1h1v1H6v4H2V4H0V3h1V2h1V1h1z"/></svg>',IC_X='<svg viewBox="0 0 8 8" width="14" height="14" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M0 0h2v1h1v1h2V1h1V0h2v2H7v1H6v2h1v1h1v2H6V7H5V6H3v1H2v1H0V6h1V5h1V3H1V2H0z"/></svg>',IC_ALL='<svg viewBox="0 0 8 8" width="14" height="14" aria-hidden="true" shape-rendering="crispEdges"><path fill="currentColor" d="M0 0h5v1H1v4H0zM2 2h6v6H2zm1 1v4h4V3z"/></svg>';
 function clearSel(){sel=null;group=null;renderInfo()}
 function updBuildTip(){
   const el=$("buildTip");if(!el)return;
@@ -2750,7 +2753,7 @@ function renderInfo(live,hoverType){
     el.innerHTML=`<h3><button class="btn xbtn" id="iClose" aria-label="Close">✕</button>${n} × ${b.n} <span class="label">${b.wall?"selected":`Level ${L}/10 · group`}</span></h3>
       ${b.wall?"":`<div class="tbl"><span class="label">Each tower</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${L<10?"Next":""}</span>${statRows(sel.type,L,true)}</div>`}
       ${b.wall||b.eco?"":`<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Group damage this round</span><span class="v" id="gRd">${fmt(rd)}</span><span></span><span class="k">Group damage total</span><span class="v" id="gTot">${fmt(tot)}</span><span></span></div>`}
-      <div class="row">${b.wall?"":L<10?`<button class="btn go fixw" id="iUpAll" ${!afford(upCost(sel.type,L))?"disabled":""}><span class="kb">U</span> ${fmtC(cost)} Upgrade all</button>`:`<button class="btn go fixw" disabled>Max level</button>`}<button class="btn warn" id="iSellAll"><span class="kb">S</span> +${fmtC(back)} Sell all</button></div>
+      <div class="row ibrow">${b.wall?"":L<10?`<button class="btn go ib" id="iUpAll" title="Upgrade all (U)" aria-label="Upgrade all" ${!afford(upCost(sel.type,L))?"disabled":""}>${IC_UP} ${fmtC(cost)}</button>`:`<button class="btn go ib" disabled title="Max level">MAX</button>`}<button class="btn warn ib" id="iSellAll" title="Sell all (S)" aria-label="Sell all">${IC_X} +${fmtC(back)}</button></div>
       <p class="hint" style="margin:6px 0 0">Double-click selected every ${b.n}${b.wall?"":` at level ${L}`}. Upgrade all buys as many as you can afford. Click one tower to go back to a single selection.</p>`;
     if($("iUpAll"))$("iUpAll").onclick=upgradeGroup;$("iSellAll").onclick=sellGroup;$("iClose").onclick=clearSel;
     return;
@@ -2768,7 +2771,7 @@ function renderInfo(live,hoverType){
       <div class="tbl"><span class="label">Stat</span><span class="label" style="text-align:right">Now</span><span class="label" style="text-align:right">${tw.L<10?"Next":""}</span>${statRows(tw.type,tw.L,true)}</div>
       ${b.perRound?`<p class="hint" style="margin:8px 0 0">Pays its gold every time you clear a round.</p>`:b.eco?`<p class="hint" style="margin:8px 0 0">${G.round<1?"Starts producing when round 1 begins.":`Produces ${RNAME[b.prod].toLowerCase()} every second.`}</p>`:
       `<div class="tbl" style="margin-top:8px;padding-top:6px;border-top:2px dashed var(--line)"><span class="k">Damage this round</span><span class="v" id="iRd">${fmt(tw.rd)}</span><span></span><span class="k">Damage total</span><span class="v" id="iTot">${fmt(tw.total)}</span><span></span></div>`}
-      <div class="row">${tw.L<10?`<button class="btn go fixw" id="iUp" ${!afford(uc)?"disabled":""}><span class="kb">U</span> ${fmtC(uc)} Upgrade</button>`:`<button class="btn go fixw" disabled>Max level</button>`}<button class="btn warn" id="iSell"><span class="kb">S</span> +${fmtC(floorC(tw.spent,0.7))} Sell</button>${same>1?`<button class="btn" id="iAll">Select all ${same} at Lv ${tw.L}</button>`:""}</div>
+      <div class="row ibrow">${tw.L<10?`<button class="btn go ib" id="iUp" title="Upgrade (U)" aria-label="Upgrade" ${!afford(uc)?"disabled":""}>${IC_UP} ${fmtC(uc)}</button>`:`<button class="btn go ib" disabled title="Max level">MAX</button>`}<button class="btn warn ib" id="iSell" title="Sell (S)" aria-label="Sell">${IC_X} +${fmtC(floorC(tw.spent,0.7))}</button>${same>1?`<button class="btn ib" id="iAll" title="Select all ${same} at Lv ${tw.L}" aria-label="Select all ${same} at level ${tw.L}">${IC_ALL} ${same}</button>`:""}</div>
       <p class="hint" style="margin:6px 0 0"><span class="plus">+purple</span> is the bonus from your cards. Double-click a tower to select all of its kind at the same level.</p>`;
     if($("iUp"))$("iUp").onclick=()=>upgrade(tw);$("iSell").onclick=()=>sell(tw);$("iClose").onclick=clearSel;
     if($("iAll"))$("iAll").onclick=()=>{group=G.towers.filter(o=>o.type===tw.type&&o.L===tw.L);if(group.length<2)group=null;renderInfo()};
