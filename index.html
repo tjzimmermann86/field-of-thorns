@@ -208,7 +208,8 @@ h2{font-size:20px}
 .score{font-size:56px;color:#9a6a08}
 #toast{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:5;padding:10px 16px;font-size:22px;pointer-events:none;text-align:center;max-width:90%}
 #toast.air{background:#e3d8f6}
-#toast.big{top:38%;font-size:32px;padding:16px 24px;border-width:4px}
+#toast.big{top:50%;transform:translate(-50%,-50%);font-size:30px;padding:14px 22px;border-width:4px;max-width:80%;max-height:86%;overflow:hidden}
+@media (max-height:520px){#toast.big{font-size:22px;padding:10px 14px}}
 #toast.boss{background:#f7d2cf}
 .story-card{margin-top:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fffdf4;border-color:var(--gold)}
 .story-card b{display:block;font-size:26px;font-weight:400}
@@ -1120,13 +1121,12 @@ function pushMix(n,mix,hp,extra,seed){const list=[];for(const k in mix)if(k!=="r
   const R=rng(seed);for(let i=list.length-1;i>0;i--){const j=(R()*(i+1))|0;[list[i],list[j]]=[list[j],list[i]]}
   for(let p=0;p<(mix.rabbit||0)/10;p++){const at=(R()*(list.length+1))|0;list.splice(at,0,...Array(10).fill("rabbit"))}
   for(const k of list){const K=KINDS[k],q={kind:k,hp:hp*(K?K.hp:1),spd:K?K.spd:1.45,lives:1,bounty:1,...extra};if(K&&K.gold)q.bounty*=K.gold;if(k==="rabbit")q.gap=0.13;G.queue.push(q)}}
-function describeRound(r){
-  const t=roundType(r),n=roundCount(r),parts=[];
-  const mx=roundMix(r),mt=mixText(mx),nf=flyCount(r),nb=nf&&r>=12?Math.floor(nf*0.25):0;if(nf)parts.push(`${nf} flyers${nb?` (${nb} balloon goblins)`:""}`);parts.push(`${n-nf} ${nf?"ground":"enemies"}${mt?` (${mt})`:""}`);if(mx.rabbit)parts.push(`${mx.rabbit} rabbits`);
-  if(t.mini)parts.push(`${1+Math.floor(r/9)} mini-boss`);
-  if(t.boss)parts.push("boss");
-  if(t.big)parts.push(r===LAST?"THE SLIME KING":"the Bog Tyrant");
-  return parts.join(" + ");
+function describeRound(r){ // kept short: the round-start popup has to fit on a phone
+  const t=roundType(r),mx=roundMix(r),nf=flyCount(r),parts=[];
+  if(nf)parts.push(`${nf} flyers`);if(mx.rabbit)parts.push(`${mx.rabbit} rabbits`);
+  if(t.mini){const n=1+Math.floor(r/9);parts.push(`${n} mini-boss${n>1?"es":""}`)}
+  if(t.boss)parts.push("a boss");if(t.big)parts.push(r===LAST?"THE SLIME KING":"the Bog Tyrant");
+  return `${totalCount(r)} enemies`+(parts.length?`, incl. ${parts.join(", ")}`:"");
 }
 function shortRound(r){const t=roundType(r),p=[`R${r} · ${totalCount(r)}${t.fly?" + air":""}`];
   if(t.mini)p.push(`${1+Math.floor(r/9)} mini`);if(t.boss)p.push("boss");if(t.big)p.push("GIANT");return p.join(" + ")}
