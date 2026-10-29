@@ -1415,7 +1415,9 @@ function upgrade(tw){
   if(pausedBlock())return;
   if(tw.L>=10||TOWERS[tw.type].wall)return;const c=upCost(tw.type,tw.L);
   if(!afford(c)){toast(lacking(c),"boss");SND.play("err");return}
-  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;SND.play("up");achLevels();renderInfo();renderBuild();
+  pay(c);tw.spent=addC(tw.spent,c);tw.L++;tw.flash=0.4;SND.play("up");achLevels();
+  if(sel===tw){group=G.towers.filter(t=>t.type===tw.type&&t.L===tw.L);if(group.length<2)group=null} // joins the towers already at its new level
+  renderInfo();renderBuild();
 }
 
 // ---------- enemies ----------
