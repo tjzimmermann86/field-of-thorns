@@ -569,7 +569,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div class="modal px-box">
     <h2 id="cardsTitle">Round cleared — pick a card</h2>
     <div id="cardsGain" class="px-box" hidden style="display:inline-block;margin:6px 0 4px;padding:3px 10px;background:var(--gold-soft);font-size:21px"></div>
-    <div class="hint" id="cardsSub">Picking a card again levels it up (max 10). Levels 3 and 6 give a bonus step, MAX gives a double bonus — the tall pips. The timer is paused while you choose.</div>
+    <div class="hint" id="cardsSub">Picking a card again levels it up (max 10). Levels 3 and 6 give a bonus step, MAX gives a double bonus — the tall pips. The next round waits while you choose; the game clock keeps running.</div>
     <div class="cardrow" id="cardRow"></div>
     <div class="row" id="cardsSkipRow" style="margin-top:10px"><button class="btn" id="cardsSkip">Skip — take no card</button></div>
   </div>
@@ -700,7 +700,6 @@ const COIN='<i class="coin" aria-hidden="true"></i>',WOOD='<i class="coin wood" 
   const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'>${r}</svg>`;
   document.documentElement.style.setProperty("--"+name,`url("data:image/svg+xml,${encodeURIComponent(svg)}")`)}})();
 function drawIcon(c,name,x,y,size){const {px,col}=ICONS[name],u=size/8;px.forEach((row,yy)=>[...row].forEach((ch,xx)=>{const k=col[ch];if(k){c.fillStyle=k;c.fillRect(Math.round(x+xx*u),Math.round(y+yy*u),Math.ceil(u),Math.ceil(u))}}))}
-function drawCoin(c,x,y,size){drawIcon(c,"coin",x,y,size)}
 // centred canvas text: "¤" draws a coin, "‡" a log of wood, "†" a stone
 const MARK={"¤":"coin","‡":"wood","†":"stone"};
 function richText(c,str,x,y,px,fill,stroke){
@@ -717,7 +716,6 @@ const C=o=>({g:(o&&o.g)||0,w:(o&&o.w)||0,s:(o&&o.s)||0});
 const addC=(a,b)=>({g:a.g+b.g,w:a.w+b.w,s:a.s+b.s});
 const scaleC=(a,f)=>({g:Math.round(a.g*f),w:Math.round(a.w*f),s:Math.round(a.s*f)});
 const floorC=(a,f)=>({g:Math.floor(a.g*f),w:Math.floor(a.w*f),s:Math.floor(a.s*f)});
-const zeroC=a=>!a.g&&!a.w&&!a.s;
 function have(){return{g:G.gold,w:G.wood,s:G.stone}}
 function afford(c,extra){const h=extra?addC(have(),extra):have();return h.g>=c.g&&h.w>=c.w&&h.s>=c.s}
 function lacking(c,extra){const h=extra?addC(have(),extra):have();const miss=["g","w","s"].filter(k=>h[k]<c[k]).map(k=>RNAME[k].toLowerCase());return miss.length?`Not enough ${miss.join(" and ")}`:""}
@@ -965,12 +963,12 @@ function newGame(d,m,opt){
   const map=buildMap(m,d);
   G={d,m,map,occ:new Array(map.N).fill(null),gold:DIFFS[d].start.g+DIFFS[d].start.w+DIFFS[d].start.s,wood:0,stone:0,lives:20,round:0,
     phase:"countdown",timer:20,towers:[],enemies:[],projs:[],fx:[],queue:[],spawnT:0,
-    cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,type:{}},
+    cards:[],clv:{},mods:{dmg:0,range:0,rate:0,mine:0,wood:0,stone:0,luck:0,interest:0,slow:0,air:0,boss:0,discount:0,fortune:0,type:{}},
     free:{},stats:{kills:0,earned:0,spent:0,time:0,leaked:0},speed:1,paused:false,over:false,warned:0,seen:{},unlocked:{},woodMul:1,env:null,cam:{x:0,y:0,z:1}};
   G.test=TEST.on&&!(opt&&opt.guide);G.inf=G.test&&TEST.inf;G.log=[];
   if(G.test&&TEST.round>1){const r0=Math.min(LAST,TEST.round),R0=eqR(r0);G.round=r0-1;G.gold+=Math.round(120*R0*(1+R0*0.04))} // starting late: gold for the towers you would have built
   G.noSave=!!(opt&&opt.guide)||G.test;G.dist=dijkstra(map,G.occ,-1);G.path=tracePaths(map,G.dist,G.occ);G.base=Math.min(...map.ent.map(i=>G.dist[i]));G.used={};
-  sel=null;buildType=null;ghost=null;bgDirty=true;
+  sel=null;group=null;lockedView=null;buildType=null;ghost=null;bgDirty=true;
   cv.width=(map.cols+2)*T;cv.height=(map.rows+2)*T;
   renderBuild();renderInfo();renderCards();setSpeed(1);updHud(true);if(typeof renderTest==="function")renderTest();
   announceNext();
@@ -1060,6 +1058,7 @@ const KINDS={
 const SHIELDABLE=["arrow","gatling","sniper","hawk","frost"];
 const ARMOR_WEAK=["arrow","gatling","hawk"];
 // flying rounds: 40% flyers, the rest walks the maze as usual
+function totalCount(r){return roundCount(r)+(roundMix(r).rabbit||0)} // rabbit packs come on top
 function flyCount(r){return roundType(r).fly?Math.round(roundCount(r)*0.4):0}
 function roundMix(r){const n=roundCount(r)-flyCount(r),m={armor:0,split:0,heal:0,eat:0},R=eqR(r);
   if(R>=5)m.armor=Math.max(1,Math.floor(n*Math.min(0.25,0.08+0.004*R)));if(R>=8)m.split=Math.max(1,Math.floor(n*Math.min(0.18,0.06+0.003*R)));
@@ -1085,7 +1084,7 @@ function describeRound(r){
   if(t.big)parts.push(r===LAST?"THE SLIME KING":"the Bog Tyrant");
   return parts.join(" + ");
 }
-function shortRound(r){const t=roundType(r),p=[`R${r} · ${roundCount(r)}${t.fly?" + air":""}`];
+function shortRound(r){const t=roundType(r),p=[`R${r} · ${totalCount(r)}${t.fly?" + air":""}`];
   if(t.mini)p.push(`${1+Math.floor(r/9)} mini`);if(t.boss)p.push("boss");if(t.big)p.push("GIANT");return p.join(" + ")}
 function tagFor(r){const t=roundType(r);if(t.big)return[r===LAST?"The King":"Giant boss","danger"];if(t.boss)return["Boss","danger"];if(t.fly&&t.mini)return["Flying + mini-boss","air"];if(t.fly)return["Flying","air"];if(t.mini)return["Mini-boss","danger"];return["Ground",""]}
 function announceNext(){
@@ -1149,7 +1148,7 @@ function afterCard(){if(G.story){G.phase="story";renderInfo();return}G.phase="co
 // ---------- challenge save: taken between rounds, so a loaded game always continues with the next round ----------
 function saveChal(){
   if(!G||G.story||G.over||G.noSave||G.phase!=="countdown")return; // the How-to-play game never replaces a real save
-  LS.set("fot-chal",{v:3,d:G.d,m:G.m,round:G.round,unlocked:G.unlocked,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,
+  LS.set("fot-chal",{v:3,d:G.d,m:G.m,round:G.round,unlocked:G.unlocked,gold:G.gold,lives:G.lives,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,seen:G.seen,warned:G.warned,used:G.used,earlyN:G.earlyN||0,clean:G.clean||0,
     towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),at:Date.now()});
   renderChalCont();
 }
@@ -1157,7 +1156,7 @@ function clearChal(){LS.set("fot-chal",null);renderChalCont()}
 function loadChal(){
   const sv=LS.get("fot-chal",null);if(!sv||sv.v!==3)return;
   newGame(sv.d,sv.m,{noGuide:true});
-  Object.assign(G,{unlocked:sv.unlocked||{},round:sv.round,gold:sv.gold,lives:sv.lives,stats:sv.stats,clv:sv.clv||{},cards:sv.cards||[],free:sv.free||{},seen:sv.seen||{},warned:sv.warned||0});
+  Object.assign(G,{unlocked:sv.unlocked||{},round:sv.round,gold:sv.gold,lives:sv.lives,stats:sv.stats,clv:sv.clv||{},cards:sv.cards||[],free:sv.free||{},seen:sv.seen||{},warned:sv.warned||0,used:sv.used||Object.fromEntries(sv.towers.map(t=>[t.type,1])),earlyN:sv.earlyN||0,clean:sv.clean||0});
   for(const t of sv.towers){if(!TOWERS[t.type])continue;const tw={type:t.type,i:t.i,x:t.i%G.map.cols+0.5,y:((t.i/G.map.cols)|0)+0.5,L:t.L,cd:0,spent:C(t.spent),rd:0,total:t.total||0,mt:0,acc:0,flash:0};G.towers.push(tw);G.occ[t.i]=tw}
   G.dist=dijkstra(G.map,G.occ,-1);G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true;
   recomputeMods();G.phase="countdown";G.timer=10;
@@ -1235,7 +1234,7 @@ function offerCards(rare,title){
     const owned=Object.keys(G.clv).filter(id=>(id.startsWith("type-")||id.startsWith("free-"))&&avail(id.slice(5)));
     let ids=[...new Set([...base,"type-"+t,"free-"+f,...owned])].filter(open).filter(id=>G.story||(id!=="sawmill"&&id!=="stonecut"));
     // chance that an offer holds an uncommon card: 10% after round 1, rising to 30% by round 29, plus the Four-Leaf Clover
-    const prog=Math.min(1,Math.max(0,(G.round-1)/28)),tgt=Math.min(0.9,0.10+0.20*prog+(G.mods.fortune||0)),pu=1-Math.pow(1-tgt,1/3);
+    const prog=G.story?G.camps.filter(c=>!c.alive).length/(G.camps.length-1):Math.min(1,Math.max(0,(G.round-1)/28)),tgt=Math.min(0.9,0.10+0.20*prog+(G.mods.fortune||0)),pu=1-Math.pow(1-tgt,1/3);
     const cm=ids.filter(id=>!CARDS[id].unc),un=ids.filter(id=>CARDS[id].unc),take=a=>a.splice((Math.random()*a.length)|0,1)[0];
     pick=[];while(pick.length<3&&(cm.length||un.length)){const a=(Math.random()<pu&&un.length)||!cm.length?un:cm;pick.push(CARDS[take(a)])}
     if(Math.random()<0.08+(G.mods.fortune||0)/2){const r=shuffle(Object.values(CARDS).filter(c=>c.rare&&open(c.id)))[0];if(r)pick[2]=r}
@@ -1977,32 +1976,6 @@ function drawFoot(c,m,G){
 }
 // a long ridge: one continuous body that follows its tiles row by row, with a winding crest and rounded ends.
 // Where a tunnel goes through, the sides are straight cliffs so the cave mouths sit flush in the rock.
-function drawRange(c,m,G){
-  const u=U,X0=(G.x0+1)*T,Y0=(G.y0+1)*T,rowsN=G.y1-G.y0,len=rowsN*16,seed=G.x0*0.7+G.y0;
-  const px=(a,b,ww,col)=>{if(ww<=0)return;c.fillStyle=col;c.fillRect(Math.round(X0+a*u),Math.round(Y0+b*u),Math.ceil(ww*u),Math.ceil(u))};
-  const set=new Set(G.cells),C=[],HW=[],TUN=[];
-  for(let r=0;r<rowsN;r++){const y=G.y0+r;let a=1e9,b=-1,t=false;for(const j of G.cells)if(((j/m.cols)|0)===y){const x=j%m.cols;a=Math.min(a,x);b=Math.max(b,x);if(m.ter[j]===T_TUN)t=true}
-    C.push(((a+b+1)/2-G.x0)*16);HW.push((b-a+1)*8);TUN.push(t?{L:(a-G.x0)*16,R:(b+1-G.x0)*16}:null)}
-  const sm=f=>f*f*(3-2*f),at=(A,pos)=>{const i=Math.floor(pos),f=sm(pos-i),a=A[Math.max(0,Math.min(rowsN-1,i))],b=A[Math.max(0,Math.min(rowsN-1,i+1))];return a+(b-a)*f};
-  const edges=[];
-  for(let k=0;k<len;k++){
-    const pos=k/16-0.5,r=Math.floor(k/16),tn=TUN[r];
-    let cx=at(C,pos),hw=at(HW,pos)*(0.9+0.07*Math.sin(k*0.23+seed*2))+0.5*Math.sin(k*0.9);
-    const end=Math.min(k+1,len-k);if(end<12)hw*=Math.sqrt(end/12); // rounded at the top and at the bottom
-    let L=cx-hw,Rr=cx+hw;
-    if(tn&&k%16>=1&&k%16<=15){L=tn.L;Rr=tn.R} // a straight cliff where the cave is
-    edges.push([Math.round(L),Math.round(Rr)]);
-    const crest=Math.round(cx+hw*0.28*Math.sin(k*0.13+seed)),cr=Math.max(Math.round(L)+1,Math.min(Math.round(Rr)-1,crest));
-    px(Math.round(L),k,cr-Math.round(L),"#a99d90");px(cr,k,Math.round(Rr)-cr,"#837869");
-    px(cr-1,k,1,"#c6bcb0");
-    if((k+Math.round(seed))%7===0&&end>=6&&!tn){for(let j=1;j<5;j++){px(cr-1-j*2,k+j,2,"rgba(70,58,46,.35)");px(cr+j*2,k+j,2,"rgba(40,32,24,.35)")}}}
-  // outline: the sides, plus the steps where the edge moves between rows
-  for(let k=0;k<len;k++){const [L,Rr]=edges[k],p=edges[k-1],n=edges[k+1];
-    px(L-1,k,1,"#4e453c");px(Rr,k,1,"#4e453c");
-    if(!p)px(L,k,Rr-L,"#4e453c");else{if(L<p[0])px(L,k,p[0]-L,"#4e453c");if(Rr>p[1])px(p[1],k,Rr-p[1],"#4e453c")}
-    if(!n){px(L,k,Rr-L,"#4e453c");c.fillStyle="rgba(40,50,30,.22)";c.fillRect(Math.round(X0+(L+2)*u),Math.round(Y0+(k+1)*u),Math.ceil((Rr-L-4)*u),Math.ceil(2*u))}
-    else{if(L<n[0])px(L,k,n[0]-L,"#4e453c");if(Rr>n[1])px(n[1],k,Rr-n[1],"#4e453c")}}
-}
 // a peak (triangle-ish) or a hump (rounded), in tile units: centre x, foot y, half width, height
 function drawPeak(c,P){
   const u=U,H=Math.max(4,Math.round(P.ht*16)),hw=P.hw*16,cx=(P.cx+1)*T,by=(P.by+1)*T;
@@ -2137,22 +2110,6 @@ function waterLayer(m){
   // only the part inside the map is shown
   const out=document.createElement("canvas");out.width=W-2*P;out.height=H-2*P;out.getContext("2d").drawImage(cv,-P,-P);
   return m.wl=out;
-}
-function drawWater(c,m,i){
-  const x=i%m.cols,y=(i/m.cols)|0,ox=(x+1)*T,oy=(y+1)*T,r=(a,b,w,h,col)=>R(c,ox,oy,a,b,w,h,col);
-  const wet=(dx,dy)=>{const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=m.cols||Y>=m.rows)return true;const t=m.ter[Y*m.cols+X];return t===2||t===T_ROAD&&false};
-  const grass=(x+y)%2?"#a9d47c":"#a3cf75",bank="#4f9fc6",foam="#cfeefa";
-  r(0,0,16,16,"#7cc6e8");if((x*3+y*5)%3===0){r(3,5,5,1,"#b6e3f5")}else{r(8,9,4,1,"#b6e3f5")}
-  const U_=wet(0,-1),D_=wet(0,1),L_=wet(-1,0),R_=wet(1,0);
-  if(!U_){r(0,0,16,1,bank);r(0,1,16,1,foam)}if(!D_){r(0,15,16,1,bank);r(0,14,16,1,"#68b6dc")}
-  if(!L_){r(0,0,1,16,bank);r(1,0,1,16,foam)}if(!R_){r(15,0,1,16,bank);r(14,0,1,16,"#68b6dc")}
-  // outer corners: round them off with a quarter circle of grass
-  const outer=(cx,cy,sx,sy)=>{const R0=6;for(let py=0;py<R0;py++)for(let qx=0;qx<R0;qx++){const d=Math.hypot(R0-0.5-qx,R0-0.5-py);const X=sx>0?qx:15-qx,Y=sy>0?py:15-py;
-      if(d>R0)r(X,Y,1,1,grass);else if(d>R0-1)r(X,Y,1,1,bank);else if(d>R0-2)r(X,Y,1,1,sy>0?foam:"#68b6dc")}};
-  if(!U_&&!L_)outer(0,0,1,1);if(!U_&&!R_)outer(15,0,-1,1);if(!D_&&!L_)outer(0,15,1,-1);if(!D_&&!R_)outer(15,15,-1,-1);
-  // inner corners: the grass corner pokes in a little, rounded
-  const inner=(sx,sy)=>{const R0=3;for(let py=0;py<R0;py++)for(let qx=0;qx<R0;qx++){const d=Math.hypot(qx+0.5,py+0.5),X=sx>0?qx:15-qx,Y=sy>0?py:15-py;if(d<R0-0.6)r(X,Y,1,1,grass);else if(d<R0+0.4)r(X,Y,1,1,bank)}};
-  if(U_&&L_&&!wet(-1,-1))inner(1,1);if(U_&&R_&&!wet(1,-1))inner(-1,1);if(D_&&L_&&!wet(-1,1))inner(1,-1);if(D_&&R_&&!wet(1,1))inner(-1,-1);
 }
 // trees: leafy in the meadow, orange and red in autumn, snowy pines in winter, cacti in the desert, dead trees in the swamp
 function drawTree(c,ox,oy,th,i){
@@ -2501,7 +2458,7 @@ function updHud(){
   $("lblRound").textContent="Round";
   // Now: the current round and its total enemies. Next: preview of the coming round.
   const nx=G.round+1;
-  const cmp=document.body.classList.contains("compact"),rd=r=>cmp?shortRound(r):`R${r}: ${roundCount(r)} enemies`; // the tag after it says boss, flying, …
+  const cmp=document.body.classList.contains("compact"),rd=r=>cmp?shortRound(r):`R${r}: ${totalCount(r)} enemies`; // the tag after it says boss, flying, …
   if(G.phase==="wave"){setTag("curTag",G.round);setTxt("curTxt",rd(G.round))}
   else{$("curTag").hidden=true;setTxt("curTxt",G.round===0?(cmp?"Build":"Build your maze"):G.round>=LAST?"The swarm is broken":`R${G.round} cleared`)}
   if(nx<=50){setTag("nextTag",nx);setTxt("nextInfo",rd(nx))}else{$("nextTag").hidden=true;setTxt("nextInfo","???")}
