@@ -526,7 +526,7 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
       <div id="tOpts" style="margin-top:6px;display:flex;flex-direction:column;gap:6px">
         <label style="display:flex;gap:8px;align-items:center">Start at round <input id="tRound" type="number" min="1" max="30" value="1" style="width:64px;font:inherit;padding:1px 4px;border:2px solid var(--ink)"></label>
         <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tInf" style="width:18px;height:18px"> Infinite lives</label>
-        <p class="hint" style="margin:0">Test games are not ranked and unlock nothing. In the game, the <b>+¤1000</b> button adds gold and the speed button goes up to 5x. Starting later gives you gold to build with.</p>
+        <p class="hint" style="margin:0">Test mode opens every map and difficulty. Test games are not ranked and unlock nothing. In the game, the <b>+¤1000</b> button adds gold and the speed button goes up to 5x. Starting later gives you gold to build with.</p>
       </div>
     </div>
     <button class="btn" id="bLegal">§ Legal &amp; privacy</button>
@@ -798,8 +798,8 @@ let personal=LS.get("pk-scores",{});            // key -> [{score,...}]
 const mkey=(d,m)=>`d${d}m${m}`;
 const skey=(d,m)=>"s"+mkey(d,m); // rankings for the 30-round maps (old 50-round scores stay apart)
 const isCleared=(d,m)=>!!progress.cleared[mkey(d,m)];
-const diffUnlocked=d=>d<=2||isCleared(d-1,MAPSETS[d-1].length-1); // Easy, Normal and Hard are open from the start; the others open when the last map before them is cleared
-const mapUnlocked=(d,m)=>diffUnlocked(d)&&m<MAPSETS[d].length&&(m===0||isCleared(d,m-1));
+const diffUnlocked=d=>TEST.on||d<=2||isCleared(d-1,MAPSETS[d-1].length-1); // Easy, Normal and Hard are open from the start; the others open when the last map before them is cleared
+const mapUnlocked=(d,m)=>m<MAPSETS[d].length&&(TEST.on||diffUnlocked(d)&&(m===0||isCleared(d,m-1))); // test mode opens every map
 
 // ---------- seeded rng ----------
 function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
@@ -3575,7 +3575,7 @@ $("profNew").onclick=()=>{const used=PROF.list.map(p=>p.col),col=PCOLS.find(c=>!
 renderProfBtn();
 {let picked=false;try{picked=!!sessionStorage.getItem("fot-picked")}catch(e){}if(PROF.list.length>1&&!picked){try{sessionStorage.setItem("fot-picked","1")}catch(e){}renderProfs();$("profOv").hidden=false}}$("setClose").onclick=()=>{$("setOv").hidden=true};
 function renderTest(){$("tOn").checked=TEST.on;$("tRound").value=TEST.round;$("tInf").checked=TEST.inf;$("tOpts").hidden=!TEST.on;$("bTestGold").hidden=!(G&&G.test&&!G.story)}
-function saveTest(){TEST.round=Math.max(1,Math.min(LAST,parseInt($("tRound").value)||1));TEST.on=$("tOn").checked;TEST.inf=$("tInf").checked;RAW.set("fot-test",TEST);renderTest()}
+function saveTest(){TEST.round=Math.max(1,Math.min(LAST,parseInt($("tRound").value)||1));TEST.on=$("tOn").checked;TEST.inf=$("tInf").checked;RAW.set("fot-test",TEST);renderTest();if(!mapUnlocked(menuD,menuM)){menuD=0;menuM=0}renderMenu()}
 ["tOn","tRound","tInf"].forEach(id=>$(id).addEventListener("change",saveTest));
 $("bTestGold").onclick=()=>{if(!G||!G.test)return;G.gold+=1000;floatText(G.map.cols/2,1.5,"+¤1000 (test)","#9a6a08");renderBuild();updHud()};
 renderTest();
