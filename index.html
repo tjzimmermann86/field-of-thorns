@@ -240,6 +240,9 @@ body.compact #mini{width:140px}
 #styleOv{align-items:flex-start;overflow:auto;z-index:30}
 #soundOv{z-index:31}
 #setOv{z-index:25}
+#mgOv{z-index:28;align-items:flex-start;overflow:auto}
+@media (max-height:540px){#mgOv{align-items:center}#mgBox{max-width:96vw!important;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:12px;align-items:center;padding:10px 12px}
+  #mgBox h2{font-size:22px!important}#mgLine{font-size:15px!important}#mgCv{max-height:58vh;width:auto!important;max-width:100%!important}}
 #achOv{z-index:25;align-items:flex-start;overflow:auto}
 #bestOv{z-index:25;align-items:flex-start;overflow:auto}
 #bBest{margin-top:8px}
@@ -538,6 +541,14 @@ body.compact .xbtn{display:inline-block;float:right;padding:0 8px;font-size:20px
   <div id="bestList"></div>
   <div class="row" style="margin-top:14px"><button class="btn go" id="bestClose">Done</button></div>
 </div></div>
+<div class="ov" id="mgOv" hidden><div class="modal px-box" id="mgBox" style="max-width:580px;background:var(--panel)"><div id="mgTxt">
+  <span class="label">Story challenge</span><h2 id="mgTitle" style="font-family:var(--f-ui);font-weight:400;font-size:28px;margin:2px 0 8px"></h2>
+  <div style="display:flex;gap:10px;align-items:flex-start"><span class="av" id="mgPic" style="width:40px;height:40px;font-size:26px"></span><div><b id="mgWho"></b><p id="mgLine" style="margin:2px 0 0;font-size:17px"></p></div></div>
+  <p class="hint" id="mgHow" style="margin:10px 0 4px"></p><p class="hint" id="mgEasy" hidden style="margin:0 0 4px;color:#3d7f44"></p></div><div id="mgPlay">
+  <canvas id="mgCv" width="520" height="300" style="display:block;width:100%;max-width:520px;margin:6px auto;border:3px solid var(--ink);image-rendering:pixelated;touch-action:none;cursor:crosshair"></canvas>
+  <div id="mgMsg" style="text-align:center;font-size:20px;min-height:24px"></div>
+  <div class="row" style="justify-content:center;margin-top:6px"><button class="btn go" id="mgGo">Start</button></div>
+</div></div></div>
 <div class="ov" id="styleOv" hidden><div class="modal px-box" id="styleBox"></div></div>
 <div id="rotate"><b>Turn your phone sideways</b><span class="hint">Field of Thorns plays in landscape so the map is big enough to tap.</span></div>
 <div class="ov" id="menu">
@@ -1503,6 +1514,7 @@ function damage(e,amt,tw){
   if(!e.fly&&e.kind!=="shield"&&SHIELDABLE.includes(tw.type)){const pl=progressLeft(e);
     for(const o of G.enemies)if(o.kind==="shield"&&!o.dead&&!hidden(o)&&o!==e&&Math.hypot(o.x-e.x,o.y-e.y)<1.6&&progressLeft(o)<pl){G.fx.push({k:"pop",x:o.x-0.2,y:o.y-0.2,t:0.15,c:"#c3c9c8",s:0.6});e=o;break}}
   let a=amt*(e.kind==="golem"&&tw.type==="mortar"?2:1)*(e.fly?1+G.mods.air:1)*(e.boss?1+G.mods.boss:1)*(e.kind==="armor"&&ARMOR_WEAK.includes(tw.type)?0.4:1);
+  if(e.king&&!G.cageOK&&e.hp-a<e.maxHp*0.25){a=Math.max(0,e.hp-e.maxHp*0.25);if(!G.mg)startMG("cage",()=>{G.cageOK=true;e.hp=Math.max(1,e.hp-e.maxHp*0.2);floatText(e.x,e.y-1,"Mira kicks him!","#e86a9a",3)})}
   const hp0=e.hp,real=Math.min(a,e.hp);e.hp-=a;tw.rd+=real;tw.total+=real;e.hitT=0.08;
   if(e.hp<=0){
     e.dead=true;G.stats.kills++;SND.play(e.kind==="boss"||e.kind==="big"?"boss":"kill");
@@ -1738,6 +1750,9 @@ const ACHS=[
   {id:"storm",g:4,t:"s",n:"Storm Chaser",d:"Destroy a camp during a storm"},
   {id:"bandit",g:4,t:"s",n:"Bandit Buster",d:"Destroy the Bandit hideout before the Bog camp"},
   {id:"royal",g:4,t:"g",n:"Royal Pardon",d:"Beat the Slime King with 15 or more lives left"},
+  {id:"steady",g:4,t:"s",n:"Steady Hands",d:"Pick Bram's lock without a single miss"},
+  {id:"sharp",g:4,t:"s",n:"Crossbow Ace",d:"Shoot down 4 more flyers than needed with Greta's crossbow"},
+  {id:"tapper",g:4,t:"g",n:"Cage Breaker",d:"Break Mira's cage on the first try"},
   {id:"iron",g:4,t:"l",n:"Iron Thornwarden",d:"Finish the campaign without losing a life"},
   {id:"thrifty25",g:5,t:"s",n:"Thrifty",d:"End a game with more than 25,000 gold unspent"},
   {id:"hoard",g:5,t:"s",n:"Hoarder",d:"Own 5,000 wood and 5,000 stone at the same time"},
@@ -1867,6 +1882,87 @@ function renderBest(){const n=BEST.filter(b=>BESTD.k[b.id]).length;$("bestSum").
     el.querySelector("p").textContent=on?txt:id==="princess"?"The last one to find. You will meet her at the very end of the story.":"Meet this character in the story campaign.";if(!on)el.querySelector("p").className="also";
     g2.appendChild(el)}}
 function openBest(){renderBest();$("bestOv").hidden=false;$("bestOv").scrollTop=0}
+// ---------- story minigames: short tap challenges you must win to move on; after 5 and 10 misses they get easier ----------
+const MGS={
+  lock:{t:"Pick Bram's lock",who:"bram",line:"This lock is rusted shut! Help me pick it, Thornwarden.",how:"Tap when the pin is inside the green zone. Hit it 3 times.",
+    init(L){return{hits:0,miss:0,maxMiss:[2,3,5][L],x:0,dir:1,sp:[360,290,220][L],zw:[70,100,140][L],zx:0}},
+    zone(d){d.zx=30+Math.random()*(460-d.zw)},
+    start(d){this.zone(d)},
+    tick(d,dt){d.x+=d.dir*d.sp*dt;if(d.x>490){d.x=490;d.dir=-1}if(d.x<30){d.x=30;d.dir=1}},
+    tap(d){if(d.x>=d.zx&&d.x<=d.zx+d.zw){d.hits++;SND.play("coin");d.sp*=1.18;d.zw*=0.78;this.zone(d);d.flash={c:"#7cc957",t:0.25};if(d.hits>=3)return"win"}
+      else{d.miss++;SND.play("err");d.flash={c:"#cf463d",t:0.25};if(d.miss>=d.maxMiss)return"lose"}},
+    draw(c,d){c.fillStyle="#6e5a4e";c.fillRect(30,120,460,40);c.fillStyle="#7cc957";c.fillRect(d.zx,120,d.zw,40);c.fillStyle="#253225";c.fillRect(d.x-3,104,6,72);
+      for(let k=0;k<3;k++){c.fillStyle=k<d.hits?"#f4c84a":"#9aa6a8";c.fillRect(200+k*44,40,30,40);c.fillStyle="#253225";c.fillRect(212+k*44,58,6,14)}
+      mgText(c,`Misses ${d.miss}/${d.maxMiss}`,260,230)}},
+  bow:{t:"Greta's crossbow",who:"greta",line:"Admiral Blub is escaping with his flyers! Here, take my crossbow and shoot them down!",how:"Tap the flyers to shoot them down before the 15 seconds run out.",
+    init(L){return{hits:0,need:[8,6,5][L],time:15,sp:[160,125,95][L],r:[24,30,36][L],next:0,tg:[]}},
+    tick(d,dt){d.time-=dt;d.next-=dt;if(d.next<=0){d.next=0.55;const l=Math.random()<0.5;d.tg.push({x:l?-20:540,y:50+Math.random()*190,v:(l?1:-1)*d.sp*(0.8+Math.random()*0.5),ph:Math.random()*6})}
+      for(const o of d.tg){o.x+=o.v*dt;o.ph+=dt*8}d.tg=d.tg.filter(o=>!o.dead&&o.x>-40&&o.x<560);if(d.time<=0)return d.hits>=d.need?"win":"lose"},
+    tap(d,x,y){let hit=null;for(const o of d.tg){const yy=o.y+Math.sin(o.ph*0.5)*8;if(Math.hypot(o.x-x,yy-y)<=d.r){hit=o;break}}
+      if(hit){hit.dead=true;d.hits++;SND.play("kill");d.fx={x,y,t:0.2};if(d.hits>=d.need)return"win"}else SND.play("thorn")},
+    draw(c,d){c.fillStyle="#9fd8f0";c.fillRect(0,0,520,300);c.fillStyle="#6a9be0";c.fillRect(0,250,520,50);
+      for(const o of d.tg)mgSprite(c,"fly",o.x,o.y+Math.sin(o.ph*0.5)*8,3,o.ph);
+      if(d.fx&&d.fx.t>0){c.strokeStyle="#cf463d";c.lineWidth=3;c.strokeRect(d.fx.x-12,d.fx.y-12,24,24);d.fx.t-=1/60}
+      mgText(c,`Hits ${d.hits}/${d.need} · ${Math.max(0,d.time).toFixed(1)} s`,260,285)}},
+  lantern:{t:"Light the Highland road",who:"wren",line:"The Highland road is pitch dark. Light the lanterns before they go out, or we'll walk straight into their camps!",how:"A lantern flickers: tap it before it goes out. Light all 6.",
+    init(L){return{lit:[],miss:0,maxMiss:[2,3,5][L],win:[1.0,1.4,2.0][L],cur:-1,t:0,wait:0.6,pos:[[60,200],[140,150],[220,210],[300,140],[380,200],[460,150]]}},
+    tick(d,dt){if(d.cur<0){d.wait-=dt;if(d.wait<=0){const free=[0,1,2,3,4,5].filter(k=>!d.lit.includes(k));d.cur=free[(Math.random()*free.length)|0];d.t=d.win}}
+      else{d.t-=dt;if(d.t<=0){d.miss++;SND.play("err");d.cur=-1;d.wait=0.6;if(d.miss>=d.maxMiss)return"lose"}}},
+    tap(d,x,y){if(d.cur<0)return;const [px,py]=d.pos[d.cur];if(Math.hypot(px-x,py-20-y)<=34){d.lit.push(d.cur);d.cur=-1;d.wait=0.45;SND.play("coin");if(d.lit.length>=6)return"win"}},
+    draw(c,d){c.fillStyle="#1f2a3a";c.fillRect(0,0,520,300);c.fillStyle="#3a3a2a";c.beginPath();c.moveTo(0,240);for(const [x,y] of d.pos)c.lineTo(x,y+30);c.lineTo(520,200);c.lineTo(520,300);c.lineTo(0,300);c.fill();
+      d.pos.forEach(([x,y],k)=>{const on=d.lit.includes(k),fl=d.cur===k;c.fillStyle="#4a3f3a";c.fillRect(x-3,y-4,6,34);c.fillStyle="#253225";c.fillRect(x-12,y-36,24,30);
+        c.fillStyle=on?"#f4c84a":fl&&Math.sin(performance.now()/60)>0?"#f08a3a":"#3d4548";c.fillRect(x-8,y-32,16,22);
+        if(on){c.fillStyle="rgba(244,200,74,.18)";c.beginPath();c.arc(x,y-20,46,0,7);c.fill()}if(fl){c.strokeStyle="#fff2b0";c.lineWidth=2;c.strokeRect(x-14,y-38,28,34)}});
+      mgText(c,`Lit ${d.lit.length}/6 · misses ${d.miss}/${d.maxMiss}`,260,30,"#ffffff")}},
+  potion:{t:"Brew the gate potion",who:"greta",line:"Slimehold's gate is sealed with hardened slime. Brew a dissolving potion: add the ingredients in the right order!",how:"Watch the order the ingredients light up, then tap them in the same order. 3 brews.",
+    init(L){return{lens:[[3,4,5],[3,4,4],[3,3,3]][L],round:0,seq:[],inp:0,show:0,phase:"show",t:0.6,lit:-1}},
+    start(d){this.newSeq(d)},
+    newSeq(d){d.seq=Array.from({length:d.lens[d.round]},()=>(Math.random()*4)|0);d.inp=0;d.show=0;d.phase="show";d.t=0.7;d.lit=-1},
+    tick(d,dt){d.t-=dt;if(d.phase==="show"&&d.t<=0){if(d.lit>=0){d.lit=-1;d.t=0.2;d.show++;if(d.show>=d.seq.length){d.phase="input";}}else{d.lit=d.seq[d.show];d.t=0.55;SND.play("card")}}
+      if(d.phase==="input"&&d.t<=0)d.lit=-1},
+    tap(d,x,y){if(d.phase!=="input")return;const k=[0,1,2,3].find(i=>Math.hypot(80+i*120-x,170-y)<=44);if(k==null)return;d.lit=k;d.t=0.2;
+      if(k!==d.seq[d.inp]){SND.play("err");return"lose"}SND.play("coin");d.inp++;if(d.inp>=d.seq.length){d.round++;if(d.round>=d.lens.length)return"win";this.newSeq(d);d.t=1}},
+    draw(c,d){c.fillStyle="#3a2f4a";c.fillRect(0,0,520,300);const cols=["#cf463d","#5f9238","#3a8fc2","#f08a3a"],names=["Mushroom","Herb","Crystal","Ember"];
+      cols.forEach((col,i)=>{const x=80+i*120,on=d.lit===i;c.fillStyle=on?"#fff2b0":"#253225";c.beginPath();c.arc(x,170,on?46:42,0,7);c.fill();c.fillStyle=col;c.beginPath();c.arc(x,170,34,0,7);c.fill();mgText(c,names[i],x,236,"#ffffff",14)});
+      mgText(c,d.phase==="show"?"Watch…":`Your turn: ${d.inp}/${d.seq.length}`,260,60,"#ffffff");mgText(c,`Brew ${d.round+1}/${d.lens.length}`,260,90,"#c3c9c8",14)}},
+  cage:{t:"Break Mira's cage",who:"princess",line:"Thornwarden! The cage is rattling loose. Hit it, quick, before he gets up!",how:"Tap the cage as fast as you can until the bar is full. You have 8 seconds.",
+    init(L){return{taps:0,need:[40,30,22][L],time:8,shake:0}},
+    tick(d,dt){d.time-=dt;if(d.shake>0)d.shake-=dt;if(d.time<=0)return d.taps>=d.need?"win":"lose"},
+    tap(d){d.taps++;d.shake=0.08;SND.play("thorn");if(d.taps>=d.need)return"win"},
+    draw(c,d){c.fillStyle="#6f9a4f";c.fillRect(0,0,520,300);const s=d.shake>0?(Math.random()*6-3):0;
+      c.fillStyle="#4a5453";c.fillRect(200+s,60,120,150);c.fillStyle="#f2c9a0";c.fillRect(235+s,95,50,40);c.fillStyle="#f4c84a";c.fillRect(235+s,80,50,18);c.fillStyle="#e86a9a";c.fillRect(230+s,135,60,60);
+      c.fillStyle="#8e9796";for(let k=0;k<6;k++)c.fillRect(204+k*22+s,56,6,158);c.fillRect(196+s,52,128,10);c.fillRect(196+s,206,128,10);
+      c.fillStyle="#253225";c.fillRect(60,250,400,18);c.fillStyle="#f4c84a";c.fillRect(62,252,396*Math.min(1,d.taps/d.need),14);
+      mgText(c,`${d.taps}/${d.need} · ${Math.max(0,d.time).toFixed(1)} s`,260,290)}},
+};
+function mgText(c,s,x,y,col,size){c.fillStyle=col||"#253225";c.font=`${size||20}px "VT323",monospace`;c.textAlign="center";c.textBaseline="middle";c.fillText(s,x,y)}
+function mgSprite(c,look,x,y,u,ph){const r=(a,b,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x+a*u),Math.round(y+b*u),Math.ceil(w*u),Math.ceil(h*u))};paintEnemy(look,r,col=>col,{ph:ph||0},0,0)}
+let MG=null;
+function mgLevel(id){const f=(G.mgf&&G.mgf[id])||0;return f>=10?2:f>=5?1:0}
+function startMG(id,onWin){if(MG||!G)return;const def=MGS[id];G.mg=id;G.mgf=G.mgf||{};MG={id,def,onWin,state:"intro",d:null};
+  const p=CAST[def.who];$("mgPic").textContent=p.i;$("mgPic").style.background=p.c;$("mgWho").textContent=p.n;$("mgWho").style.color=p.c;$("mgLine").textContent=def.line;
+  $("mgTitle").textContent=def.t;$("mgHow").textContent=def.how;const L=mgLevel(id);$("mgEasy").hidden=!L;$("mgEasy").textContent=L===2?"Made much easier after 10 tries.":"Made easier after 5 tries.";
+  $("mgMsg").textContent="";$("mgGo").textContent="Start";$("mgGo").hidden=false;meetChar(def.who);mgDrawIdle();$("mgOv").hidden=false;SND.play("unlock")}
+function mgDrawIdle(){const c=$("mgCv").getContext("2d");c.fillStyle="#e8efd9";c.fillRect(0,0,520,300);mgText(c,"Press Start when you are ready",260,150)}
+function mgBegin(){const L=mgLevel(MG.id);$("mgEasy").hidden=!L;$("mgEasy").textContent=L===2?"Made much easier after 10 tries.":"Made easier after 5 tries.";MG.d=MG.def.init(L);if(MG.def.start)MG.def.start(MG.d);MG.state="play";$("mgGo").hidden=true;$("mgMsg").textContent="";MG.last=performance.now();requestAnimationFrame(mgFrame)}
+function mgEnd(res){const id=MG.id;MG.state="done";
+  if(res==="win"){SND.play("win");$("mgMsg").textContent="Well done!";$("mgGo").textContent="Continue";$("mgGo").hidden=false;(G.mgDone=G.mgDone||{})[id]=1;
+    if(id==="lock"&&MG.d.miss===0)ach("steady");if(id==="bow"&&MG.d.hits>=MG.d.need+4)ach("sharp");if(id==="cage"&&!(G.mgf[id]))ach("tapper");MG.won=true}
+  else{SND.play("lose");G.mgf[id]=(G.mgf[id]||0)+1;const f=G.mgf[id];$("mgMsg").textContent=f===5||f===10?"Not this time. It gets easier from now on.":"Not this time. Try again!";$("mgGo").textContent="Try again";$("mgGo").hidden=false}
+  saveStory()}
+function mgFrame(now){if(!MG||MG.state!=="play")return;const dt=Math.min(0.05,(now-MG.last)/1000);MG.last=now;
+  const r=MG.def.tick(MG.d,dt);const c=$("mgCv").getContext("2d");c.fillStyle="#e8efd9";c.fillRect(0,0,520,300);MG.def.draw(c,MG.d);
+  if(MG.d.flash&&MG.d.flash.t>0){c.globalAlpha=MG.d.flash.t*1.5;c.fillStyle=MG.d.flash.c;c.fillRect(0,0,520,300);c.globalAlpha=1;MG.d.flash.t-=dt}
+  if(r){mgEnd(r);return}requestAnimationFrame(mgFrame)}
+function mgTap(ev){if(!MG||MG.state!=="play")return;ev.preventDefault();const cv=$("mgCv"),b=cv.getBoundingClientRect(),x=(ev.clientX-b.left)*520/b.width,y=(ev.clientY-b.top)*300/b.height;
+  const r=MG.def.tap(MG.d,x,y);if(r)mgEnd(r)}
+function mgGo(){if(!MG)return;if(MG.state==="done"&&MG.won){const w=MG.onWin;$("mgOv").hidden=true;MG=null;G.mg=null;if(w)w();saveStory();return}mgBegin()}
+// story moments that call a minigame; also used to resume one after loading a saved campaign
+function mgCheck(){if(!G||!G.story||G.over||MG)return;if(!$("cardsOv").hidden||!$("storyOv").hidden||!$("menu").hidden){clearTimeout(mgCheck.t);mgCheck.t=setTimeout(mgCheck,600);return} // after the card pick
+  const dn=G.mgDone||{};
+  if(!G.camps[3].alive&&!dn.bow){startMG("bow",()=>{gain(C({g:200}));say("greta","Ha! Not one of them got away. Keep the crossbow money: +200 gold.");checkObjective()});return}
+  if(G.obj>=4&&!dn.lantern){startMG("lantern",()=>{say("wren","The road is lit! Now we can see them coming.")});return}
+  if(G.obj>=5&&!dn.potion){startMG("potion",()=>{const c=G.camps[7];if(c.alive){c.hp=Math.round(c.hp*0.75)}say("greta","The potion is eating through the gate! Slimehold's walls lost a quarter of their strength.")});return}}
 // achievements UI: strip on the start page, full list in an overlay
 let achF="all";
 const fmtN=n=>Math.floor(n).toLocaleString("en-US");
@@ -1910,7 +2006,7 @@ function frame(now){
   if(toastT>0){toastT-=rdt;if(toastT<=0)document.getElementById("toast").hidden=true}
   // the clock keeps running while you pick a card, so the time shows how long the whole level took
   if(G&&!G.over&&!G.paused&&document.getElementById("menu").hidden&&document.getElementById("storyOv").hidden)G.stats.time+=rdt;
-  if(G&&!G.over&&!G.paused&&G.phase!=="cards"&&document.getElementById("menu").hidden&&document.getElementById("storyOv").hidden){
+  if(G&&!G.over&&!G.paused&&!G.mg&&G.phase!=="cards"&&document.getElementById("menu").hidden&&document.getElementById("storyOv").hidden){
     const steps=G.speed;for(let s=0;s<steps;s++)step(rdt);
     for(const f of G.fx)if(f.k==="txt")f.t-=rdt; // numbers stay readable at 2x and 3x
   }
@@ -2711,6 +2807,7 @@ cv.addEventListener("dblclick",ev=>{
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 // Esc closes whatever window is open, topmost first
 function escClose(){
+  if(!$("mgOv").hidden)return true; // story challenges have to be played
   if(!$("achOv").hidden){$("achOv").hidden=true;return true}
   if(!$("bestOv").hidden){$("bestOv").hidden=true;return true}
   if(!$("profOv").hidden){if(profEdit){profEdit=null;renderProfs()}else $("profOv").hidden=true;return true}
@@ -2741,7 +2838,7 @@ document.addEventListener("keydown",ev=>{
 });
 function togglePause(){G.paused=!G.paused;document.body.classList.toggle("paused",G.paused);$("bPause").setAttribute("aria-pressed",G.paused);$("bPause").textContent=G.paused?"▶":"II"}
 $("bPause").onclick=togglePause;
-$("gNext").onclick=guideNext;$("stGo").onclick=()=>{$("storyOv").hidden=true;if(G&&G.story&&!G.started&&!G.talked){G.talked=true;OBJ_LINES[0].forEach(l=>say(...l))}};$("gSkip").onclick=endGuide;
+$("gNext").onclick=guideNext;$("stGo").onclick=()=>{$("storyOv").hidden=true;if(G&&G.story&&G.started)setTimeout(mgCheck,300);if(G&&G.story&&!G.started&&!G.talked){G.talked=true;OBJ_LINES[0].forEach(l=>say(...l))}};$("gSkip").onclick=endGuide;
 $("bSpd").onclick=()=>{const seq=G.test?[1,2,3,5]:[1,2,3];setSpeed(seq[(seq.indexOf(G.speed)+1)%seq.length])}; // compact: one button cycles 1x → 2x → 3x
 function setSpeed(v){G.speed=v;document.querySelectorAll("[data-sp]").forEach(o=>o.setAttribute("aria-pressed",+o.dataset.sp===v));$("bSpd").textContent=v+"x"}
 document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.sp));
@@ -2800,8 +2897,8 @@ const CAMP_DEFS=[
 const OBJ=[
   {t:"Hold the village",d:"The Bog camp in the north is sending raids. Survive three of them.",camps:[0],done:()=>!G.camps[0].alive||(G.camps[0].raids>=3&&!G.queue.length&&!G.enemies.length)},
   {t:"Destroy the Bog camp",d:"Push your border north until your towers reach the camp. Towers shoot camps when no slimes are near.",camps:[0],done:()=>!G.camps[0].alive},
-  {t:"Clear the Old Grove",d:"Two camps hide among the pines to the east. Their land is full of timber.",camps:[1,2],done:()=>!G.camps[1].alive&&!G.camps[2].alive},
-  {t:"Take the Lake fort",d:"The fort on the lake shore sends flyers over your thorns. Bring Flak or Hawk towers.",camps:[3],done:()=>!G.camps[3].alive},
+  {t:"Clear the Old Grove",d:"Two camps hide among the pines to the east, and Old Bram sits in a cage among them. Destroy both camps and free Bram: build any tower next to his cage.",camps:[1,2],done:()=>!G.camps[1].alive&&!G.camps[2].alive&&G.bram.freed},
+  {t:"Take the Lake fort",d:"The fort on the lake shore sends flyers over your thorns. Bring Flak or Hawk towers.",camps:[3],done:()=>!G.camps[3].alive&&!!(G.mgDone&&G.mgDone.bow)},
   {t:"Break the Highland camps",d:"Three camps guard the road to Slimehold. Expect mini-bosses.",camps:[4,5,6],done:()=>[4,5,6].every(k=>!G.camps[k].alive)},
   {t:"Storm Slimehold",d:"The Slime King's town. The Queen is tied up at the top of its tower.",camps:[7],done:()=>!G.camps[7].alive},
   {t:"Defeat the Slime King",d:"He has left his town with Princess Mira in a cage on his back. Stop him before he reaches the village.",camps:[],done:()=>G.kingDead},
@@ -2873,8 +2970,8 @@ function startEvent(k){const E=EVENTS[k];G.env={k,...E,left:E.t};say(...E.line);
 function tickEvents(dt){
   if(G.env){G.env.left-=dt;if(G.env.left<=0){if(G.env.k==="night"&&G.stats.leaked===G.nightLk)ach("night");toast(G.env.k==="night"?"Dawn breaks.":"The storm passes.");G.env=null}}
   else if(G.obj>=2){G.evT=(G.evT??170)-dt;if(G.evT<=0){G.evT=150+Math.random()*90;startEvent(Math.random()<0.5?"night":"storm")}}
-  const b=G.bram;if(b&&!b.freed&&G.towers.some(t=>Math.hypot(t.x-(b.x+0.5),t.y-(b.y+0.5))<=3.2)){b.freed=true;G.woodMul=0.75;renderBuild();
-    floatText(b.x+0.5,b.y,"Freed!","#3d7f44");if(G.camps[1].alive&&G.camps[2].alive)ach("bram");say("bram","Free at last! Thank you, Thornwarden. From now on my axe works for you: wood costs a quarter less.");saveStory()}
+  const b=G.bram;if(b&&!b.freed&&!G.mg&&G.towers.some(t=>Math.hypot(t.x-(b.x+0.5),t.y-(b.y+0.5))<=3.2))startMG("lock",()=>{b.freed=true;G.woodMul=0.75;renderBuild();
+    floatText(b.x+0.5,b.y,"Freed!","#3d7f44");if(G.camps[1].alive&&G.camps[2].alive)ach("bram");say("bram","Free at last! Thank you, Thornwarden. From now on my axe works for you: wood costs a quarter less.");checkObjective();saveStory()})
 }
 function drawBram(t){const b=G.bram;if(!b||b.freed)return;const ox=(b.x+1)*T,oy=(b.y+1)*T,r=(x,y,w,h,col)=>R(ctx,ox,oy,x,y,w,h,col);
   r(2,13,12,2,"rgba(0,0,0,.18)");r(5,6,6,7,"#c48a52");r(6,3,4,3,"#f2c9a0");r(6,2,4,1,"#7a4f28");r(7,4,1,1,"#253225");r(9,4,1,1,"#253225");r(5,9,6,1,"#cf463d");
@@ -2947,6 +3044,7 @@ function checkObjective(){
     if(woke){refreshGates();G.path=tracePaths(G.map,G.dist,G.occ);bgDirty=true}
     toast(`New objective: ${OBJ[G.obj].t}`,"",true);(OBJ_LINES[G.obj]||[]).forEach(l=>say(...l));saveStory();
   }
+  setTimeout(mgCheck,50); // after a card offer that may open right after this
 }
 function storyStep(dt){
   if(!G.started)return;
@@ -2971,7 +3069,7 @@ function storyHud(){
   $("bStart").disabled=G.started&&raidBonus()<=0;
   const tall=document.body.classList.contains("land"),bh=!G.started?(tall?"▶ Start<small>defense</small>":"Start"):tall?`▶ Raid<small>+${COIN}${raidBonus()}</small>`:`Raid now +${COIN}${raidBonus()}`;if($("bStart").innerHTML!==bh)$("bStart").innerHTML=bh;
   const key=G.obj+"|"+objProgress()+"|"+!!(G.bram&&G.bram.freed);if($("objBox").dataset.key!==key){$("objBox").dataset.key=key;
-    $("objBox").innerHTML=`<span class="label">Objective</span><b>${o.t}</b><p>${o.d}</p><div class="prog">${objProgress().replace(/^ · /,"")}</div>${G.bram&&!G.bram.freed&&G.obj>=2?'<p>Side quest: build any tower next to Old Bram\'s cage in the grove.</p>':""}<ol>${OBJ.map((x,k)=>k<G.obj?`<li class="done">${x.t}</li>`:k===G.obj?`<li class="cur">${x.t}</li>`:"").join("")}</ol>`}
+    $("objBox").innerHTML=`<span class="label">Objective</span><b>${o.t}</b><p>${o.d}</p><div class="prog">${objProgress().replace(/^ · /,"")}</div>${G.bram&&!G.bram.freed&&G.obj>2?'<p>Side quest: build any tower next to Old Bram\'s cage in the grove.</p>':""}<ol>${OBJ.map((x,k)=>k<G.obj?`<li class="done">${x.t}</li>`:k===G.obj?`<li class="cur">${x.t}</li>`:"").join("")}</ol>`}
 }
 // camera
 const DPR=()=>Math.min(2,window.devicePixelRatio||1);
@@ -3044,7 +3142,7 @@ function drawMini(){
 function saveStory(){
   if(!G||!G.story||G.over)return;
   LS.set("fot-story",{v:1,res:[G.gold,G.wood,G.stone],lives:G.lives,obj:G.obj,started:G.started,round:G.round,raidsTotal:G.raidsTotal||0,stats:G.stats,clv:G.clv,cards:G.cards,free:G.free,
-    unlocked:G.unlocked,woodMul:G.woodMul,bram:G.bram,evT:G.evT,owned:[...G.owned],camps:G.camps.map(c=>({hp:c.hp,alive:c.alive,active:c.active,raids:c.raids,t:c.t})),towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),cam:{x:G.cam.x,y:G.cam.y}});
+    unlocked:G.unlocked,woodMul:G.woodMul,bram:G.bram,evT:G.evT,mgDone:G.mgDone||{},mgf:G.mgf||{},cageOK:!!G.cageOK,owned:[...G.owned],camps:G.camps.map(c=>({hp:c.hp,alive:c.alive,active:c.active,raids:c.raids,t:c.t})),towers:G.towers.map(t=>({type:t.type,i:t.i,L:t.L,spent:t.spent,total:t.total})),cam:{x:G.cam.x,y:G.cam.y}});
 }
 addEventListener("pagehide",()=>saveStory());document.addEventListener("visibilitychange",()=>{if(document.hidden)saveStory()});
 function newStory(save){
@@ -3056,7 +3154,7 @@ function newStory(save){
     camps:CAMP_DEFS.map((d,k)=>({...d,k,cell:d.y*map.cols+d.x,zone:k+1,hp:d.hp,maxHp:d.hp,alive:true,active:d.stage===0,raids:0,t:d.stage===0?0:d.period,hit:0}))};
   if(save){
     [G.gold,G.wood,G.stone]=save.res;G.lives=save.lives;G.obj=save.obj;G.started=save.started;G.round=save.round;G.raidsTotal=save.raidsTotal;G.stats=save.stats;G.clv=save.clv||{};G.cards=save.cards||[];G.free=save.free||{};
-    G.owned=new Set(save.owned);G.unlocked=save.unlocked||{};G.woodMul=save.woodMul||1;G.bram=save.bram||G.bram;G.evT=save.evT;save.camps.forEach((s,k)=>Object.assign(G.camps[k],s));
+    G.owned=new Set(save.owned);G.unlocked=save.unlocked||{};G.woodMul=save.woodMul||1;G.bram=save.bram||G.bram;G.evT=save.evT;G.mgDone=save.mgDone||{};G.mgf=save.mgf||{};G.cageOK=!!save.cageOK;save.camps.forEach((s,k)=>Object.assign(G.camps[k],s));
     G.camps.forEach(c=>{if(!c.alive)for(let dy=-c.size;dy<=c.size;dy++)for(let dx=-c.size;dx<=c.size;dx++)map.ter[(c.y+dy)*map.cols+c.x+dx]=0});
     save.towers.forEach(t=>{const tw={type:t.type,i:t.i,x:t.i%map.cols+0.5,y:((t.i/map.cols)|0)+0.5,L:t.L,cd:0,spent:C(t.spent),rd:0,total:t.total||0,mt:0,acc:0,flash:0};G.towers.push(tw);G.occ[t.i]=tw});
     if(G.obj===6&&!G.kingDead)G.queue.push({kind:"big",hp:baseHp(36)*120,spd:0.55,lives:20,bounty:0,camp:7,lvl:40,king:true});
@@ -3378,7 +3476,7 @@ function openMenu(resumable){
 $("bResume").onclick=()=>{$("menu").hidden=true;$("inGameRow").hidden=true};
 $("bRestart").onclick=()=>{if(!restartArm){restartArm=true;$("bRestart").textContent="Tap again: start this map over";setTimeout(()=>{if(restartArm){restartArm=false;$("bRestart").textContent="↺ Restart map"}},3500);return}
   restartArm=false;const d=G.d,m=G.m;clearChal();$("menu").hidden=true;newGame(d,m)};
-$("cardsSkip").onclick=skipCard;$("bAch").onclick=openAch;$("bBest").onclick=openBest;$("bestClose").onclick=()=>{$("bestOv").hidden=true};$("bestOv").addEventListener("click",ev=>{if(ev.target.id==="bestOv")$("bestOv").hidden=true});$("achClose").onclick=()=>{$("achOv").hidden=true};
+$("cardsSkip").onclick=skipCard;$("mgGo").onclick=mgGo;$("mgCv").addEventListener("pointerdown",mgTap);$("bAch").onclick=openAch;$("bBest").onclick=openBest;$("bestClose").onclick=()=>{$("bestOv").hidden=true};$("bestOv").addEventListener("click",ev=>{if(ev.target.id==="bestOv")$("bestOv").hidden=true});$("achClose").onclick=()=>{$("achOv").hidden=true};
 $("achTabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{achF=b.dataset.f;renderAch()});
 $("achOv").addEventListener("click",ev=>{if(ev.target.id==="achOv")$("achOv").hidden=true});
 let storyArm=false;
